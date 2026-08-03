@@ -1,21 +1,18 @@
-# Bynex OS v0.8.0 – Tid & Lön 3.0
+# Bynex OS v0.9.0 – Material & Inköp 3.0
 
-## Ny modul
-- Realtidslön
-- Prognostiserad brutto- och nettolön
-- Ordinarie tid och övertid
-- Semester: intjänad, använd och kvarvarande
-- Sjukfrånvaro och VAB
-- Intjänad tjänstepension
-- Total arbetsgivarkostnad
-- Medarbetarvy och administratörsvy
-- AI Lönechef
-- AI-förberedd lönekörning med ett klick för attest
-- Förberett exportflöde mot ekonomisystem
+## Nytt
+- AI-genererade inköpsbehov
+- Sökning och statusfilter
+- Leverantörsjämförelse
+- Pris, lagersaldo och leveranstid
+- Ett klick för att godkänna order
+- Leveransflöde och leveranskalender
+- Restnoteringar och projektpåverkan
+- Materialkostnad per projekt i realtid
+- Projektlager och miniminivåer
 
-## Arkitektur
-Tid & Lön ligger nu i en egen modul:
-`components/modules/payroll/PayrollModule.tsx`
+## Modul
+`components/modules/materials/Materials.tsx`
 
 ## Starta
 ```bash

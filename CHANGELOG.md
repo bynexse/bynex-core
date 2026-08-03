@@ -1,10 +1,10 @@
 # Changelog
 
-## v0.8.2 – Icon Import Hotfix
-- Added missing `PanelTop` import.
-- Scanned all TSX modules for missing known Lucide icon imports.
-- Deduplicated named Lucide imports.
-- Retained the complete v0.8.1 syntax fixes and Tid & Lön 3.0.
+## v0.9.0 – Material & Inköp 3.0
+- Ny komplett material- och inköpsmodul.
+- AI-inköpsförslag och leverantörsjämförelse.
+- Ordergodkännande, leveransflöde och restnoteringar.
+- Materialkostnad per projekt.
 
-## v0.8.1 – Syntax Hotfix
-- Rebuilt truncated modular component functions.
+## v0.8.2
+- Korrigerade saknade Lucide-importer.

@@ -1,14 +1,12 @@
-# QA Report – Bynex OS v0.8.2
+# QA Report – Bynex OS v0.9.0
 
-- TSX files scanned: 17
-- Files patched: 1
-- Missing known Lucide imports after patch: 0
-- Duplicate named Lucide imports: 0
-- PanelTop import: verified
-- v0.8.1 syntax fixes retained: yes
-- Tid & Lön 3.0 retained: yes
+- TSX files checked: 17
+- Duplicate named imports: 0
+- Missing icons in Material module: 0
+- Default export: True
+- AI purchasing: True
+- Supplier comparison: True
+- Delivery flow: True
+- Project material cost: True
 - node_modules in ZIP: no
 - .next in ZIP: no
-
-Patched files:
-- `components/layout/Logo.tsx`: PanelTop
