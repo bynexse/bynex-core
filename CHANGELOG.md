@@ -1,11 +1,9 @@
 # Changelog
 
-## v0.6.0
-- Projektdetalj 3.0
-- Realtidshälsning
-- AI Projektchef
-- Projektets ekonomi, tidslinje, hälsa och live-läge
-- Utökad kontroll av ikonimporter
-
-## v0.5.0
-- Personal & UE 2.0
+## v0.7.0 – Modular Core Refactor
+- BynexDemo.tsx reducerad till appskal och navigation.
+- Alla produktmoduler flyttade till separata filer.
+- Delat UI-lager skapat.
+- Projektdata och realtidshälsning flyttade till lib.
+- Lucide-importer sammanslagna och deduplicerade.
+- Gamla konfigurationsrester borttagna.

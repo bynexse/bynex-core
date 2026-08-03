@@ -1,24 +1,22 @@
-# Bynex OS Demo v0.6.0
+# Bynex OS v0.7.0 – Modular Core
 
-## Nytt – Projektdetalj 3.0
-- Realtidsstyrd hälsning efter lokal tid
-- Projektheader och projektflikar
-- AI Projektchef
-- Budget, utfall, prognos, marginal och fakturering
-- Projekttidslinje
-- Projektets hälsopoäng
-- Live-läge för personal, UE, fordon och maskiner
+Den tidigare stora `BynexDemo.tsx` är nu uppdelad i separata produktmoduler.
 
-## Realtidshälsning
-- 05:00–09:59: God morgon
-- 10:00–12:59: God förmiddag
-- 13:00–16:59: God eftermiddag
-- 17:00–21:59: God kväll
-- 22:00–04:59: God natt
+## Struktur
+- `components/ui`
+- `components/layout`
+- `components/modules/dashboard`
+- `components/modules/projects`
+- `components/modules/people`
+- `components/modules/time`
+- `components/modules/operations`
+- `components/modules/materials`
+- `components/modules/connect`
+- `components/modules/commercial`
+- `lib`
 
 ## Starta
 ```bash
 npm install
 npm run dev
 ```
-Öppna http://localhost:3000
