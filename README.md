@@ -1,18 +1,17 @@
-# Bynex OS v0.9.0 – Material & Inköp 3.0
+# Bynex OS v1.0.0 – ÄTA 3.0
 
 ## Nytt
-- AI-genererade inköpsbehov
-- Sökning och statusfilter
-- Leverantörsjämförelse
-- Pris, lagersaldo och leveranstid
-- Ett klick för att godkänna order
-- Leveransflöde och leveranskalender
-- Restnoteringar och projektpåverkan
-- Materialkostnad per projekt i realtid
-- Projektlager och miniminivåer
+- AI-baserat snabbflöde för nya ÄTA
+- Pris, kostnad och marginal i realtid
+- Tid, material, foton och projektkoppling
+- SMS- och BankID-förberett signeringsflöde
+- Godkännande före start
+- Slutkvittens efter slutfört arbete
+- Fakturaklara underlag
+- Sökning, statusfilter och ÄTA-register
 
 ## Modul
-`components/modules/materials/Materials.tsx`
+`components/modules/commercial/ChangeOrders.tsx`
 
 ## Starta
 ```bash

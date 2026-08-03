@@ -1,10 +1,11 @@
 # Changelog
 
-## v0.9.0 – Material & Inköp 3.0
-- Ny komplett material- och inköpsmodul.
-- AI-inköpsförslag och leverantörsjämförelse.
-- Ordergodkännande, leveransflöde och restnoteringar.
-- Materialkostnad per projekt.
+## v1.0.0 – ÄTA 3.0
+- Komplett ny ÄTA-modul.
+- AI-skapat underlag.
+- Före- och eftersignering.
+- SMS/BankID-flöde.
+- Realtidsmarginal och fakturakö.
 
-## v0.8.2
-- Korrigerade saknade Lucide-importer.
+## v0.9.0 – Material & Inköp 3.0
+- AI-inköp, leverantörsjämförelse och leveransflöde.
