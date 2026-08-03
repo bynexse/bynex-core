@@ -1,13 +1,13 @@
-# QA Report – Bynex OS v1.0.0
+# QA Report – Bynex OS v1.1.0
 
 - TSX files checked: 17
 - Duplicate named imports: 0
-- Missing icons in ÄTA module: 0
+- Missing icons in Offert module: 0
 - Default export: True
-- AI creation flow: True
-- Before-start signature: True
-- Completion signature: True
-- SMS/BankID flow: True
-- Invoice flow: True
+- AI quote creation: True
+- Calculation view: True
+- Terms and signing: True
+- Digital customer flow: True
+- Project conversion: True
 - node_modules in ZIP: no
 - .next in ZIP: no

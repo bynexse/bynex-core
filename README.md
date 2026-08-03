@@ -1,17 +1,17 @@
-# Bynex OS v1.0.0 – ÄTA 3.0
+# Bynex OS v1.1.0 – Offert 3.0
 
 ## Nytt
-- AI-baserat snabbflöde för nya ÄTA
-- Pris, kostnad och marginal i realtid
-- Tid, material, foton och projektkoppling
-- SMS- och BankID-förberett signeringsflöde
-- Godkännande före start
-- Slutkvittens efter slutfört arbete
-- Fakturaklara underlag
-- Sökning, statusfilter och ÄTA-register
+- AI-offert från kort arbetsbeskrivning
+- Kalkyl för arbete, material och UE
+- Pris, täckning och marginal i realtid
+- Juridiska villkor och betalningsplan
+- Digital kundgranskning
+- SMS/e-post och BankID-förberedd signering
+- Automatisk omvandling från signerad offert till projekt
+- Offertregister, sökning och statusfilter
 
 ## Modul
-`components/modules/commercial/ChangeOrders.tsx`
+`components/modules/commercial/Quotes.tsx`
 
 ## Starta
 ```bash
