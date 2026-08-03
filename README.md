@@ -1,19 +1,21 @@
-# Bynex OS v0.7.0 – Modular Core
+# Bynex OS v0.8.0 – Tid & Lön 3.0
 
-Den tidigare stora `BynexDemo.tsx` är nu uppdelad i separata produktmoduler.
+## Ny modul
+- Realtidslön
+- Prognostiserad brutto- och nettolön
+- Ordinarie tid och övertid
+- Semester: intjänad, använd och kvarvarande
+- Sjukfrånvaro och VAB
+- Intjänad tjänstepension
+- Total arbetsgivarkostnad
+- Medarbetarvy och administratörsvy
+- AI Lönechef
+- AI-förberedd lönekörning med ett klick för attest
+- Förberett exportflöde mot ekonomisystem
 
-## Struktur
-- `components/ui`
-- `components/layout`
-- `components/modules/dashboard`
-- `components/modules/projects`
-- `components/modules/people`
-- `components/modules/time`
-- `components/modules/operations`
-- `components/modules/materials`
-- `components/modules/connect`
-- `components/modules/commercial`
-- `lib`
+## Arkitektur
+Tid & Lön ligger nu i en egen modul:
+`components/modules/payroll/PayrollModule.tsx`
 
 ## Starta
 ```bash

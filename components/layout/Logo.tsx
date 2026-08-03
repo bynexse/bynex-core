@@ -1,4 +1,7 @@
-import { Bot } from "lucide-react";
+import {
+  Bot,
+  PanelTop
+} from "lucide-react";
 
 export default function Logo() {
   return (
