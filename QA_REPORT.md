@@ -1,36 +1,15 @@
-# QA Report – Bynex Core v1.1.1
+# QA Report – Bynex Tid 1.0 + AI Core
 
-## Städning
+- Patch testad ovanpå uppladdad `bynex-core 3.zip`
+- TypeScript: `tsc --noEmit` godkänd utan fel
+- Dubbla paketberoenden: inga nya
+- Externa kartpaket: inga
+- AI fungerar utan API-nyckel via lokal fallback
+- OpenAI-nyckel används endast server-side i `app/api/ai/route.ts`
+- Browser-GPS aktiveras endast efter användaråtgärd
+- LocalStorage återställer aktiv stämpling efter omladdning
+- Patchen innehåller inga borttagningskommandon
+- Patchen innehåller inte `.git`, `.next` eller `node_modules`
 
-- Finder-dubbletter på rotnivå: borttagna
-- `__MACOSX`: borttagen
-- `.DS_Store`: borttagna
-- `node_modules`: ingår inte i leveransen
-- `.next`: ingår inte i leveransen
-- `.git`: ingår inte i leveransen
-
-## Kanoniska filer
-
-- `package.json`
-- `package-lock.json`
-- `tsconfig.json`
-- `next.config.mjs`
-- `tailwind.config.ts`
-- `postcss.config.js`
-- `next-env.d.ts`
-- `README.md`
-- `CHANGELOG.md`
-- `QA_REPORT.md`
-
-## Källkod
-
-- Modulär komponentstruktur bevarad
-- 17 TSX-filer bevarade
-- Dokumentation för befintliga produktmoduler bevarad
-
-## Kodkontroll
-
-- `npm run typecheck`: godkänd utan TypeScript-fel
-- Fyra tidigare typfel rättades i navigation och projektmodell
-- `npm run build`: kunde inte slutföras i leveransmiljön eftersom Next.js försökte hämta Linux-SWC från en intern registry som svarade 404. Detta är ett miljö-/pakethämtningsfel, inte ett konstaterat kodfel.
-- Projektet har tidigare körts lokalt på användarens Mac med `npm run dev`.
+## Produktionsbuild i testmiljön
+`npm run build` kunde inte slutföras eftersom testmiljöns interna npm-register saknade Linux-paketet `@next/swc-linux-x64-gnu@14.2.15` (404). Detta är miljörelaterat och inte ett TypeScript- eller modulfel. Lokal macOS-körning använder ditt redan installerade Next.js/SWC-paket.
