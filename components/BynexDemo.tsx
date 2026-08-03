@@ -2,8 +2,12 @@
 
 import { useMemo, useState } from "react";
 import {
-  AlertTriangle,
   ArrowRight,
+  FileCheck2,
+  TimerReset,
+  AlertTriangle,
+  TriangleAlert,
+  Truck,
   Bot,
   BriefcaseBusiness,
   Building2,
@@ -35,8 +39,6 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
-  TimerReset,
-  Truck,
   Coffee,
   Navigation,
   Banknote,

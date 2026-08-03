@@ -1,41 +1,24 @@
-# Bynex OS Demo v0.4.0
+# Bynex OS Demo v0.5.0
 
-Körbar Next.js-demo av Bynex – det sammanhängande AI-operativsystemet för bygg- och fastighetsbranschen.
+## Nytt – Personal & UE 2.0
+- Personalregister
+- Underentreprenörer i samma arbetsflöde
+- Roller, projekt, status och kontaktuppgifter
+- Timkostnad, veckotid och kostnad
+- Kompetenser och certifikat
+- Förfallovarningar
+- AI-bemanning
+- Inbjudningsflöde för UE
 
-## Nytt i v0.4.0 – Projekt 2.0
-
-- Sökning och filtrering i projektportföljen
-- Projektkort med framdrift, marginal, personal och fakturerbart
-- Detaljerad projektvy
-- Budget, utfall och prognos
-- Realtidsmarginal och budgetförbrukning
-- AI-riskanalys och åtgärdsförslag
-- Projektets puls: personal, företag, dokument och ÄTA
-- Fakturaunderlag
-- Projektlogg med tid, material, ÄTA och Connect
-- UE- och flerföretagsstruktur synlig i projektet
-
-## Tidigare funktioner
-
-- Dashboard
-- Bynex Tid 2.0
-- Bynex Connect
-- Bynex Arbetsledaren
-- Bynex Platschef
-- Material & Inköp
-- ÄTA
-- Offert
+## Kvalitetssäkrad leverans
+- Dubbla lucide-importer borttagna
+- Gamla konfigurationsfiler borttagna
+- Rensad Next-konfiguration
+- Ingen `.next` eller `node_modules` i ZIP
 
 ## Starta
-
 ```bash
 npm install
 npm run dev
 ```
-
 Öppna http://localhost:3000
-
-## Status
-
-Detta är en klickbar demo med simulerad data. Produktionsdatabas, autentisering,
-riktig GPS, BankID, Fortnox, leverantörs-API och AI-anrop återstår.
