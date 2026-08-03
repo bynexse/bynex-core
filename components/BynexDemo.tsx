@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { ComponentType } from "react";
 import {
-  ArrowRight, Banknote, Building2, Clock3, FileSignature, FolderKanban,
-  HardHat, Home, Menu, MessageCircle, PackageSearch, ReceiptText,
-  Settings, Sparkles, UsersRound, X
+  Banknote, Building2, Clock3, FileSignature, FolderKanban,
+  HardHat, Home, MessageCircle, PackageSearch, ReceiptText, UsersRound
 } from "lucide-react";
 
-import Logo from "@/components/layout/Logo";
-import Dashboard from "@/components/modules/dashboard/Dashboard";
+import AppShell from "@/components/layout/AppShell";
+import DashboardV2 from "@/components/dashboard/DashboardV2";
 import Projects from "@/components/modules/projects/Projects";
 import ProjectDetail from "@/components/modules/projects/ProjectDetail";
 import PeopleAndSubcontractors from "@/components/modules/people/PeopleAndSubcontractors";
@@ -25,7 +25,7 @@ import type { ModuleId } from "@/lib/navigation";
 const modules: Array<{
   id: ModuleId;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
 }> = [
   { id: "dashboard", label: "Översikt", icon: Home },
   { id: "projects", label: "Projekt", icon: FolderKanban },
@@ -42,7 +42,6 @@ const modules: Array<{
 
 export default function BynexDemo() {
   const [active, setActive] = useState<ModuleId>("dashboard");
-  const [mobileNav, setMobileNav] = useState(false);
   const [clockedIn, setClockedIn] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -57,150 +56,46 @@ export default function BynexDemo() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f4f2] text-zinc-950">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-zinc-200 bg-white p-5 lg:block">
-        <Logo />
-        <nav className="mt-8 space-y-1">
-          {modules.map((item) => {
-            const Icon = item.icon;
-            const selected = item.id === active;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActive(item.id)}
-                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${
-                  selected
-                    ? "bg-zinc-950 text-white"
-                    : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="absolute bottom-5 left-5 right-5 rounded-3xl bg-zinc-950 p-5 text-white">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Sparkles className="h-4 w-4" />
-            Bynex AI
-          </div>
-          <p className="mt-3 text-sm leading-6 text-zinc-300">
-            3 åtgärder är förberedda för godkännande.
-          </p>
-          <button
-            onClick={() => {
-              setActive("site-manager");
-              notify("Bynex Platschef öppnad");
-            }}
-            className="mt-4 flex w-full items-center justify-between rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-zinc-950"
-          >
-            Visa rekommendationer
-            <ArrowRight className="h-4 w-4" />
-          </button>
-        </div>
-      </aside>
-
-      {mobileNav && (
-        <div className="fixed inset-0 z-50 bg-black/30 lg:hidden">
-          <div className="h-full w-[86%] max-w-sm bg-white p-5">
-            <div className="flex items-center justify-between">
-              <Logo />
-              <button onClick={() => setMobileNav(false)} className="rounded-xl p-2 hover:bg-zinc-100">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <nav className="mt-8 space-y-1">
-              {modules.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setActive(item.id);
-                      setMobileNav(false);
-                    }}
-                    className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold ${
-                      item.id === active ? "bg-zinc-950 text-white" : "text-zinc-600"
-                    }`}
-                  >
-                    <Icon className="h-5 w-5" />
-                    {item.label}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-        </div>
-      )}
-
-      <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 border-b border-zinc-200 bg-[#f4f4f2]/90 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
-          <div className="mx-auto flex max-w-[1500px] items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setMobileNav(true)}
-                className="rounded-xl border border-zinc-200 bg-white p-2 lg:hidden"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
-                  Bynex Demo
-                </p>
-                <h1 className="text-xl font-semibold">{title}</h1>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => notify("Demo-inställningar öppnade")}
-                className="rounded-2xl border border-zinc-200 bg-white p-3"
-                aria-label="Inställningar"
-              >
-                <Settings className="h-5 w-5" />
-              </button>
-              <div className="hidden items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-3 py-2 sm:flex">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-950 text-sm font-bold text-white">
-                  CA
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">Christoffer</p>
-                  <p className="text-xs text-zinc-500">Administratör</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8">
-          {active === "dashboard" && <Dashboard onOpen={setActive} notify={notify} />}
-          {active === "projects" && <Projects notify={notify} />}
-          {active === "project-detail" && <ProjectDetail notify={notify} />}
-          {active === "people" && <PeopleAndSubcontractors notify={notify} />}
-          {active === "time" && (
-            <TimeModule
-              clockedIn={clockedIn}
-              setClockedIn={setClockedIn}
-              notify={notify}
-            />
-          )}
-          {active === "payroll" && <PayrollModule notify={notify} />}
-          {active === "foreman" && <Foreman notify={notify} />}
-          {active === "site-manager" && <SiteManager notify={notify} />}
-          {active === "materials" && <Materials notify={notify} />}
-          {active === "connect" && <Connect notify={notify} />}
-          {active === "change-orders" && <ChangeOrders notify={notify} />}
-          {active === "quotes" && <Quotes notify={notify} />}
-        </main>
-      </div>
+    <>
+      <AppShell
+        active={active}
+        title={title}
+        items={modules}
+        onNavigate={setActive}
+        onNotify={notify}
+      >
+        {active === "dashboard" && (
+          <DashboardV2
+            onOpen={setActive}
+            notify={notify}
+            clockedIn={clockedIn}
+            setClockedIn={setClockedIn}
+          />
+        )}
+        {active === "projects" && <Projects notify={notify} />}
+        {active === "project-detail" && <ProjectDetail notify={notify} />}
+        {active === "people" && <PeopleAndSubcontractors notify={notify} />}
+        {active === "time" && (
+          <TimeModule
+            clockedIn={clockedIn}
+            setClockedIn={setClockedIn}
+            notify={notify}
+          />
+        )}
+        {active === "payroll" && <PayrollModule notify={notify} />}
+        {active === "foreman" && <Foreman notify={notify} />}
+        {active === "site-manager" && <SiteManager notify={notify} />}
+        {active === "materials" && <Materials notify={notify} />}
+        {active === "connect" && <Connect notify={notify} />}
+        {active === "change-orders" && <ChangeOrders notify={notify} />}
+        {active === "quotes" && <Quotes notify={notify} />}
+      </AppShell>
 
       {toast && (
         <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-2xl bg-zinc-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">
           {toast}
         </div>
       )}
-    </div>
+    </>
   );
 }
