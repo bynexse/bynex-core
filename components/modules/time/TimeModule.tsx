@@ -12,14 +12,19 @@ import {
   LocateFixed,
   MapPin,
   Navigation,
+  PackageSearch,
   PauseCircle,
   PlayCircle,
   RotateCcw,
+  Sparkles,
   TimerReset,
+  TriangleAlert,
 } from "lucide-react";
 
 import { Badge, Card, Stat } from "@/components/ui/core";
 import { projects } from "@/lib/projects";
+import type { WorkdayAiResult } from "@/lib/ai/workday";
+import AiEvidenceAnalyzer from "@/components/modules/time/AiEvidenceAnalyzer";
 
 type TimelineEntry = {
   id: string;
@@ -46,6 +51,8 @@ type PersistedDay = {
   accumulatedBreakMs: number;
   entries: TimelineEntry[];
   lastPosition: GeoPoint | null;
+  workdayNote: string;
+  aiResult: WorkdayAiResult | null;
 };
 
 const STORAGE_KEY = "bynex.time.active-day.v2";
@@ -127,6 +134,10 @@ export default function TimeModule({
   const [lastPosition, setLastPosition] = useState<GeoPoint | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [workdayNote, setWorkdayNote] = useState("");
+  const [aiResult, setAiResult] = useState<WorkdayAiResult | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const activeProject =
     projects.find((project) => project.id === selectedProjectId) ?? projects[0];
@@ -146,6 +157,8 @@ export default function TimeModule({
         setAccumulatedBreakMs(saved.accumulatedBreakMs);
         setEntries(saved.entries);
         setLastPosition(saved.lastPosition ?? null);
+        setWorkdayNote(saved.workdayNote ?? "");
+        setAiResult(saved.aiResult ?? null);
       } catch {
         window.localStorage.removeItem(STORAGE_KEY);
       }
@@ -171,9 +184,11 @@ export default function TimeModule({
       accumulatedBreakMs,
       entries,
       lastPosition,
+      workdayNote,
+      aiResult,
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [accumulatedBreakMs, activity, breakStartedAt, clockedIn, entries, hydrated, lastPosition, onBreak, selectedProjectId, startedAt]);
+  }, [accumulatedBreakMs, activity, aiResult, breakStartedAt, clockedIn, entries, hydrated, lastPosition, onBreak, selectedProjectId, startedAt, workdayNote]);
 
   const currentBreakMs = onBreak && breakStartedAt ? Math.max(0, now - breakStartedAt) : 0;
   const totalBreakMs = accumulatedBreakMs + currentBreakMs;
@@ -286,6 +301,47 @@ export default function TimeModule({
     notify("Rasten startades");
   }
 
+
+  async function analyzeWorkday() {
+    if (workdayNote.trim().length < 3) {
+      setAiError("Skriv några ord om arbetsdagen först.");
+      return;
+    }
+
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const response = await fetch("/api/ai/workday", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          note: workdayNote,
+          projectName: activeProject.name,
+          projectId: activeProject.id,
+          activity,
+          workedDuration: formatDuration(workedMs),
+        }),
+      });
+
+      const payload = (await response.json()) as WorkdayAiResult & { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "AI-analysen kunde inte genomföras.");
+      }
+
+      setAiResult(payload);
+      addEntry(
+        "AI-dagbok skapad",
+        `${activeProject.name} · ${payload.source === "openai" ? "OpenAI" : "lokal analys"}`,
+        "system",
+      );
+      notify("Bynex AI skapade ett arbetsdagsförslag");
+    } catch (error) {
+      setAiError(error instanceof Error ? error.message : "Ett oväntat fel uppstod.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   function resetDemoDay() {
     setClockedIn(false);
     setOnBreak(false);
@@ -295,6 +351,9 @@ export default function TimeModule({
     setEntries([]);
     setLastPosition(null);
     setLocationError(null);
+    setWorkdayNote("");
+    setAiResult(null);
+    setAiError(null);
     window.localStorage.removeItem(STORAGE_KEY);
     notify("Dagens demodata återställdes");
   }
@@ -396,6 +455,112 @@ export default function TimeModule({
           </div>
         </Card>
       </div>
+
+
+      <Card className="p-6 sm:p-7">
+        <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-violet-100 p-3 text-violet-800">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-zinc-500">Patch 3</p>
+                <h3 className="text-2xl font-semibold">AI Arbetsdag</h3>
+              </div>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-zinc-600">
+              Skriv kort vad som gjordes. Bynex skapar dagbok, hittar material och markerar möjlig ÄTA. Funktionen fungerar lokalt även innan en AI-nyckel är aktiverad.
+            </p>
+            <textarea
+              value={workdayNote}
+              onChange={(event) => setWorkdayNote(event.target.value)}
+              placeholder="Exempel: Monterade 28 gipsskivor. Väntade 35 minuter på elektrikern och kunden ville ha en extra dörr."
+              className="mt-5 min-h-36 w-full resize-y rounded-3xl border border-zinc-200 bg-white p-4 text-sm leading-6 outline-none transition focus:border-zinc-950"
+            />
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void analyzeWorkday()}
+                disabled={aiLoading}
+                className="inline-flex items-center gap-2 rounded-2xl bg-zinc-950 px-5 py-3 font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
+              >
+                <Sparkles className={`h-5 w-5 ${aiLoading ? "animate-pulse" : ""}`} />
+                {aiLoading ? "Analyserar…" : "Skapa med Bynex AI"}
+              </button>
+              {aiResult && (
+                <Badge tone={aiResult.source === "openai" ? "success" : "neutral"}>
+                  {aiResult.source === "openai" ? "OpenAI aktiv" : "Lokal AI-reserv"}
+                </Badge>
+              )}
+            </div>
+            {aiError && (
+              <div className="mt-4 flex items-start gap-3 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800">
+                <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" />
+                {aiError}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-[28px] border border-zinc-200 bg-zinc-50 p-5 sm:p-6">
+            {!aiResult ? (
+              <div className="flex min-h-72 flex-col items-center justify-center text-center">
+                <Sparkles className="h-8 w-8 text-zinc-400" />
+                <p className="mt-4 font-semibold">AI-förslaget visas här</p>
+                <p className="mt-2 max-w-sm text-sm text-zinc-500">
+                  Resultatet sparas tillsammans med dagens arbetsdag och finns kvar efter omladdning.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">Arbetsdagbok</p>
+                  <p className="mt-2 leading-7 text-zinc-700">{aiResult.diary}</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl bg-white p-4">
+                    <p className="text-xs text-zinc-400">Arbetsmoment</p>
+                    <p className="mt-2 font-semibold">{aiResult.workType}</p>
+                  </div>
+                  <div className="rounded-2xl bg-white p-4">
+                    <div className="flex items-center gap-2 text-xs text-zinc-400">
+                      <PackageSearch className="h-4 w-4" /> Material
+                    </div>
+                    <p className="mt-2 font-semibold">
+                      {aiResult.materials.length > 0 ? aiResult.materials.join(", ") : "Inget material identifierat"}
+                    </p>
+                  </div>
+                </div>
+                <div className={`rounded-2xl p-4 ${aiResult.possibleChangeOrder.detected ? "bg-amber-100 text-amber-950" : "bg-emerald-100 text-emerald-950"}`}>
+                  <div className="flex items-center gap-2 font-semibold">
+                    {aiResult.possibleChangeOrder.detected ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
+                    {aiResult.possibleChangeOrder.detected ? "Möjlig ÄTA upptäckt" : "Ingen tydlig ÄTA upptäckt"}
+                  </div>
+                  {aiResult.possibleChangeOrder.reason && (
+                    <p className="mt-2 text-sm leading-6">{aiResult.possibleChangeOrder.reason}</p>
+                  )}
+                </div>
+                {aiResult.followUp.length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">Att kontrollera</p>
+                    <ul className="mt-2 space-y-2 text-sm text-zinc-600">
+                      {aiResult.followUp.map((item) => <li key={item}>• {item}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      <AiEvidenceAnalyzer
+        projectId={activeProject.id}
+        projectName={activeProject.name}
+        activity={activity}
+        notify={notify}
+        onAnalyzed={(detail) => addEntry("AI-underlag analyserat", detail, "system")}
+      />
 
       <Card className="p-6">
         <div className="flex items-center justify-between gap-4"><div><p className="text-sm font-semibold text-zinc-500">Dagens logg</p><h3 className="mt-1 text-2xl font-semibold">Tidslinje</h3></div><button type="button" onClick={resetDemoDay} className="inline-flex items-center gap-2 rounded-2xl border border-zinc-200 px-4 py-2 text-sm font-semibold hover:bg-zinc-50"><RotateCcw className="h-4 w-4" />Återställ</button></div>
