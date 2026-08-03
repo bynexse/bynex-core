@@ -37,6 +37,22 @@ import {
   Sparkles,
   TimerReset,
   Truck,
+  Coffee,
+  Navigation,
+  Banknote,
+  CalendarClock,
+  RotateCcw,
+  Save,
+  CheckSquare,
+  ShieldAlert,
+  Filter,
+  FolderOpen,
+  FileText,
+  ImageIcon,
+  TrendingDown,
+  TrendingUp,
+  ChevronDown,
+  MoreHorizontal,
   UserRoundCheck,
   Users,
   WalletCards,
@@ -494,101 +510,522 @@ function Dashboard({
 }
 
 function Projects({
-  selectedProject,
-  setSelectedProject,
   notify,
 }: {
-  selectedProject: Project;
-  setSelectedProject: (project: Project) => void;
   notify: (message: string) => void;
 }) {
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Alla");
+  const [selectedProjectId, setSelectedProjectId] = useState(projects[0].id);
+  const [showDetails, setShowDetails] = useState(true);
+
+  const enrichedProjects = [
+    {
+      ...projects[0],
+      customer: "Andersson Fastigheter AB",
+      contract: "Löpande",
+      budgetValue: 2850000,
+      spentValue: 1764000,
+      forecastValue: 2690000,
+      marginValue: 18.6,
+      people: 8,
+      companies: 4,
+      documents: 36,
+      changes: 4,
+      invoiceReady: 86400,
+      riskLevel: "Låg",
+      nextMilestone: "Elinstallation plan 1",
+    },
+    {
+      ...projects[1],
+      customer: "Gnesta Projektutveckling",
+      contract: "Fast pris",
+      budgetValue: 1640000,
+      spentValue: 1085000,
+      forecastValue: 1718000,
+      marginValue: 9.4,
+      people: 5,
+      companies: 3,
+      documents: 22,
+      changes: 2,
+      invoiceReady: 124000,
+      riskLevel: "Hög",
+      nextMilestone: "Tätskikt badrum",
+    },
+    {
+      ...projects[2],
+      customer: "Kvarnvägen Förvaltning",
+      contract: "Löpande",
+      budgetValue: 980000,
+      spentValue: 452000,
+      forecastValue: 914000,
+      marginValue: 21.2,
+      people: 4,
+      companies: 2,
+      documents: 18,
+      changes: 1,
+      invoiceReady: 73600,
+      riskLevel: "Låg",
+      nextMilestone: "Slutmontering VVS",
+    },
+  ];
+
+  const visibleProjects = enrichedProjects.filter((project) => {
+    const matchesQuery = `${project.name} ${project.id} ${project.customer} ${project.location}`
+      .toLowerCase()
+      .includes(query.toLowerCase());
+    const matchesStatus =
+      statusFilter === "Alla" ||
+      (statusFilter === "Risk" && project.risk) ||
+      project.status === statusFilter;
+    return matchesQuery && matchesStatus;
+  });
+
+  const selected =
+    enrichedProjects.find((project) => project.id === selectedProjectId) ??
+    enrichedProjects[0];
+
+  const budgetUsed = Math.round(
+    (selected.spentValue / selected.budgetValue) * 100,
+  );
+
+  const selectProject = (id: string) => {
+    setSelectedProjectId(id);
+    setShowDetails(true);
+  };
+
   return (
-    <div className="grid gap-5 xl:grid-cols-[0.72fr_1.28fr]">
-      <Card className="p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Projekt</h2>
+    <div className="space-y-5">
+      <Card className="p-6 sm:p-8">
+        <div className="flex flex-col justify-between gap-6 xl:flex-row xl:items-end">
+          <div>
+            <Badge tone="dark">Projekt 2.0</Badge>
+            <h2 className="mt-5 text-4xl font-semibold tracking-tight">
+              Alla projekt. Ett gemensamt läge.
+            </h2>
+            <p className="mt-3 max-w-3xl text-lg leading-8 text-zinc-600">
+              Tid, material, UE, ÄTA, dokument och ekonomi uppdateras i samma
+              projektbild. AI visar vad som behöver din uppmärksamhet.
+            </p>
+          </div>
           <button
-            onClick={() => notify("Nytt projekt skapat i demon")}
-            className="rounded-xl bg-zinc-950 p-2 text-white"
+            onClick={() => notify("Nytt projekt öppnas i nästa produktionssteg")}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-5 py-3 font-semibold text-white"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-5 w-5" />
+            Nytt projekt
           </button>
         </div>
-        <div className="mt-5 space-y-3">
-          {projects.map((project) => (
-            <button
-              key={project.id}
-              onClick={() => setSelectedProject(project)}
-              className={`w-full rounded-2xl border p-4 text-left ${
-                selectedProject.id === project.id
-                  ? "border-zinc-950 bg-zinc-950 text-white"
-                  : "border-zinc-200 hover:bg-zinc-50"
-              }`}
-            >
-              <p className="font-semibold">{project.name}</p>
-              <p className={`mt-1 text-sm ${selectedProject.id === project.id ? "text-zinc-300" : "text-zinc-500"}`}>
-                {project.id} · {project.location}
-              </p>
-            </button>
-          ))}
+
+        <div className="mt-7 grid gap-3 lg:grid-cols-[1fr_auto]">
+          <div className="relative">
+            <Search className="absolute left-4 top-3.5 h-5 w-5 text-zinc-400" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Sök projekt, kund, ort eller projektnummer"
+              className="w-full rounded-2xl border border-zinc-200 py-3 pl-12 pr-4 outline-none focus:border-zinc-950"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {["Alla", "Pågår", "Risk"].map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setStatusFilter(filter)}
+                className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold ${
+                  statusFilter === filter
+                    ? "bg-zinc-950 text-white"
+                    : "border border-zinc-200 bg-white text-zinc-600"
+                }`}
+              >
+                {filter === "Risk" && <TriangleAlert className="h-4 w-4" />}
+                {filter}
+              </button>
+            ))}
+          </div>
         </div>
       </Card>
 
-      <div className="space-y-5">
-        <Card className="p-6 sm:p-7">
-          <div className="flex flex-col justify-between gap-5 lg:flex-row">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat
+          icon={BriefcaseBusiness}
+          label="Aktiva projekt"
+          value="12"
+          helper="3 kräver uppmärksamhet"
+        />
+        <Stat
+          icon={CircleDollarSign}
+          label="Kontraktsvärde"
+          value="18,4 mkr"
+          helper="+1,2 mkr ÄTA"
+        />
+        <Stat
+          icon={ReceiptText}
+          label="Redo att fakturera"
+          value="284 000 kr"
+          helper="6 underlag"
+        />
+        <Stat
+          icon={Users}
+          label="Aktiva idag"
+          value="18 personer"
+          helper="7 företag"
+        />
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
+        <Card className="p-5">
+          <div className="flex items-center justify-between">
             <div>
-              <div className="flex flex-wrap gap-2">
-                <Badge tone="dark">{selectedProject.id}</Badge>
-                <Badge tone={selectedProject.risk ? "warning" : "success"}>
-                  {selectedProject.risk ? "Risk upptäckt" : "Pågående"}
-                </Badge>
-              </div>
-              <h2 className="mt-4 text-3xl font-semibold">{selectedProject.name}</h2>
-              <p className="mt-2 text-zinc-500">
-                {selectedProject.customer} · {selectedProject.location}
+              <p className="text-sm font-medium text-zinc-500">
+                Projektportfölj
               </p>
+              <h3 className="mt-1 text-2xl font-semibold">
+                {visibleProjects.length} projekt visas
+              </h3>
             </div>
-            <button
-              onClick={() => notify("Företagsinbjudan förberedd")}
-              className="h-fit rounded-2xl bg-zinc-950 px-5 py-3 font-semibold text-white"
-            >
-              Bjud in företag
-            </button>
+            <Filter className="h-5 w-5 text-zinc-400" />
           </div>
-          <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Stat icon={CircleDollarSign} label="Projektvärde" value={selectedProject.value} helper="Exklusive moms" />
-            <Stat icon={HardHat} label="Marginal" value={`${selectedProject.margin}%`} helper="AI-prognos" />
-            <Stat icon={Users} label="Aktiva" value={`${selectedProject.team}`} helper="4 företag" />
-            <Stat icon={CalendarDays} label="Framdrift" value={`${selectedProject.progress}%`} helper="Enligt tidplan" />
+
+          <div className="mt-5 space-y-3">
+            {visibleProjects.map((project) => (
+              <button
+                key={project.id}
+                onClick={() => selectProject(project.id)}
+                className={`w-full rounded-3xl border p-5 text-left transition ${
+                  selectedProjectId === project.id
+                    ? "border-zinc-950 bg-zinc-950 text-white"
+                    : "border-zinc-200 bg-white hover:border-zinc-400"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-60">
+                      {project.id}
+                    </p>
+                    <h4 className="mt-2 text-lg font-semibold">
+                      {project.name}
+                    </h4>
+                    <p className="mt-1 text-sm opacity-70">
+                      {project.customer} · {project.location}
+                    </p>
+                  </div>
+                  {project.risk ? (
+                    <Badge tone="warning">Risk</Badge>
+                  ) : (
+                    <Badge tone="success">Enligt plan</Badge>
+                  )}
+                </div>
+
+                <div className="mt-5">
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span>Framdrift</span>
+                    <span>{project.progress}%</span>
+                  </div>
+                  <div
+                    className={`mt-2 h-2 rounded-full ${
+                      selectedProjectId === project.id
+                        ? "bg-zinc-700"
+                        : "bg-zinc-100"
+                    }`}
+                  >
+                    <div
+                      style={{ width: `${project.progress}%` }}
+                      className={`h-full rounded-full ${
+                        selectedProjectId === project.id
+                          ? "bg-white"
+                          : project.risk
+                            ? "bg-amber-500"
+                            : "bg-zinc-950"
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-5 grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs opacity-50">Marginal</p>
+                    <p className="mt-1 font-semibold">
+                      {project.marginValue.toFixed(1)} %
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs opacity-50">Personal</p>
+                    <p className="mt-1 font-semibold">{project.people}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs opacity-50">Fakturera</p>
+                    <p className="mt-1 font-semibold">
+                      {(project.invoiceReady / 1000).toFixed(0)} tkr
+                    </p>
+                  </div>
+                </div>
+              </button>
+            ))}
+
+            {visibleProjects.length === 0 && (
+              <div className="rounded-3xl border border-dashed border-zinc-300 p-8 text-center">
+                <Search className="mx-auto h-7 w-7 text-zinc-400" />
+                <p className="mt-3 font-semibold">Inga projekt hittades</p>
+                <p className="mt-1 text-sm text-zinc-500">
+                  Ändra sökningen eller filtret.
+                </p>
+              </div>
+            )}
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-zinc-500">Gemensamt arbetsflöde</p>
-              <h3 className="mt-1 text-2xl font-semibold">Team & UE</h3>
-            </div>
-            <Badge tone="success">Synkat</Badge>
-          </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {trades.map(({ name, icon: Icon, active }) => (
-              <div key={name} className="flex items-center justify-between rounded-2xl border border-zinc-200 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-zinc-100 p-3">
-                    <Icon className="h-5 w-5" />
-                  </div>
+        {showDetails && (
+          <div className="space-y-5">
+            <Card className="overflow-hidden">
+              <div className="border-b border-zinc-200 p-6 sm:p-7">
+                <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
                   <div>
-                    <p className="font-semibold">{name}</p>
-                    <p className="text-sm text-zinc-500">{active} personer</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge tone={selected.risk ? "warning" : "success"}>
+                        {selected.risk ? "Risk behöver hanteras" : "Enligt plan"}
+                      </Badge>
+                      <Badge tone="neutral">{selected.contract}</Badge>
+                    </div>
+                    <p className="mt-5 text-sm font-semibold text-zinc-400">
+                      {selected.id}
+                    </p>
+                    <h3 className="mt-1 text-3xl font-semibold">
+                      {selected.name}
+                    </h3>
+                    <p className="mt-2 text-zinc-500">
+                      {selected.customer} · {selected.location}
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => notify("Projektchatten öppnades")}
+                      className="rounded-2xl border border-zinc-200 px-4 py-3 text-sm font-semibold"
+                    >
+                      Öppna Connect
+                    </button>
+                    <button
+                      onClick={() => notify("Projektmenyn öppnades")}
+                      className="rounded-2xl border border-zinc-200 p-3"
+                    >
+                      <MoreHorizontal className="h-5 w-5" />
+                    </button>
                   </div>
                 </div>
-                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
               </div>
-            ))}
+
+              <div className="grid gap-4 p-6 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl bg-zinc-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    Budget
+                  </p>
+                  <p className="mt-2 text-xl font-semibold">
+                    {(selected.budgetValue / 1000000).toFixed(2)} mkr
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-zinc-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    Utfall
+                  </p>
+                  <p className="mt-2 text-xl font-semibold">
+                    {(selected.spentValue / 1000000).toFixed(2)} mkr
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-zinc-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    Prognos
+                  </p>
+                  <p className="mt-2 text-xl font-semibold">
+                    {(selected.forecastValue / 1000000).toFixed(2)} mkr
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-zinc-950 p-4 text-white">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    Marginal
+                  </p>
+                  <p className="mt-2 text-xl font-semibold">
+                    {selected.marginValue.toFixed(1)} %
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t border-zinc-200 p-6">
+                <div className="flex justify-between text-sm font-semibold">
+                  <span>Budget förbrukad</span>
+                  <span>{budgetUsed}%</span>
+                </div>
+                <div className="mt-3 h-3 rounded-full bg-zinc-100">
+                  <div
+                    style={{ width: `${Math.min(budgetUsed, 100)}%` }}
+                    className={`h-full rounded-full ${
+                      budgetUsed > 90 ? "bg-rose-600" : budgetUsed > 75 ? "bg-amber-500" : "bg-zinc-950"
+                    }`}
+                  />
+                </div>
+              </div>
+            </Card>
+
+            <div className="grid gap-5 lg:grid-cols-2">
+              <Card className="p-6">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="h-5 w-5" />
+                  <h3 className="text-2xl font-semibold">AI-prognos</h3>
+                </div>
+
+                <div className={`mt-5 rounded-2xl p-5 ${
+                  selected.risk ? "bg-amber-50" : "bg-emerald-50"
+                }`}>
+                  <div className="flex items-start gap-3">
+                    {selected.risk ? (
+                      <TrendingDown className="mt-0.5 h-5 w-5 text-amber-700" />
+                    ) : (
+                      <TrendingUp className="mt-0.5 h-5 w-5 text-emerald-700" />
+                    )}
+                    <div>
+                      <p className={`font-semibold ${
+                        selected.risk ? "text-amber-900" : "text-emerald-900"
+                      }`}>
+                        {selected.risk
+                          ? "Prognosen ligger över budget"
+                          : "Projektet följer prognosen"}
+                      </p>
+                      <p className={`mt-2 text-sm leading-6 ${
+                        selected.risk ? "text-amber-800" : "text-emerald-800"
+                      }`}>
+                        {selected.risk
+                          ? "Materialkostnaden har ökat och två UE-underlag saknas. AI föreslår omplanering och snabbare fakturering av godkända ÄTA."
+                          : "Bemanning, material och fakturering följer plan. Nästa milstolpe bedöms kunna slutföras i tid."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {[
+                    ["Nästa milstolpe", selected.nextMilestone],
+                    ["Risknivå", selected.riskLevel],
+                    ["Prognostiserad sluttid", selected.endDate],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="flex items-center justify-between rounded-2xl border border-zinc-200 p-4"
+                    >
+                      <span className="text-sm text-zinc-500">{label}</span>
+                      <span className="text-sm font-semibold">{value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() =>
+                    notify(
+                      selected.risk
+                        ? "AI-åtgärdsplan skapades"
+                        : "AI-prognosen uppdaterades",
+                    )
+                  }
+                  className="mt-5 w-full rounded-2xl bg-zinc-950 py-3 font-semibold text-white"
+                >
+                  {selected.risk ? "Skapa åtgärdsplan" : "Uppdatera prognos"}
+                </button>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="text-2xl font-semibold">Projektets puls</h3>
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  {[
+                    [Users, "Personal", `${selected.people} aktiva`],
+                    [Building2, "Företag", `${selected.companies} anslutna`],
+                    [FileText, "Dokument", `${selected.documents} filer`],
+                    [FileCheck2, "ÄTA", `${selected.changes} registrerade`],
+                  ].map(([Icon, label, value]) => {
+                    const ItemIcon = Icon as typeof Users;
+                    return (
+                      <button
+                        key={label as string}
+                        onClick={() => notify(`${label} öppnades`)}
+                        className="rounded-2xl border border-zinc-200 p-4 text-left hover:bg-zinc-50"
+                      >
+                        <ItemIcon className="h-5 w-5" />
+                        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                          {label as string}
+                        </p>
+                        <p className="mt-1 font-semibold">{value as string}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-5 rounded-2xl border border-zinc-200 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold">Redo att fakturera</p>
+                      <p className="mt-1 text-sm text-zinc-500">
+                        Godkänd tid, material och ÄTA
+                      </p>
+                    </div>
+                    <p className="text-xl font-semibold">
+                      {selected.invoiceReady.toLocaleString("sv-SE")} kr
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => notify("Fakturaunderlaget skapades")}
+                    className="mt-4 w-full rounded-xl border border-zinc-200 py-2.5 text-sm font-semibold"
+                  >
+                    Skapa underlag
+                  </button>
+                </div>
+              </Card>
+            </div>
+
+            <Card className="p-6">
+              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                <div>
+                  <p className="text-sm font-medium text-zinc-500">
+                    Projektlogg
+                  </p>
+                  <h3 className="mt-1 text-2xl font-semibold">
+                    Senaste händelserna
+                  </h3>
+                </div>
+                <button
+                  onClick={() => notify("Hela projektloggen öppnades")}
+                  className="text-sm font-semibold"
+                >
+                  Visa hela loggen
+                </button>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {[
+                  ["10:47", "Johan åter på projektet", "Tid & GPS", UserRoundCheck],
+                  ["10:32", "Materialleverans kvitterad", "Inköp", PackageSearch],
+                  ["09:18", "ÄTA 04 godkänd av kund", "BankID-demo", FileCheck2],
+                  ["08:15", "Elektrikern informerades", "Bynex Connect", MessageCircle],
+                ].map(([time, title, source, Icon]) => {
+                  const RowIcon = Icon as typeof Users;
+                  return (
+                    <div
+                      key={`${time}-${title}`}
+                      className="grid gap-3 rounded-2xl border border-zinc-200 p-4 sm:grid-cols-[64px_40px_1fr_auto] sm:items-center"
+                    >
+                      <p className="font-semibold">{time as string}</p>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100">
+                        <RowIcon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{title as string}</p>
+                        <p className="text-sm text-zinc-500">{source as string}</p>
+                      </div>
+                      <Badge tone="success">Registrerad</Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
           </div>
-        </Card>
+        )}
       </div>
     </div>
   );
@@ -603,94 +1040,442 @@ function TimeModule({
   setClockedIn: (value: boolean) => void;
   notify: (message: string) => void;
 }) {
+  const [selectedProjectId, setSelectedProjectId] = useState(projects[0].id);
+  const [activity, setActivity] = useState("Stomkomplettering");
+  const [onBreak, setOnBreak] = useState(false);
+  const [gpsVerified, setGpsVerified] = useState(true);
+  const [weekView, setWeekView] = useState(false);
+  const [entries, setEntries] = useState([
+    {
+      id: "1",
+      time: "07:01",
+      title: "Instämplad",
+      place: "Villa Björkvägen 12",
+      detail: "GPS-verifierad · ±8 meter",
+      type: "work",
+    },
+    {
+      id: "2",
+      time: "09:32",
+      title: "Rast startad",
+      place: "Villa Björkvägen 12",
+      detail: "Automatisk rastregel kontrollerad",
+      type: "break",
+    },
+    {
+      id: "3",
+      time: "09:47",
+      title: "Rast avslutad",
+      place: "Villa Björkvägen 12",
+      detail: "15 minuter",
+      type: "work",
+    },
+    {
+      id: "4",
+      time: "10:18",
+      title: "Materialhämtning",
+      place: "Beijer Nyköping",
+      detail: "Föreslagen av Bynex AI",
+      type: "travel",
+    },
+    {
+      id: "5",
+      time: "10:47",
+      title: "Tillbaka på projekt",
+      place: "Villa Björkvägen 12",
+      detail: "Projekt återupptaget",
+      type: "work",
+    },
+  ]);
+
+  const activeProject =
+    projects.find((project) => project.id === selectedProjectId) ?? projects[0];
+
+  const addEntry = (
+    title: string,
+    place: string,
+    detail: string,
+    type: string,
+  ) => {
+    setEntries((current) => [
+      ...current,
+      {
+        id: String(Date.now()),
+        time: new Date().toLocaleTimeString("sv-SE", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        title,
+        place,
+        detail,
+        type,
+      },
+    ]);
+  };
+
   const handleClock = () => {
-    setClockedIn(!clockedIn);
-    notify(clockedIn ? "Utstämpling registrerad 16:02" : "Instämpling registrerad 07:01");
+    if (clockedIn) {
+      addEntry(
+        "Utstämplad",
+        activeProject.name,
+        gpsVerified ? "GPS-verifierad · arbetsdagen sparad" : "Position ej verifierad",
+        "stop",
+      );
+      setClockedIn(false);
+      setOnBreak(false);
+      notify("Arbetsdagen avslutades och sparades");
+      return;
+    }
+
+    addEntry(
+      "Instämplad",
+      activeProject.name,
+      gpsVerified
+        ? `GPS-verifierad · ${activity}`
+        : `Manuell verifiering krävs · ${activity}`,
+      "work",
+    );
+    setClockedIn(true);
+    notify(`Instämplad på ${activeProject.name}`);
+  };
+
+  const toggleBreak = () => {
+    if (!clockedIn) {
+      notify("Stämpla in innan du startar rast");
+      return;
+    }
+
+    const next = !onBreak;
+    setOnBreak(next);
+    addEntry(
+      next ? "Rast startad" : "Rast avslutad",
+      activeProject.name,
+      next ? "Rasttid räknas separat" : "Arbetstiden återupptogs",
+      next ? "break" : "work",
+    );
+    notify(next ? "Rast startad" : "Rast avslutad");
+  };
+
+  const approveCorrection = () => {
+    notify("Gårdagens utstämpling godkändes till 16:15");
   };
 
   return (
     <div className="space-y-5">
       <Card className="overflow-hidden p-6 sm:p-8">
-        <div className="grid gap-8 xl:grid-cols-[1fr_0.8fr] xl:items-center">
+        <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr] xl:items-center">
           <div>
-            <Badge tone={clockedIn ? "success" : "neutral"}>
-              {clockedIn ? "Du är instämplad" : "Ej instämplad"}
-            </Badge>
-            <h2 className="mt-5 text-4xl font-semibold tracking-tight">Bynex Tid</h2>
+            <div className="flex flex-wrap gap-2">
+              <Badge tone={clockedIn ? "success" : "neutral"}>
+                {clockedIn ? (onBreak ? "Rast pågår" : "Instämplad") : "Ej instämplad"}
+              </Badge>
+              <Badge tone={gpsVerified ? "success" : "warning"}>
+                {gpsVerified ? "GPS verifierad" : "GPS behöver granskas"}
+              </Badge>
+            </div>
+
+            <h2 className="mt-5 text-4xl font-semibold tracking-tight">
+              Bynex Tid 2.0
+            </h2>
             <p className="mt-3 max-w-xl text-lg leading-8 text-zinc-600">
-              Exakt vid stämpling – privat däremellan. GPS-verifierad tid utan onödig övervakning.
+              Ett tryck in, ett tryck ut. Projekt, GPS, aktivitet, rast,
+              löneunderlag och projektkostnad uppdateras i samma flöde.
             </p>
-            <button
-              onClick={handleClock}
-              className={`mt-7 inline-flex min-w-56 items-center justify-center gap-3 rounded-3xl px-7 py-5 text-lg font-bold text-white ${
-                clockedIn ? "bg-rose-600" : "bg-zinc-950"
-              }`}
-            >
-              <Clock3 className="h-6 w-6" />
-              {clockedIn ? "Stämpla ut" : "Stämpla in"}
-            </button>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <label className="text-sm font-semibold text-zinc-600">
+                Projekt
+                <select
+                  value={selectedProjectId}
+                  onChange={(event) => setSelectedProjectId(event.target.value)}
+                  disabled={clockedIn}
+                  className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none focus:border-zinc-950 disabled:bg-zinc-100"
+                >
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name} · {project.id}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="text-sm font-semibold text-zinc-600">
+                Arbetsmoment
+                <select
+                  value={activity}
+                  onChange={(event) => setActivity(event.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none focus:border-zinc-950"
+                >
+                  <option>Stomkomplettering</option>
+                  <option>Innerväggar</option>
+                  <option>Materialhämtning</option>
+                  <option>Egenkontroll</option>
+                  <option>Servicearbete</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                onClick={handleClock}
+                className={`inline-flex min-w-56 items-center justify-center gap-3 rounded-3xl px-7 py-5 text-lg font-bold text-white ${
+                  clockedIn ? "bg-rose-600" : "bg-zinc-950"
+                }`}
+              >
+                <Clock3 className="h-6 w-6" />
+                {clockedIn ? "Stämpla ut" : "Stämpla in"}
+              </button>
+
+              <button
+                onClick={toggleBreak}
+                className={`inline-flex items-center justify-center gap-2 rounded-3xl border px-6 py-5 font-semibold ${
+                  onBreak
+                    ? "border-amber-300 bg-amber-100 text-amber-900"
+                    : "border-zinc-200 bg-white text-zinc-950"
+                }`}
+              >
+                <Coffee className="h-5 w-5" />
+                {onBreak ? "Avsluta rast" : "Starta rast"}
+              </button>
+            </div>
+
+            <p className="mt-4 text-sm text-zinc-500">
+              Exakt vid stämpling – privat däremellan.
+            </p>
           </div>
 
           <div className="rounded-[28px] border border-zinc-200 bg-[#fafaf9] p-6">
-            <div className="flex items-center gap-3">
-              <MapPin className="h-5 w-5" />
-              <div>
-                <p className="font-semibold">Villa Björkvägen 12</p>
-                <p className="text-sm text-zinc-500">Position verifierad · ±8 meter</p>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <MapPin className="h-5 w-5" />
+                <div>
+                  <p className="font-semibold">{activeProject.name}</p>
+                  <p className="text-sm text-zinc-500">
+                    {activeProject.location} · geofence 150 meter
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setGpsVerified((value) => !value);
+                  notify("GPS-läget ändrades i demon");
+                }}
+                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold"
+              >
+                Simulera GPS
+              </button>
+            </div>
+
+            <div className="mt-5 h-48 rounded-2xl bg-[radial-gradient(circle_at_center,_#d4d4d8_0,_#e4e4e7_18%,_#f4f4f5_42%,_#fafafa_70%)] p-5">
+              <div className="relative flex h-full items-center justify-center">
+                <div className="absolute h-32 w-32 rounded-full border border-dashed border-zinc-400" />
+                <div
+                  className={`relative flex h-14 w-14 items-center justify-center rounded-full border-8 border-white shadow-xl ${
+                    gpsVerified ? "bg-zinc-950" : "bg-amber-600"
+                  }`}
+                >
+                  <Navigation className="h-6 w-6 text-white" />
+                </div>
               </div>
             </div>
-            <div className="mt-5 h-44 rounded-2xl bg-[radial-gradient(circle_at_center,_#d4d4d8_0,_#e4e4e7_18%,_#f4f4f5_42%,_#fafafa_70%)] p-5">
-              <div className="flex h-full items-center justify-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full border-8 border-white bg-zinc-950 shadow-xl">
-                  <MapPin className="h-6 w-6 text-white" />
-                </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                  Noggrannhet
+                </p>
+                <p className="mt-2 text-xl font-semibold">
+                  {gpsVerified ? "±8 m" : "±145 m"}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                  Status
+                </p>
+                <p className="mt-2 text-xl font-semibold">
+                  {gpsVerified ? "Verifierad" : "Granska"}
+                </p>
               </div>
             </div>
           </div>
         </div>
       </Card>
 
-      <div className="grid gap-5 xl:grid-cols-3">
-        <Card className="p-6 xl:col-span-2">
-          <h3 className="text-2xl font-semibold">Dagens tidslinje</h3>
-          <div className="mt-5 space-y-3">
-            {[
-              ["07:01", "Instämplad", "Villa Björkvägen 12", "GPS-verifierad"],
-              ["10:18", "Materialhämtning", "Beijer Nyköping", "Föreslagen av AI"],
-              ["10:47", "Tillbaka på projekt", "Villa Björkvägen 12", "Projekt återupptaget"],
-            ].map(([time, title, place, status]) => (
-              <div key={time} className="grid gap-2 rounded-2xl border border-zinc-200 p-4 sm:grid-cols-[70px_1fr_auto] sm:items-center">
-                <p className="font-semibold">{time}</p>
-                <div>
-                  <p className="font-semibold">{title}</p>
-                  <p className="text-sm text-zinc-500">{place}</p>
-                </div>
-                <Badge tone="success">{status}</Badge>
-              </div>
-            ))}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat
+          icon={Clock3}
+          label="Arbetad tid idag"
+          value={clockedIn ? (onBreak ? "5 h 26 m" : "5 h 41 m") : "0 h 00 m"}
+          helper={clockedIn ? "Löpande beräkning" : "Arbetsdagen ej startad"}
+        />
+        <Stat
+          icon={Coffee}
+          label="Rast"
+          value={onBreak ? "Pågår" : "15 min"}
+          helper="Regel kontrollerad"
+        />
+        <Stat
+          icon={Banknote}
+          label="Prognoslön"
+          value="31 842 kr"
+          helper="+1 246 kr övertid"
+        />
+        <Stat
+          icon={CircleDollarSign}
+          label="Projektkostnad idag"
+          value="2 184 kr"
+          helper="Lön + sociala avgifter"
+        />
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
+        <Card className="p-6">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-sm font-medium text-zinc-500">Tidshistorik</p>
+              <h3 className="mt-1 text-2xl font-semibold">
+                {weekView ? "Den här veckan" : "Dagens tidslinje"}
+              </h3>
+            </div>
+            <button
+              onClick={() => setWeekView((value) => !value)}
+              className="inline-flex items-center gap-2 rounded-2xl border border-zinc-200 px-4 py-2 text-sm font-semibold"
+            >
+              <CalendarClock className="h-4 w-4" />
+              {weekView ? "Visa idag" : "Visa vecka"}
+            </button>
           </div>
+
+          {!weekView ? (
+            <div className="mt-5 space-y-3">
+              {entries.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="grid gap-3 rounded-2xl border border-zinc-200 p-4 sm:grid-cols-[72px_1fr_auto] sm:items-center"
+                >
+                  <p className="font-semibold">{entry.time}</p>
+                  <div>
+                    <p className="font-semibold">{entry.title}</p>
+                    <p className="mt-1 text-sm text-zinc-500">
+                      {entry.place} · {entry.detail}
+                    </p>
+                  </div>
+                  <Badge
+                    tone={
+                      entry.type === "break"
+                        ? "warning"
+                        : entry.type === "stop"
+                          ? "dark"
+                          : "success"
+                    }
+                  >
+                    {entry.type === "break"
+                      ? "Rast"
+                      : entry.type === "travel"
+                        ? "Resa"
+                        : entry.type === "stop"
+                          ? "Avslutad"
+                          : "Arbete"}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-5 overflow-hidden rounded-2xl border border-zinc-200">
+              {[
+                ["Måndag", "8 h 15 m", "Godkänd"],
+                ["Tisdag", "7 h 45 m", "Godkänd"],
+                ["Onsdag", "8 h 30 m", "AI-avvikelse"],
+                ["Torsdag", "5 h 41 m", "Pågår"],
+                ["Fredag", "0 h 00 m", "Planerad"],
+              ].map(([day, hours, status], index) => (
+                <div
+                  key={day}
+                  className={`flex items-center justify-between gap-4 p-4 ${
+                    index !== 4 ? "border-b border-zinc-200" : ""
+                  }`}
+                >
+                  <div>
+                    <p className="font-semibold">{day}</p>
+                    <p className="text-sm text-zinc-500">{hours}</p>
+                  </div>
+                  <Badge tone={status === "AI-avvikelse" ? "warning" : status === "Pågår" ? "dark" : "success"}>
+                    {status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
 
-        <Card className="p-6">
-          <h3 className="text-2xl font-semibold">AI-kontroll</h3>
-          <div className="mt-5 rounded-2xl bg-amber-50 p-4">
-            <div className="flex items-start gap-3">
-              <TimerReset className="mt-0.5 h-5 w-5 text-amber-700" />
-              <div>
-                <p className="font-semibold text-amber-900">Glömd utstämpling</p>
-                <p className="mt-2 text-sm leading-6 text-amber-800">
-                  Du lämnade Solängen cirka 16:12 igår. Avsluta arbetsdagen 16:15?
-                </p>
-                <button
-                  onClick={() => notify("Gårdagens tid korrigerad till 16:15")}
-                  className="mt-4 rounded-xl bg-amber-900 px-4 py-2 text-sm font-semibold text-white"
-                >
-                  Godkänn
-                </button>
+        <div className="space-y-5">
+          <Card className="p-6">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5" />
+              <h3 className="text-2xl font-semibold">AI-kontroll</h3>
+            </div>
+            <div className="mt-5 rounded-2xl bg-amber-50 p-4">
+              <div className="flex items-start gap-3">
+                <TimerReset className="mt-0.5 h-5 w-5 text-amber-700" />
+                <div>
+                  <p className="font-semibold text-amber-900">
+                    Glömd utstämpling
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-amber-800">
+                    Du lämnade Solängen cirka 16:12 igår. AI föreslår
+                    utstämpling 16:15.
+                  </p>
+                  <button
+                    onClick={approveCorrection}
+                    className="mt-4 rounded-xl bg-amber-900 px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    Godkänn 16:15
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </Card>
+
+            <div className="mt-4 rounded-2xl bg-zinc-50 p-4">
+              <div className="flex items-start gap-3">
+                <ShieldAlert className="mt-0.5 h-5 w-5" />
+                <div>
+                  <p className="font-semibold">Integritetsskydd</p>
+                  <p className="mt-2 text-sm leading-6 text-zinc-600">
+                    Position sparas vid stämpling. Kontinuerlig spårning är
+                    avstängd i företagets standardpolicy.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-2xl font-semibold">Löneunderlag</h3>
+            <div className="mt-5 space-y-4">
+              {[
+                ["Ordinarie tid", "29 h 11 m"],
+                ["Övertid", "2 h 30 m"],
+                ["Restid", "1 h 12 m"],
+                ["Rast", "1 h 00 m"],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between border-b border-zinc-200 pb-3"
+                >
+                  <span className="text-sm text-zinc-600">{label}</span>
+                  <span className="font-semibold">{value}</span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => notify("Veckans löneunderlag sparades")}
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-zinc-950 py-3 font-semibold text-white"
+            >
+              <Save className="h-5 w-5" />
+              Spara underlag
+            </button>
+          </Card>
+        </div>
       </div>
     </div>
   );
