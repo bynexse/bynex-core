@@ -1,20 +1,20 @@
-# Bynex OS Demo v0.5.0
+# Bynex OS Demo v0.6.0
 
-## Nytt – Personal & UE 2.0
-- Personalregister
-- Underentreprenörer i samma arbetsflöde
-- Roller, projekt, status och kontaktuppgifter
-- Timkostnad, veckotid och kostnad
-- Kompetenser och certifikat
-- Förfallovarningar
-- AI-bemanning
-- Inbjudningsflöde för UE
+## Nytt – Projektdetalj 3.0
+- Realtidsstyrd hälsning efter lokal tid
+- Projektheader och projektflikar
+- AI Projektchef
+- Budget, utfall, prognos, marginal och fakturering
+- Projekttidslinje
+- Projektets hälsopoäng
+- Live-läge för personal, UE, fordon och maskiner
 
-## Kvalitetssäkrad leverans
-- Dubbla lucide-importer borttagna
-- Gamla konfigurationsfiler borttagna
-- Rensad Next-konfiguration
-- Ingen `.next` eller `node_modules` i ZIP
+## Realtidshälsning
+- 05:00–09:59: God morgon
+- 10:00–12:59: God förmiddag
+- 13:00–16:59: God eftermiddag
+- 17:00–21:59: God kväll
+- 22:00–04:59: God natt
 
 ## Starta
 ```bash

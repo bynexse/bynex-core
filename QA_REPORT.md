@@ -1,7 +1,9 @@
-# QA Report v0.5.0
+# QA Report – v0.6.0
 
-- Dubbla lucide-importer: 0
-- Modulkontroller: {'module_id': True, 'navigation': True, 'render': True, 'component': True}
-- next.config.ts borttagen: True
-- node_modules i leverans: nej
-- .next i leverans: nej
+- Dubbla lucide-importer: []
+- Saknade ikonimporter: []
+- Realtidshälsning: True
+- Projektdetalj: True
+- AI Projektchef: True
+- node_modules i ZIP: nej
+- .next i ZIP: nej

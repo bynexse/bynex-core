@@ -1,13 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import {
-  ArrowRight,
-  FileCheck2,
-  TimerReset,
+  useMemo,
+  useState } from "react";
+import {
   AlertTriangle,
-  TriangleAlert,
-  Truck,
+  ArrowRight,
   Bot,
   BriefcaseBusiness,
   Building2,
@@ -39,6 +37,8 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
+  TimerReset,
+  Truck,
   Coffee,
   Navigation,
   Banknote,
@@ -53,19 +53,49 @@ import {
   ImageIcon,
   TrendingDown,
   TrendingUp,
+  UserRoundCheck,
   ChevronDown,
   MoreHorizontal,
-  UserRoundCheck,
   Users,
   WalletCards,
   Wrench,
   X,
   Zap,
+  BadgeCheck,
+  GraduationCap,
+  UserPlus,
+  Phone,
+  Mail,
+  UsersRound,
+  Activity,
+  CalendarCheck2,
+  Camera,
+  ChartNoAxesCombined,
+  CircleGauge,
+  ExternalLink,
+  FileCheck2,
+  Gauge,
+  MapPinned,
+  Route,
+  ScanLine,
+  ShieldQuestion,
+  TriangleAlert
 } from "lucide-react";
+
+
+function getRealtimeGreeting(hour: number) {
+  if (hour >= 5 && hour < 10) return "God morgon";
+  if (hour >= 10 && hour < 13) return "God förmiddag";
+  if (hour >= 13 && hour < 17) return "God eftermiddag";
+  if (hour >= 17 && hour < 22) return "God kväll";
+  return "God natt";
+}
 
 type ModuleId =
   | "dashboard"
   | "projects"
+  | "project-detail"
+  | "people"
   | "time"
   | "foreman"
   | "site-manager"
@@ -93,6 +123,7 @@ const modules: Array<{
 }> = [
   { id: "dashboard", label: "Översikt", icon: Home },
   { id: "projects", label: "Projekt", icon: FolderKanban },
+  { id: "people", label: "Personal & UE", icon: UsersRound },
   { id: "time", label: "Bynex Tid", icon: Clock3 },
   { id: "foreman", label: "Arbetsledaren", icon: HardHat },
   { id: "site-manager", label: "Platschef", icon: Building2 },
@@ -344,6 +375,8 @@ export default function BynexDemo() {
               notify={notify}
             />
           )}
+          {active === "project-detail" && <ProjectDetail notify={notify} />}
+          {active === "people" && <PeopleAndSubcontractors notify={notify} />}
           {active === "time" && (
             <TimeModule
               clockedIn={clockedIn}
@@ -390,6 +423,8 @@ function Dashboard({
   onOpen: (module: ModuleId) => void;
   notify: (message: string) => void;
 }) {
+  const realtimeGreeting = getRealtimeGreeting(new Date().getHours());
+
   return (
     <div className="space-y-5">
       <Card className="overflow-hidden p-6 sm:p-8">
@@ -397,7 +432,7 @@ function Dashboard({
           <div>
             <Badge tone="dark">Måndag 3 augusti</Badge>
             <h2 className="mt-5 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
-              God morgon Christoffer.
+              {realtimeGreeting} Christoffer.
             </h2>
             <p className="mt-4 max-w-2xl text-lg leading-8 text-zinc-600">
               Alla projekt flyter, men Bynex AI har upptäckt en materialrisk och en glömd
@@ -491,6 +526,8 @@ function Dashboard({
               ["Beställ material", PackageCheck, "materials"],
               ["Skapa offert", ReceiptText, "quotes"],
               ["Öppna Connect", MessageCircle, "connect"],
+              ["Personal & UE", UsersRound, "people"],
+              ["Öppna projekt", FolderOpen, "project-detail"],
             ].map(([label, Icon, id]) => (
               <button
                 key={label as string}
@@ -1028,6 +1065,716 @@ function Projects({
             </Card>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+
+
+function ProjectDetail({
+  notify,
+}: {
+  notify: (message: string) => void;
+}) {
+  const [tab, setTab] = useState("Översikt");
+  const realtimeGreeting = getRealtimeGreeting(new Date().getHours());
+
+  const tabs = [
+    "Översikt",
+    "Tid",
+    "Personal",
+    "UE",
+    "Material",
+    "ÄTA",
+    "Dokument",
+    "Bilder",
+    "Ritningar",
+    "Fakturering",
+    "Kundportal",
+    "AI",
+  ];
+
+  const timeline = [
+    { time: "10:47", title: "Johan åter på projektet", source: "Tid & GPS", icon: UserRoundCheck, tone: "success" as const },
+    { time: "10:32", title: "Materialleverans kvitterad", source: "Material & inköp", icon: PackageSearch, tone: "success" as const },
+    { time: "09:18", title: "ÄTA 04 godkänd av kund", source: "Digital signering", icon: FileCheck2, tone: "success" as const },
+    { time: "08:42", title: "Ny ritning uppladdad", source: "Dokument", icon: ScanLine, tone: "neutral" as const },
+    { time: "08:15", title: "Elektrikern informerades", source: "Bynex Connect", icon: MessageCircle, tone: "neutral" as const },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <Card className="overflow-hidden">
+        <div className="border-b border-zinc-200 p-6 sm:p-8">
+          <div className="flex flex-col justify-between gap-6 xl:flex-row xl:items-start">
+            <div>
+              <div className="flex flex-wrap gap-2">
+                <Badge tone="success">Projektet mår bra</Badge>
+                <Badge tone="neutral">Löpande</Badge>
+                <Badge tone="dark">BX-2027-0008</Badge>
+              </div>
+              <h2 className="mt-5 text-4xl font-semibold tracking-tight">
+                Villa Björkvägen 12
+              </h2>
+              <p className="mt-2 text-lg text-zinc-500">
+                Andersson Fastigheter AB · Björkvägen 12, Trosa
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3 text-sm">
+                <button
+                  onClick={() => notify("Kartan öppnades")}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-zinc-200 px-4 py-3 font-semibold"
+                >
+                  <MapPinned className="h-4 w-4" />
+                  Visa på karta
+                </button>
+                <button
+                  onClick={() => notify("Projektchatten öppnades")}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-zinc-200 px-4 py-3 font-semibold"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Öppna Connect
+                </button>
+                <button
+                  onClick={() => notify("Kundportalen öppnades")}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-zinc-200 px-4 py-3 font-semibold"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Kundportal
+                </button>
+              </div>
+            </div>
+
+            <div className="grid min-w-full gap-3 sm:grid-cols-2 xl:min-w-[430px]">
+              {[
+                ["Projektledare", "Christoffer Alsbjer"],
+                ["Arbetsledare", "Sara Lind"],
+                ["Startdatum", "12 maj 2027"],
+                ["Prognos klart", "28 november 2027"],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl bg-zinc-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    {label}
+                  </p>
+                  <p className="mt-2 font-semibold">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto border-b border-zinc-200 px-4 sm:px-6">
+          <div className="flex min-w-max gap-1 py-3">
+            {tabs.map((item) => (
+              <button
+                key={item}
+                onClick={() => setTab(item)}
+                className={`rounded-xl px-4 py-2.5 text-sm font-semibold ${
+                  tab === item
+                    ? "bg-zinc-950 text-white"
+                    : "text-zinc-500 hover:bg-zinc-100"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {tab === "Översikt" ? (
+        <>
+          <Card className="overflow-hidden bg-zinc-950 text-white">
+            <div className="grid gap-6 p-6 sm:p-8 xl:grid-cols-[1fr_auto] xl:items-center">
+              <div>
+                <div className="flex items-center gap-3">
+                  <Sparkles className="h-5 w-5" />
+                  <Badge tone="neutral">AI Projektchef</Badge>
+                </div>
+                <h3 className="mt-5 text-3xl font-semibold">
+                  {realtimeGreeting} Christoffer.
+                </h3>
+                <p className="mt-3 max-w-3xl text-lg leading-8 text-zinc-300">
+                  Projektet ligger före tidsplan. Marginalen är stabil, men två
+                  UE saknar tid och en materialbeställning behöver godkännas idag.
+                </p>
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  {[
+                    "Två UE saknar tidrapport.",
+                    "Material till fredag behöver beställas.",
+                    "ÄTA 05 väntar på kundens signatur.",
+                    "Prognosen visar +182 000 kr.",
+                  ].map((item) => (
+                    <div key={item} className="flex items-start gap-3 rounded-2xl bg-white/10 p-4">
+                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+                      <p className="text-sm leading-6 text-zinc-200">{item}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => notify("AI skapade en samlad åtgärdsplan")}
+                  className="rounded-2xl bg-white px-6 py-3 font-semibold text-zinc-950"
+                >
+                  Lös allt med AI
+                </button>
+                <button
+                  onClick={() => notify("AI-analysen öppnades")}
+                  className="rounded-2xl border border-white/20 px-6 py-3 font-semibold"
+                >
+                  Visa full analys
+                </button>
+              </div>
+            </div>
+          </Card>
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+            <Stat icon={WalletCards} label="Budget" value="2,85 mkr" helper="Beslutad kalkyl" />
+            <Stat icon={CircleDollarSign} label="Utfall" value="1,76 mkr" helper="62 % förbrukat" />
+            <Stat icon={ChartNoAxesCombined} label="Prognos" value="2,69 mkr" helper="160 000 kr under budget" />
+            <Stat icon={Gauge} label="Marginal" value="18,6 %" helper="+0,4 % senaste veckan" />
+            <Stat icon={ReceiptText} label="Fakturerat" value="1,42 mkr" helper="Senast 1 augusti" />
+            <Stat icon={FileCheck2} label="Att fakturera" value="86 400 kr" helper="4 godkända underlag" />
+          </div>
+
+          <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+            <Card className="p-6">
+              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+                <div>
+                  <p className="text-sm font-medium text-zinc-500">Projektets tidslinje</p>
+                  <h3 className="mt-1 text-2xl font-semibold">Senaste aktiviteterna</h3>
+                </div>
+                <button
+                  onClick={() => notify("Hela projektloggen öppnades")}
+                  className="text-sm font-semibold"
+                >
+                  Visa hela loggen
+                </button>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {timeline.map((entry) => {
+                  const Icon = entry.icon;
+                  return (
+                    <div
+                      key={`${entry.time}-${entry.title}`}
+                      className="grid gap-3 rounded-2xl border border-zinc-200 p-4 sm:grid-cols-[64px_42px_1fr_auto] sm:items-center"
+                    >
+                      <p className="font-semibold">{entry.time}</p>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{entry.title}</p>
+                        <p className="mt-1 text-sm text-zinc-500">{entry.source}</p>
+                      </div>
+                      <Badge tone={entry.tone}>Registrerad</Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <div className="space-y-5">
+              <Card className="p-6">
+                <div className="flex items-center gap-3">
+                  <CircleGauge className="h-5 w-5" />
+                  <h3 className="text-2xl font-semibold">Projektets hälsa</h3>
+                </div>
+                <div className="mt-5 rounded-3xl bg-emerald-50 p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-700">Stabil</p>
+                      <p className="mt-1 text-3xl font-semibold text-emerald-950">87 / 100</p>
+                    </div>
+                    <Activity className="h-9 w-9 text-emerald-700" />
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-emerald-800">
+                    Projektet ligger före tidplan. Ekonomin är stabil och
+                    materialläget är under kontroll.
+                  </p>
+                </div>
+                <div className="mt-4 space-y-3">
+                  {[
+                    ["Tidplan", "92 %", "Enligt plan"],
+                    ["Ekonomi", "86 %", "Stabil"],
+                    ["Material", "78 %", "Åtgärd idag"],
+                    ["Bemanning", "90 %", "God"],
+                  ].map(([label, score, status]) => (
+                    <div key={label} className="flex items-center justify-between rounded-2xl border border-zinc-200 p-4">
+                      <div>
+                        <p className="font-semibold">{label}</p>
+                        <p className="mt-1 text-sm text-zinc-500">{status}</p>
+                      </div>
+                      <p className="font-semibold">{score}</p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center gap-3">
+                  <MapPinned className="h-5 w-5" />
+                  <h3 className="text-2xl font-semibold">Live-läge</h3>
+                </div>
+                <div className="mt-5 h-48 rounded-3xl bg-[radial-gradient(circle_at_38%_42%,_#18181b_0,_#18181b_3%,_#d4d4d8_4%,_#e4e4e7_16%,_#f4f4f5_40%,_#fafafa_70%)]">
+                  <div className="flex h-full items-end justify-between p-5">
+                    <Badge tone="dark">14 personer</Badge>
+                    <Badge tone="neutral">3 fordon · 4 företag</Badge>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => notify("Personalens positioner öppnades")}
+                    className="rounded-2xl border border-zinc-200 p-4 text-left"
+                  >
+                    <Users className="h-5 w-5" />
+                    <p className="mt-3 font-semibold">Personal & UE</p>
+                    <p className="mt-1 text-sm text-zinc-500">14 på plats</p>
+                  </button>
+                  <button
+                    onClick={() => notify("Fordon och maskiner öppnades")}
+                    className="rounded-2xl border border-zinc-200 p-4 text-left"
+                  >
+                    <Route className="h-5 w-5" />
+                    <p className="mt-3 font-semibold">Fordon & maskiner</p>
+                    <p className="mt-1 text-sm text-zinc-500">7 anslutna</p>
+                  </button>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </>
+      ) : (
+        <Card className="p-8">
+          <div className="mx-auto max-w-2xl py-16 text-center">
+            <FolderOpen className="mx-auto h-10 w-10 text-zinc-400" />
+            <h3 className="mt-5 text-3xl font-semibold">{tab}</h3>
+            <p className="mt-3 text-lg leading-8 text-zinc-500">
+              Fliken är förberedd i projektets gemensamma struktur och kopplas
+              till riktig data i kommande produktionssteg.
+            </p>
+            <button
+              onClick={() => notify(`${tab} öppnades i demon`)}
+              className="mt-6 rounded-2xl bg-zinc-950 px-6 py-3 font-semibold text-white"
+            >
+              Öppna {tab}
+            </button>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function PeopleAndSubcontractors({
+  notify,
+}: {
+  notify: (message: string) => void;
+}) {
+  const [tab, setTab] = useState<"personal" | "ue">("personal");
+  const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState("p1");
+
+  const people = [
+    {
+      id: "p1",
+      name: "Johan Berg",
+      initials: "JB",
+      role: "Snickare",
+      company: "Bynex Bygg AB",
+      project: "Villa Björkvägen 12",
+      status: "I arbete",
+      hourlyCost: 348,
+      hoursWeek: "31 h 41 m",
+      costWeek: "11 020 kr",
+      phone: "070-241 18 22",
+      email: "johan@bynexdemo.se",
+      skills: ["Stomme", "Innervägg", "Kök", "Arbetsledning"],
+      certificates: [
+        ["Heta arbeten", "2028-05-12", "Giltigt"],
+        ["Fallskydd", "2027-11-03", "Giltigt"],
+        ["ID06", "2029-02-01", "Giltigt"],
+      ],
+    },
+    {
+      id: "p2",
+      name: "Sara Lind",
+      initials: "SL",
+      role: "Arbetsledare",
+      company: "Bynex Bygg AB",
+      project: "Solängen 4",
+      status: "I arbete",
+      hourlyCost: 426,
+      hoursWeek: "33 h 08 m",
+      costWeek: "14 113 kr",
+      phone: "070-552 49 10",
+      email: "sara@bynexdemo.se",
+      skills: ["Planering", "KMA", "Kalkyl", "Kundkontakt"],
+      certificates: [
+        ["BAS-U", "2028-09-14", "Giltigt"],
+        ["Heta arbeten", "2026-10-20", "Förnyas snart"],
+        ["ID06", "2029-06-18", "Giltigt"],
+      ],
+    },
+    {
+      id: "p3",
+      name: "Emil Karlsson",
+      initials: "EK",
+      role: "Lärling",
+      company: "Bynex Bygg AB",
+      project: "Kvarnvägen 7",
+      status: "Rast",
+      hourlyCost: 244,
+      hoursWeek: "28 h 22 m",
+      costWeek: "6 923 kr",
+      phone: "070-816 32 77",
+      email: "emil@bynexdemo.se",
+      skills: ["Montage", "Rivning", "Material"],
+      certificates: [
+        ["Säkra lyft", "2027-03-22", "Giltigt"],
+        ["ID06", "2028-08-10", "Giltigt"],
+      ],
+    },
+  ];
+
+  const subcontractors = [
+    {
+      id: "u1",
+      name: "Trosa Elteknik AB",
+      initials: "TE",
+      role: "Elentreprenör",
+      company: "Trosa Elteknik AB",
+      project: "Villa Björkvägen 12",
+      status: "2 i arbete",
+      hourlyCost: 690,
+      hoursWeek: "42 h 30 m",
+      costWeek: "29 325 kr",
+      phone: "0156-220 18",
+      email: "projekt@trosaelteknik.se",
+      skills: ["Elcentral", "Kabeldragning", "Dokumentation"],
+      certificates: [
+        ["Ansvarsförsäkring", "2027-12-31", "Giltigt"],
+        ["Elsäkerhetsregistrering", "Löpande", "Verifierad"],
+        ["ID06 företag", "2028-04-30", "Giltigt"],
+      ],
+    },
+    {
+      id: "u2",
+      name: "Gnesta VVS & Energi",
+      initials: "GV",
+      role: "VVS-entreprenör",
+      company: "Gnesta VVS & Energi AB",
+      project: "Solängen 4",
+      status: "1 saknar tid",
+      hourlyCost: 735,
+      hoursWeek: "25 h 15 m",
+      costWeek: "18 559 kr",
+      phone: "0158-410 80",
+      email: "jobb@gnestavvs.se",
+      skills: ["Värmepump", "Badrum", "Service"],
+      certificates: [
+        ["Säker Vatten", "2027-06-15", "Giltigt"],
+        ["Ansvarsförsäkring", "2026-09-30", "Förnyas snart"],
+        ["ID06 företag", "2028-02-12", "Giltigt"],
+      ],
+    },
+    {
+      id: "u3",
+      name: "Måleri Öst AB",
+      initials: "MÖ",
+      role: "Målerientreprenör",
+      company: "Måleri Öst AB",
+      project: "Ej schemalagd",
+      status: "Tillgänglig",
+      hourlyCost: 625,
+      hoursWeek: "0 h 00 m",
+      costWeek: "0 kr",
+      phone: "0155-302 70",
+      email: "info@maleriost.se",
+      skills: ["Invändig målning", "Fasad", "Spackling"],
+      certificates: [
+        ["Ansvarsförsäkring", "2028-01-31", "Giltigt"],
+        ["ID06 företag", "2027-10-01", "Giltigt"],
+      ],
+    },
+  ];
+
+  const source = tab === "personal" ? people : subcontractors;
+  const visible = source.filter((person) =>
+    `${person.name} ${person.role} ${person.project} ${person.status}`
+      .toLowerCase()
+      .includes(query.toLowerCase()),
+  );
+  const selected =
+    [...people, ...subcontractors].find((person) => person.id === selectedId) ??
+    source[0];
+
+  const switchTab = (next: "personal" | "ue") => {
+    setTab(next);
+    setSelectedId(next === "personal" ? "p1" : "u1");
+  };
+
+  return (
+    <div className="space-y-5">
+      <Card className="p-6 sm:p-8">
+        <div className="flex flex-col justify-between gap-6 xl:flex-row xl:items-end">
+          <div>
+            <Badge tone="dark">Personal & UE 2.0</Badge>
+            <h2 className="mt-5 text-4xl font-semibold tracking-tight">
+              Samma arbetsflöde för hela laget.
+            </h2>
+            <p className="mt-3 max-w-3xl text-lg leading-8 text-zinc-600">
+              Egna anställda, inhyrda och underentreprenörer arbetar i samma
+              projekt med rätt behörigheter, kostnader och tidrapportering.
+            </p>
+          </div>
+          <button
+            onClick={() =>
+              notify(tab === "personal" ? "Ny medarbetare öppnades" : "Ny UE-inbjudan öppnades")
+            }
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-5 py-3 font-semibold text-white"
+          >
+            <UserPlus className="h-5 w-5" />
+            {tab === "personal" ? "Lägg till personal" : "Bjud in UE"}
+          </button>
+        </div>
+
+        <div className="mt-7 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="inline-flex w-fit rounded-2xl bg-zinc-100 p-1">
+            <button
+              onClick={() => switchTab("personal")}
+              className={`rounded-xl px-5 py-2.5 text-sm font-semibold ${
+                tab === "personal" ? "bg-white shadow-sm" : "text-zinc-500"
+              }`}
+            >
+              Egen personal
+            </button>
+            <button
+              onClick={() => switchTab("ue")}
+              className={`rounded-xl px-5 py-2.5 text-sm font-semibold ${
+                tab === "ue" ? "bg-white shadow-sm" : "text-zinc-500"
+              }`}
+            >
+              Underentreprenörer
+            </button>
+          </div>
+          <div className="relative w-full lg:max-w-md">
+            <Search className="absolute left-4 top-3.5 h-5 w-5 text-zinc-400" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Sök namn, roll, projekt eller status"
+              className="w-full rounded-2xl border border-zinc-200 py-3 pl-12 pr-4 outline-none focus:border-zinc-950"
+            />
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat icon={Users} label="Egen personal" value="18" helper="14 i arbete just nu" />
+        <Stat icon={Building2} label="Anslutna UE" value="7 företag" helper="12 personer i projekt" />
+        <Stat icon={BadgeCheck} label="Certifikat" value="42 giltiga" helper="3 behöver förnyas" />
+        <Stat icon={CircleDollarSign} label="Personalkostnad" value="186 400 kr" helper="Den här veckan" />
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
+        <Card className="p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-zinc-500">
+                {tab === "personal" ? "Medarbetare" : "Företag"}
+              </p>
+              <h3 className="mt-1 text-2xl font-semibold">{visible.length} visas</h3>
+            </div>
+            <UsersRound className="h-5 w-5 text-zinc-400" />
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {visible.map((person) => (
+              <button
+                key={person.id}
+                onClick={() => setSelectedId(person.id)}
+                className={`w-full rounded-3xl border p-4 text-left transition ${
+                  selectedId === person.id
+                    ? "border-zinc-950 bg-zinc-950 text-white"
+                    : "border-zinc-200 bg-white hover:border-zinc-400"
+                }`}
+              >
+                <div className="flex items-start gap-4">
+                  <div
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl font-bold ${
+                      selectedId === person.id
+                        ? "bg-white text-zinc-950"
+                        : "bg-zinc-100 text-zinc-950"
+                    }`}
+                  >
+                    {person.initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">{person.name}</p>
+                        <p className="mt-1 text-sm opacity-65">{person.role}</p>
+                      </div>
+                      <Badge tone={person.status.includes("saknar") ? "warning" : "success"}>
+                        {person.status}
+                      </Badge>
+                    </div>
+                    <p className="mt-3 truncate text-sm opacity-65">{person.project}</p>
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs opacity-50">Veckotid</p>
+                        <p className="mt-1 font-semibold">{person.hoursWeek}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs opacity-50">Kostnad</p>
+                        <p className="mt-1 font-semibold">{person.costWeek}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </Card>
+
+        <div className="space-y-5">
+          <Card className="overflow-hidden">
+            <div className="border-b border-zinc-200 p-6 sm:p-7">
+              <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-zinc-950 text-xl font-bold text-white">
+                    {selected.initials}
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge tone="dark">{tab === "personal" ? "Anställd" : "Underentreprenör"}</Badge>
+                      <Badge tone={selected.status.includes("saknar") ? "warning" : "success"}>
+                        {selected.status}
+                      </Badge>
+                    </div>
+                    <h3 className="mt-4 text-3xl font-semibold">{selected.name}</h3>
+                    <p className="mt-1 text-zinc-500">
+                      {selected.role} · {selected.company}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => notify("Profilen öppnades för redigering")}
+                  className="rounded-2xl border border-zinc-200 px-4 py-3 text-sm font-semibold"
+                >
+                  Redigera profil
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-4 p-6 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl bg-zinc-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Projekt</p>
+                <p className="mt-2 font-semibold">{selected.project}</p>
+              </div>
+              <div className="rounded-2xl bg-zinc-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Veckotid</p>
+                <p className="mt-2 text-xl font-semibold">{selected.hoursWeek}</p>
+              </div>
+              <div className="rounded-2xl bg-zinc-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Kostnad</p>
+                <p className="mt-2 text-xl font-semibold">{selected.costWeek}</p>
+              </div>
+              <div className="rounded-2xl bg-zinc-950 p-4 text-white">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Timkostnad</p>
+                <p className="mt-2 text-xl font-semibold">{selected.hourlyCost} kr</p>
+              </div>
+            </div>
+
+            <div className="grid gap-5 border-t border-zinc-200 p-6 lg:grid-cols-2">
+              <div>
+                <h4 className="font-semibold">Kontakt</h4>
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 p-4">
+                    <Phone className="h-5 w-5 text-zinc-400" />
+                    <span className="text-sm">{selected.phone}</span>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 p-4">
+                    <Mail className="h-5 w-5 text-zinc-400" />
+                    <span className="truncate text-sm">{selected.email}</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold">Kompetenser</h4>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {selected.skills.map((skill) => (
+                    <Badge key={skill} tone="neutral">{skill}</Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <div className="grid gap-5 lg:grid-cols-2">
+            <Card className="p-6">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="h-5 w-5" />
+                <h3 className="text-2xl font-semibold">Certifikat</h3>
+              </div>
+              <div className="mt-5 space-y-3">
+                {selected.certificates.map(([name, expiry, status]) => (
+                  <div key={name} className="rounded-2xl border border-zinc-200 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">{name}</p>
+                        <p className="mt-1 text-sm text-zinc-500">{expiry}</p>
+                      </div>
+                      <Badge tone={status.includes("snart") ? "warning" : "success"}>
+                        {status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card className="p-6">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-5 w-5" />
+                <h3 className="text-2xl font-semibold">AI-bemanning</h3>
+              </div>
+              <div className="mt-5 rounded-2xl bg-zinc-950 p-5 text-white">
+                <p className="font-semibold">Rekommenderad åtgärd</p>
+                <p className="mt-3 text-sm leading-6 text-zinc-300">
+                  {tab === "personal"
+                    ? "Kvarnvägen behöver förstärkning torsdag. Johan matchar arbetsmomentet bäst."
+                    : "Måleri Öst är tillgängliga nästa vecka och matchar kommande moment på Villa Björkvägen."}
+                </p>
+                <button
+                  onClick={() => notify("AI-bemanningsförslaget skapades")}
+                  className="mt-5 w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-zinc-950"
+                >
+                  Skapa bemanningsförslag
+                </button>
+              </div>
+              <div className="mt-4 space-y-3">
+                {[
+                  ["Kompetensmatchning", "92 %"],
+                  ["Restidsbesparing", "1 h 25 m"],
+                  ["Tillgänglighet", tab === "personal" ? "2 personer fredag" : "1 företag nästa vecka"],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="flex items-center justify-between rounded-2xl border border-zinc-200 p-4"
+                  >
+                    <span className="text-sm text-zinc-500">{label}</span>
+                    <span className="text-sm font-semibold">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
