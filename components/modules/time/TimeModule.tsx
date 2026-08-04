@@ -449,7 +449,7 @@ export default function TimeModule({
         </Card>
 
         <Card className="p-6">
-          <div className="flex items-center gap-3"><div className="rounded-2xl bg-emerald-100 p-3 text-emerald-800"><CheckCircle2 className="h-5 w-5" /></div><div><p className="text-sm font-semibold text-zinc-500">Patch 2</p><h3 className="text-xl font-semibold">GPS & geofence aktivt</h3></div></div>
+          <div className="flex items-center gap-3"><div className="rounded-2xl bg-emerald-100 p-3 text-emerald-800"><CheckCircle2 className="h-5 w-5" /></div><div><p className="text-sm font-semibold text-zinc-500">Positionering</p><h3 className="text-xl font-semibold">GPS & geofence aktivt</h3></div></div>
           <div className="mt-6 space-y-3 text-sm text-zinc-600">
             <p>• GPS sparas vid in- och utstämpling.</p>
             <p>• Position och noggrannhet lagras lokalt.</p>
@@ -469,7 +469,7 @@ export default function TimeModule({
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-zinc-500">Patch 3</p>
+                <p className="text-sm font-semibold text-zinc-500">Smart arbetsstöd</p>
                 <h3 className="text-2xl font-semibold">Bynex Smart Arbetsdag</h3>
               </div>
             </div>

@@ -1,0 +1,112 @@
+.shell {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 18% 15%, rgba(197, 255, 72, 0.14), transparent 28%),
+    radial-gradient(circle at 85% 82%, rgba(107, 129, 255, 0.12), transparent 30%),
+    #111411;
+  color: #f7f8f4;
+}
+
+.card {
+  width: min(100%, 440px);
+  padding: clamp(28px, 6vw, 48px);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 24px;
+  background: rgba(26, 30, 25, 0.92);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+}
+
+.brand {
+  color: #c5ff48;
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+.badge {
+  display: inline-flex;
+  margin-top: 24px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(197, 255, 72, 0.1);
+  color: #d8ff82;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.card h1 {
+  margin: 18px 0 8px;
+  font-size: clamp(2rem, 7vw, 3rem);
+  letter-spacing: -0.05em;
+}
+
+.intro,
+.note {
+  color: #b7beb3;
+  line-height: 1.55;
+}
+
+.error {
+  margin: 20px 0 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 122, 122, 0.35);
+  border-radius: 12px;
+  background: rgba(255, 93, 93, 0.09);
+  color: #ffc4c4;
+  line-height: 1.45;
+}
+
+.form {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.form label {
+  display: grid;
+  gap: 8px;
+  color: #e4e8df;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.form input {
+  min-height: 50px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 0 14px;
+  background: #0d100d;
+  color: #fff;
+  outline: none;
+}
+
+.form input:focus {
+  border-color: #c5ff48;
+  box-shadow: 0 0 0 3px rgba(197, 255, 72, 0.12);
+}
+
+.form button {
+  min-height: 52px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 12px;
+  background: #c5ff48;
+  color: #111411;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.form button:hover {
+  background: #d3ff73;
+}
+
+.note {
+  margin: 24px 0 0;
+  font-size: 0.78rem;
+}

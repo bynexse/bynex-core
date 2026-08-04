@@ -27,8 +27,8 @@ Startsidan innehåller ett sammanhängande, lokalt sparat pilotflöde:
 
 ## Teknik
 
-- Next.js 14
-- React 18
+- Next.js 16
+- React 19
 - TypeScript
 - Tailwind CSS 3
 - Lucide React
@@ -41,6 +41,22 @@ npm run dev
 ```
 
 Öppna `http://localhost:3000`.
+
+## Privat pilot
+
+Pilotlåset aktiveras i hostingmiljön med följande servervariabler. Värdena ska
+läggas som hemligheter i hostingen och aldrig sparas i GitHub:
+
+```text
+BYNEX_PILOT_GATE_ENABLED=true
+BYNEX_PILOT_USERNAME=<ert användarnamn>
+BYNEX_PILOT_ACCESS_CODE=<en lång personlig testkod>
+BYNEX_PILOT_SESSION_SECRET=<minst 32 slumpmässiga tecken>
+```
+
+När låset är aktivt skyddas hela pilotytan av en signerad, HttpOnly-baserad
+session. Testkoden skickas bara till servern och lagras inte i webbläsarens
+JavaScript.
 
 ## Kvalitetskontroll
 
