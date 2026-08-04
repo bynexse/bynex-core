@@ -10,6 +10,13 @@ import { updateSupabaseSession } from "@/lib/supabase/proxy";
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
+  // The billing worker authenticates every request with its own timing-safe
+  // bearer secret. It must remain callable by the scheduler while the human
+  // pilot gate is enabled.
+  if (path === "/api/internal/bynex-smart/digital-binder-billing") {
+    return NextResponse.next();
+  }
+
   if (isPilotGateEnabled()) {
     const config = getPilotConfig();
     if (!config) {
@@ -42,7 +49,10 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (path.startsWith("/app") || path.startsWith("/onboarding") || path.startsWith("/portal") || path.startsWith("/api/private")) {
+  const protectedCustomerPortal = path.startsWith("/kundportal")
+    && path !== "/kundportal/login"
+    && path !== "/kundportal/inbjudan";
+  if (path.startsWith("/app") || path.startsWith("/admin") || path.startsWith("/onboarding") || path.startsWith("/q/") || protectedCustomerPortal || path.startsWith("/api/private") || path.startsWith("/api/ai")) {
     return updateSupabaseSession(request);
   }
 

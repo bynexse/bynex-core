@@ -4,6 +4,7 @@ export type CompanyModule = {
   description: string;
   source: string;
   endsAt: string | null;
+  visible: boolean;
 };
 
 export type CompanyContext = {
@@ -19,4 +20,5 @@ export type CompanyContext = {
   subscriptionStatus: string;
   trialEndsAt: string | null;
   modules: CompanyModule[];
+  platformRole?: string | null;
 };

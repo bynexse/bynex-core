@@ -3,24 +3,28 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { CompanyContext } from "@/lib/company-context";
 
+export const dynamic = "force-dynamic";
+
 export default async function BynexAppPage() {
   const supabase = await createServerSupabaseClient();
   if (!supabase) redirect("/login?error=configuration");
 
-  const { data: claimsData } = await supabase.auth.getClaims();
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+  if (claimsError) redirect("/login?error=session");
   const userId = claimsData?.claims?.sub;
   if (!userId) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("full_name,current_organization_id")
     .eq("user_id", userId)
     .maybeSingle();
 
+  if (profileError) throw new Error("Profilen kunde inte hämtas.");
   if (!profile?.current_organization_id) redirect("/onboarding");
 
   const organizationId = profile.current_organization_id;
-  const [{ data: organization }, { data: membership }, { data: subscription }, { data: entitlements }, { data: moduleCatalog }] = await Promise.all([
+  const [organizationResult, membershipResult, subscriptionResult, entitlementsResult, moduleCatalogResult, modulePreferencesResult, platformStaffResult] = await Promise.all([
     supabase
       .from("organizations")
       .select("id,name,organization_number,business_form,timezone,default_language")
@@ -50,15 +54,44 @@ export default async function BynexAppPage() {
       .select("slug,name,description")
       .eq("active", true)
       .order("sort_order"),
+    supabase
+      .from("organization_module_preferences")
+      .select("module_slug,visible")
+      .eq("organization_id", organizationId),
+    supabase
+      .from("platform_staff")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("active", true)
+      .maybeSingle(),
   ]);
 
-  if (!organization) redirect("/onboarding");
+  const queryError = [organizationResult, membershipResult, subscriptionResult, entitlementsResult, moduleCatalogResult, modulePreferencesResult, platformStaffResult]
+    .find((result) => result.error)?.error;
+  if (queryError) throw new Error("Företagets arbetsyta kunde inte läsas in.");
 
-  const { data: plan } = subscription?.plan_id
+  const organization = organizationResult.data;
+  const membership = membershipResult.data;
+  const subscription = subscriptionResult.data;
+  const entitlements = entitlementsResult.data;
+  const moduleCatalog = moduleCatalogResult.data;
+  const modulePreferences = modulePreferencesResult.data;
+  const platformStaff = platformStaffResult.data;
+
+  if (!organization) redirect("/onboarding");
+  if (!membership) redirect("/onboarding?error=membership");
+
+  const { data: plan, error: planError } = subscription?.plan_id
     ? await supabase.from("plans").select("name").eq("id", subscription.plan_id).maybeSingle()
-    : { data: null };
+    : { data: null, error: null };
+  if (planError) throw new Error("Abonnemanget kunde inte läsas in.");
+
+  const visibilityBySlug = new Map(
+    (modulePreferences ?? []).map((preference) => [preference.module_slug, preference.visible]),
+  );
 
   const enabledProductModules = (entitlements ?? [])
+    .filter((entitlement) => visibilityBySlug.get(entitlement.module_slug) !== false)
     .map((entitlement) => entitlement.module_slug);
 
   const entitlementBySlug = new Map(
@@ -72,9 +105,9 @@ export default async function BynexAppPage() {
     businessForm: organization.business_form,
     timezone: organization.timezone,
     defaultLanguage: organization.default_language,
-    role: membership?.role ?? "employee",
+    role: membership.role,
     userFullName: profile.full_name,
-    planName: plan?.name ?? "Bynex beta",
+    planName: plan?.name ?? "Ingen aktiv plan",
     subscriptionStatus: subscription?.status ?? "inactive",
     trialEndsAt: subscription?.trial_ends_at ?? subscription?.current_period_ends_at ?? null,
     modules: (moduleCatalog ?? [])
@@ -87,8 +120,10 @@ export default async function BynexAppPage() {
           description: module.description,
           source: entitlement.source,
           endsAt: entitlement.ends_at,
+          visible: visibilityBySlug.get(module.slug) !== false,
         };
       }),
+    platformRole: platformStaff?.role ?? null,
   };
 
   return <BynexDemo enabledProductModules={enabledProductModules} company={company} />;

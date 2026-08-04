@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BriefcaseBusiness, CheckCircle2, Clock3, Coffee, LocateFixed, MapPin, PlayCircle, RefreshCw, StopCircle } from "lucide-react";
+import { BriefcaseBusiness, CheckCircle2, Clock3, Coffee, LocateFixed, MapPin, PlayCircle, RefreshCw, ShieldCheck, StopCircle } from "lucide-react";
 import { Badge, Card, Stat } from "@/components/ui/core";
+import { DocumentSnapshotPanel } from "@/components/documents/DocumentSnapshotPanel";
 
 type TimeState = {
   worker: { id: string; full_name: string; job_title: string | null; gps_enabled: boolean };
@@ -11,6 +12,9 @@ type TimeState = {
   entries: Array<{ id: string; project_id: string | null; work_type_id: string | null; clock_in: string; clock_out: string | null; status: string; note: string | null; approved_at: string | null }>;
   activeEntry: { id: string; project_id: string | null; work_type_id: string | null; clock_in: string; clock_out: string | null; note: string | null } | null;
   activeBreak: { id: string; started_at: string } | null;
+  canApprove: boolean;
+  pendingTeamEntries: Array<{ id: string; worker_id: string; project_id: string | null; clock_in: string; clock_out: string; status: string; note: string | null; approved_at: string | null }>;
+  teamWorkers: Array<{ id: string; full_name: string; job_title: string | null }>;
 };
 
 function durationLabel(start: string, end: string | null, now: number) {
@@ -91,6 +95,24 @@ export default function LiveTimeModule({ notify }: { notify: (message: string) =
     setActing(false);
   }
 
+  async function approveEntry(entryId: string) {
+    setActing(true);
+    const response = await fetch("/api/private/time", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ entryId }),
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      setError(payload?.error ?? "Tiden kunde inte attesteras.");
+      setActing(false);
+      return;
+    }
+    notify("Tidsregistreringen är attesterad");
+    await load();
+    setActing(false);
+  }
+
   if (loading && !state) return <Card className="p-8"><p className="text-sm text-zinc-500">Hämtar företagets tidsregistrering…</p></Card>;
   if (!state) return <Card className="p-8"><p className="font-semibold text-red-700">{error}</p><button onClick={() => void load()} className="mt-4 rounded-2xl bg-zinc-950 px-5 py-3 text-sm font-semibold text-white">Försök igen</button></Card>;
 
@@ -112,6 +134,8 @@ export default function LiveTimeModule({ notify }: { notify: (message: string) =
       </Card>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Stat icon={Clock3} label="Denna månad" value={`${Math.floor(completedMinutes / 60)} h ${String(Math.floor(completedMinutes % 60)).padStart(2, "0")} m`} helper="Avslutade registreringar" /><Stat icon={BriefcaseBusiness} label="Aktiva projekt" value={String(state.projects.length)} helper="Tillgängliga för tidsregistrering" /><Stat icon={Coffee} label="Rast" value={state.activeBreak ? "Pågår" : "Ingen"} helper="Registreras separat" /><Stat icon={MapPin} label="GPS" value={state.worker.gps_enabled ? "Aktiverad" : "Avstängd"} helper="Sparas vid in- och utstämpling" /></div>
       <Card className="p-6"><div className="flex items-center gap-3"><CheckCircle2 className="h-6 w-6 text-emerald-700" /><div><p className="text-sm text-zinc-500">Senaste registreringar</p><h3 className="text-2xl font-semibold">Din tidslogg</h3></div></div><div className="mt-6 space-y-3">{state.entries.length === 0 ? <p className="rounded-2xl border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500">Ingen tid registrerad ännu.</p> : state.entries.map((entry) => { const project = state.projects.find((item) => item.id === entry.project_id); return <div key={entry.id} className="flex flex-col justify-between gap-3 rounded-2xl border border-zinc-200 p-4 sm:flex-row sm:items-center"><div><p className="font-semibold">{project?.name ?? "Intern tid"}</p><p className="mt-1 text-sm text-zinc-500">{new Intl.DateTimeFormat("sv-SE", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.clock_in))}</p></div><div className="flex items-center gap-3"><span className="font-mono text-sm font-semibold">{durationLabel(entry.clock_in, entry.clock_out, now)}</span><Badge tone={entry.approved_at ? "success" : entry.clock_out ? "neutral" : "warning"}>{entry.approved_at ? "Attesterad" : entry.clock_out ? "Sparad" : "Pågår"}</Badge></div></div>; })}</div></Card>
+      {state.canApprove && <Card className="p-6"><div className="flex items-center gap-3"><ShieldCheck className="h-6 w-6 text-emerald-700" /><div><p className="text-sm text-zinc-500">Behörig attest</p><h3 className="text-2xl font-semibold">Tid att granska</h3></div></div><div className="mt-6 space-y-3">{state.pendingTeamEntries.length === 0 ? <p className="rounded-2xl border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500">Ingen avslutad tid väntar på attest.</p> : state.pendingTeamEntries.map((entry) => { const worker = state.teamWorkers.find((item) => item.id === entry.worker_id); const project = state.projects.find((item) => item.id === entry.project_id); return <div key={entry.id} className="flex flex-col justify-between gap-4 rounded-2xl border border-zinc-200 p-5 sm:flex-row sm:items-center"><div><p className="font-semibold">{worker?.full_name ?? "Medarbetare"}</p><p className="mt-1 text-sm text-zinc-500">{project?.name ?? "Intern tid"} · {durationLabel(entry.clock_in, entry.clock_out, now)}</p>{entry.note && <p className="mt-2 text-sm text-zinc-600">{entry.note}</p>}</div><button disabled={acting} onClick={() => void approveEntry(entry.id)} className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">Attestera</button></div>; })}</div></Card>}
+      {state.canApprove && <Card className="p-6"><DocumentSnapshotPanel mode="time" projectId={projectId || null} onNotice={notify} /></Card>}
     </div>
   );
 }

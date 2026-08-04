@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
+import { requireSmartContext } from "@/lib/ai/authorization";
 import {
-  createLocalProjectPlan,
   normalizeProjectPlan,
   type SmartPlanInput,
 } from "@/lib/smart/project-plan";
@@ -30,6 +30,9 @@ function outputText(payload: unknown) {
 }
 
 export async function POST(request: Request) {
+  const context = await requireSmartContext();
+  if (!context.ok) return context.response;
+
   let body: unknown;
   try {
     body = await request.json();
@@ -42,7 +45,12 @@ export async function POST(request: Request) {
 
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL;
-  if (!apiKey || !model) return NextResponse.json(createLocalProjectPlan(body));
+  if (!apiKey || !model) {
+    return NextResponse.json(
+      { error: "Bynex Smart planering är inte aktiverad ännu. Inga uppskattningar skapades." },
+      { status: 503 },
+    );
+  }
 
   try {
     const content: Array<Record<string, unknown>> = [
@@ -67,9 +75,9 @@ export async function POST(request: Request) {
     const cleaned = outputText(payload).trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
     return NextResponse.json(normalizeProjectPlan(JSON.parse(cleaned), body));
   } catch {
-    return NextResponse.json({
-      ...createLocalProjectPlan(body),
-      warning: "Smart-tjänsten kunde inte nås. Ett lokalt standardunderlag visades.",
-    });
+    return NextResponse.json(
+      { error: "Bynex Smart kunde inte skapa ett verifierbart underlag. Försök igen senare." },
+      { status: 502 },
+    );
   }
 }

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import Logo from "@/components/layout/Logo";
+import { safeAuthDestination } from "@/lib/auth/safe-redirect";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -18,7 +20,8 @@ export default function LoginPage() {
     }
 
     setStatus("sending");
-    const redirectTo = `${window.location.origin}/auth/callback?next=/app`;
+    const next = safeAuthDestination(new URLSearchParams(window.location.search).get("next"));
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: redirectTo, shouldCreateUser: false },
@@ -32,7 +35,7 @@ export default function LoginPage() {
         <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-500 hover:text-zinc-950">
           <ArrowLeft className="h-4 w-4" /> Tillbaka
         </Link>
-        <p className="mt-8 text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">Bynex</p>
+        <div className="mt-8"><Logo priority /></div>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">Logga in säkert</h1>
         <p className="mt-3 text-sm leading-6 text-zinc-600">
           Vi skickar en personlig engångslänk. BankID och Freja aktiveras när respektive produktionsavtal är anslutet.

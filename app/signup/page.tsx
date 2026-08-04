@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import Logo from "@/components/layout/Logo";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -37,7 +38,8 @@ export default function SignupPage() {
         <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-500 hover:text-zinc-950">
           <ArrowLeft className="h-4 w-4" /> Tillbaka
         </Link>
-        <p className="mt-8 text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">Bynex beta</p>
+        <div className="mt-8"><Logo priority /></div>
+        <p className="mt-4 text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">Öppen beta</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">Skapa testkonto</h1>
         <p className="mt-3 text-sm leading-6 text-zinc-600">
           Prova Bynex kostnadsfritt i 30 dagar. Ditt företag och din data hålls helt åtskilda från andra testare.

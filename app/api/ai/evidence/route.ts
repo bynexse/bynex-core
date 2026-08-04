@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { requireSmartContext } from "@/lib/ai/authorization";
 import {
   createLocalEvidenceAnalysis,
   normalizeEvidenceResult,
@@ -60,10 +61,17 @@ export async function POST(request: Request) {
     );
   }
 
+  const context = await requireSmartContext(body.projectId);
+  if (!context.ok) return context.response;
+  if (!context.project) {
+    return NextResponse.json({ error: "Projektet kunde inte verifieras." }, { status: 404 });
+  }
+  const verifiedInput: EvidenceAiInput = { ...body, projectName: context.project.name };
+
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL;
   if (!apiKey || !model) {
-    return NextResponse.json(createLocalEvidenceAnalysis(body));
+    return NextResponse.json(createLocalEvidenceAnalysis(verifiedInput));
   }
 
   try {
@@ -87,7 +95,7 @@ export async function POST(request: Request) {
                   fileName: body.fileName,
                   note: body.note,
                   projectId: body.projectId,
-                  projectName: body.projectName,
+                  projectName: verifiedInput.projectName,
                   activity: body.activity,
                 }),
               },
@@ -101,18 +109,18 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
-      const fallback = createLocalEvidenceAnalysis(body);
+      const fallback = createLocalEvidenceAnalysis(verifiedInput);
       return NextResponse.json({
         ...fallback,
-        warning: `OpenAI svarade med status ${response.status}. Lokal analys användes.`,
+        warning: `Bynex Smart analystjänst svarade med status ${response.status}. Lokal analys användes.`,
       });
     }
 
     const payload = (await response.json()) as unknown;
     const parsed = parseJsonResult(extractOutputText(payload));
-    return NextResponse.json(normalizeEvidenceResult({ ...parsed, source: "openai" }, body));
+    return NextResponse.json(normalizeEvidenceResult({ ...parsed, source: "openai" }, verifiedInput));
   } catch {
-    const fallback = createLocalEvidenceAnalysis(body);
+    const fallback = createLocalEvidenceAnalysis(verifiedInput);
     return NextResponse.json({
       ...fallback,
       warning: "Bildanalysen kunde inte nå analystjänsten. Lokal analys användes.",

@@ -20,10 +20,10 @@
 }
 
 .brand {
-  color: #c5ff48;
-  font-size: 1.15rem;
-  font-weight: 900;
-  letter-spacing: 0.18em;
+  display: block;
+  width: 176px;
+  height: auto;
+  border-radius: 12px;
 }
 
 .badge {

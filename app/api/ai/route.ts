@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+import { requireSmartContext } from "@/lib/ai/authorization";
 import { getSystemPrompt } from "@/lib/ai/prompts";
 import type { AiRequest, AiResponse } from "@/lib/ai/types";
 
 export const runtime = "nodejs";
+
+const capabilities = new Set(["time-daybook", "time-anomaly", "time-summary", "general-assistant"]);
 
 function localFallback(request: AiRequest): AiResponse {
   const cleaned = request.input.trim().replace(/\s+/g, " ");
@@ -13,6 +16,9 @@ function localFallback(request: AiRequest): AiResponse {
 }
 
 export async function POST(request: Request) {
+  const context = await requireSmartContext();
+  if (!context.ok) return context.response;
+
   let payload: AiRequest;
   try {
     payload = (await request.json()) as AiRequest;
@@ -20,8 +26,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Ogiltig förfrågan" }, { status: 400 });
   }
 
-  if (!payload?.capability || typeof payload.input !== "string") {
+  if (!payload?.capability || !capabilities.has(payload.capability) || typeof payload.input !== "string") {
     return NextResponse.json({ error: "capability och input krävs" }, { status: 400 });
+  }
+  if (payload.input.trim().length === 0 || payload.input.length > 8_000) {
+    return NextResponse.json({ error: "Underlaget måste innehålla 1–8 000 tecken." }, { status: 400 });
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
@@ -41,7 +50,7 @@ export async function POST(request: Request) {
         input: JSON.stringify({
           user_input: payload.input,
           locale: payload.locale || "sv",
-          context: payload.context || {},
+          organization_id: context.organizationId,
         }),
       }),
     });

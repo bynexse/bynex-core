@@ -1,0 +1,166 @@
+{
+  "project_ref": "svyywnozugavjiehjmyc",
+  "captured_at": "2026-08-04",
+  "applied_migrations": [
+    {
+      "version": "20260804093407",
+      "name": "invoices_ai_newsletters",
+      "sha256": "79c04f67a19fe1d23c5eb1927be734637f70601219ead1b9d374e7c76192cdba"
+    },
+    {
+      "version": "20260804094558",
+      "name": "time_payroll_agi_absence",
+      "sha256": "c6c7255dc58c7c29a8d8ffeefa4423a0fe721ede518959d08355051c0f4a15f0"
+    },
+    {
+      "version": "20260804095246",
+      "name": "offers_weather_quality",
+      "sha256": "77be016530cdb7b477ad977ef84d5f01c7eacca684fcddc828f9f002573ee93a"
+    },
+    {
+      "version": "20260804100101",
+      "name": "assets_qr_ata",
+      "sha256": "3d30387cc82550860ba858bb99da1da58a28c9a93f82e81d2a2a5f3589beec3a"
+    },
+    {
+      "version": "20260804100416",
+      "name": "ata_pricing_review_guard",
+      "sha256": "45313b1c0cde1364b4e62f6b282b08b325ef2fcd14c25d6d5dcac361d830adc2"
+    },
+    {
+      "version": "20260804101052",
+      "name": "ata_start_now_price_later",
+      "sha256": "a0d16453c22bfca32a47e946482cae676084df21451a99a86e336b8fd9c40954"
+    },
+    {
+      "version": "20260804101159",
+      "name": "ata_preserve_work_status",
+      "sha256": "15a35f8a879a75c4ce8531137d1d75882816da37901558519b3083afd1e4955f"
+    },
+    {
+      "version": "20260804102125",
+      "name": "material_price_intelligence",
+      "sha256": "0dbda6b64d4b92285f5dfda7bca6c2d1e3b81c97246a823e0fdd6732d6952602"
+    },
+    {
+      "version": "20260804103055",
+      "name": "bynex_smart_ata_estimate",
+      "sha256": "77af11c285500ba4b6832d38890805a27f29319851be498ab7b62513023b6518"
+    },
+    {
+      "version": "20260804103304",
+      "name": "bynex_smart_ata_core_row_fix",
+      "sha256": "92f8a4192822cb8aa72e0125e4fc01ae48ad096c7f32f210d69ec8e9381e8051"
+    },
+    {
+      "version": "20260804103731",
+      "name": "customer_portal_core",
+      "sha256": "f10d717a945b0952fc9bb4cd06545c9cbd982f7548cb0e3767d939752171b8d7"
+    },
+    {
+      "version": "20260804105158",
+      "name": "project_lifecycle_installations",
+      "sha256": "dda1a71c7956e2b108f809090092bc1a03456e6a784343edae60c33770432121"
+    },
+    {
+      "version": "20260804105408",
+      "name": "installation_route_validator_access",
+      "sha256": "14828994d19b48463626fdf450098cc67f07b803a5191410c42f40694b73dfb4"
+    },
+    {
+      "version": "20260804110034",
+      "name": "subscription_billing_automation",
+      "sha256": "720b1e40cd98497e961a0519fd60d8decf79a877744a8e117de401ed762da31f"
+    },
+    {
+      "version": "20260804110554",
+      "name": "asset_location_bynex_smart",
+      "sha256": "4fa47daf259a69d1e9e4f472d2c02010a2bfa7b52b79a8233eb850c7c3b15169"
+    },
+    {
+      "version": "20260804111304",
+      "name": "accounting_connector_hub",
+      "sha256": "e7415335619c01c69cee2e959beb1aeb3149f073ffd8ba4729e094e1c4e844bf"
+    },
+    {
+      "version": "20260804111452",
+      "name": "bankid_identity_and_signing",
+      "sha256": "ff15801ff9e26855443ad627126803bb2d8c2b68b89174dcd88a296db8b34ca2"
+    },
+    {
+      "version": "20260804111835",
+      "name": "customer_records_quote_acceptance",
+      "sha256": "08d81a1f5e353d072d77c24cbb23af5b77f123e54beb58a2b161803e53ae2227"
+    },
+    {
+      "version": "20260804112650",
+      "name": "customer_invoicing",
+      "sha256": "c2ba2f1a759a642a8cbdd8de1bc2200bd1d92c441d2c795617b6f0de9308b021"
+    },
+    {
+      "version": "20260804112818",
+      "name": "invoice_factoring_marketplace",
+      "sha256": "7ee3bfa9a573605b5b5eeaddedd7a457a24ae30a79c4a7f69e3fc24b1a02f46f"
+    },
+    {
+      "version": "20260804113044",
+      "name": "self_billing",
+      "sha256": "519c2dd07b8bf90ecf73f8e5827a67f97352f17b95c8d0ecb8e40b0b6feeac32"
+    },
+    {
+      "version": "20260804113614",
+      "name": "bynex_bookkeeping_core",
+      "sha256": "e138c0f54c6a181e0c4c876c1b6e3df1937fbf9edbf4c16bd3002ecfde3e34ea"
+    },
+    {
+      "version": "20260804113744",
+      "name": "fix_bookkeeping_period_interval",
+      "sha256": "9f3e1cbdd712fe125ad22fc5f75ce09c45aea7a83e069bfcd8cb7c0f7c7b3c56"
+    },
+    {
+      "version": "20260804113823",
+      "name": "fix_bookkeeping_immutable_triggers",
+      "sha256": "915e8e5c9831ba348673c2c1fc2e2a18722f0d06ab7327dabf1d77edb41c4493"
+    },
+    {
+      "version": "20260804113908",
+      "name": "fix_post_bookkeeping_voucher_alias",
+      "sha256": "9abbbf156087206f5456e2ba550a0d4f2e30ee89b353b6942b5df7e128f5caf3"
+    },
+    {
+      "version": "20260804152004",
+      "name": "platform_admin",
+      "sha256": "9aa4374ed47bc21cd1f33bfd16a3becbf7f203ad8be7bd52fa53e6505a509b9b"
+    },
+    {
+      "version": "20260804152138",
+      "name": "platform_analytics",
+      "sha256": "7d1989e81bce30522e85eed6910546524f83f9e82979efbe38f8ab2fabf350bf"
+    },
+    {
+      "version": "20260804153900",
+      "name": "platform_support_details",
+      "sha256": "735c77cd194cf3b992ea571c3055643f9b524bbd81ad572ffe78b62167afe257"
+    },
+    {
+      "version": "20260804160137",
+      "name": "dashboard_exact_metrics",
+      "sha256": "4fcd977bdc96240f9dc747373dc805242f55c9a378a1502f061040df27be4e1e"
+    },
+    {
+      "version": "20260804170548",
+      "name": "customer_portal_access_window",
+      "sha256": "4db9e161aee25801feb6f8f8d36483005f24710b6209eee19c0b466cd17db2bb"
+    },
+    {
+      "version": "20260804171358",
+      "name": "bookkeeping_product_entitlements",
+      "sha256": "3577d1121bba6f709c4251b6aeeb8258f7c2c422c9cb708de7397566a246a992"
+    },
+    {
+      "version": "20260804172018",
+      "name": "digital_binder_subscriptions",
+      "sha256": "ca3ae577e0d0f9d8bdc08b009583def1075e239ee034b1a7502f520419e9b950"
+    }
+  ]
+}

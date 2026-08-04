@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { requireSmartContext } from "@/lib/ai/authorization";
 import {
   createLocalWorkdayResult,
   normalizeWorkdayResult,
@@ -32,10 +33,16 @@ export async function POST(request: Request) {
   if (typeof payload.note !== "string" || payload.note.trim().length < 3) {
     return NextResponse.json({ error: "En arbetsanteckning krävs" }, { status: 400 });
   }
+  if (payload.note.length > 8_000) {
+    return NextResponse.json({ error: "Arbetsanteckningen är för lång." }, { status: 400 });
+  }
+
+  const context = await requireSmartContext(payload.projectId);
+  if (!context.ok) return context.response;
 
   const input = {
     note: payload.note,
-    projectName: payload.projectName,
+    projectName: context.project?.name,
     projectId: payload.projectId,
     activity: payload.activity,
     workedDuration: payload.workedDuration,

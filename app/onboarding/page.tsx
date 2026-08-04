@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Check, Clock3, Sparkles } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import Logo from "@/components/layout/Logo";
 
 type BetaScope = "time_payroll" | "complete";
 
@@ -41,7 +42,8 @@ export default function OnboardingPage() {
   return (
     <main className="min-h-screen bg-zinc-100 px-5 py-12 text-zinc-950">
       <section className="mx-auto w-full max-w-3xl rounded-[2rem] border border-zinc-200 bg-white p-7 shadow-xl sm:p-10">
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">Ett steg kvar</p>
+        <Logo priority />
+        <p className="mt-8 text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">Ett steg kvar</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Skapa ert testföretag</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600">
           Du blir ägare för en separat testmiljö. Inga andra företag kan läsa er information.
@@ -73,8 +75,8 @@ export default function OnboardingPage() {
               <label className={`cursor-pointer rounded-3xl border p-5 transition ${scope === "time_payroll" ? "border-zinc-950 bg-zinc-950 text-white" : "border-zinc-200"}`}>
                 <input className="sr-only" type="radio" name="scope" checked={scope === "time_payroll"} onChange={() => setScope("time_payroll")} />
                 <Clock3 className="h-6 w-6" />
-                <span className="mt-4 block text-lg font-semibold">Tid & Lön</span>
-                <span className={`mt-2 block text-sm leading-6 ${scope === "time_payroll" ? "text-zinc-300" : "text-zinc-500"}`}>Den fristående modulen för tid, attest och löneunderlag.</span>
+                <span className="mt-4 block text-lg font-semibold">Bynex Tid</span>
+                <span className={`mt-2 block text-sm leading-6 ${scope === "time_payroll" ? "text-zinc-300" : "text-zinc-500"}`}>Den fristående modulen för tid, GPS, frånvaro, attest och löneunderlag.</span>
               </label>
               <label className={`cursor-pointer rounded-3xl border p-5 transition ${scope === "complete" ? "border-zinc-950 bg-zinc-950 text-white" : "border-zinc-200"}`}>
                 <input className="sr-only" type="radio" name="scope" checked={scope === "complete"} onChange={() => setScope("complete")} />
