@@ -15,6 +15,7 @@ import PeopleAndSubcontractors from "@/components/modules/people/PeopleAndSubcon
 import TimeModule from "@/components/modules/time/TimeModule";
 import LiveTimeModule from "@/components/modules/time/LiveTimeModule";
 import PayrollModule from "@/components/modules/payroll/PayrollModule";
+import LivePayrollModule from "@/components/modules/payroll/LivePayrollModule";
 import Foreman from "@/components/modules/operations/Foreman";
 import SiteManager from "@/components/modules/operations/SiteManager";
 import Materials from "@/components/modules/materials/Materials";
@@ -214,7 +215,7 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
               ? <LiveTimeModule notify={notify} />
               : <TimeModule clockedIn={clockedIn} setClockedIn={setClockedIn} notify={notify} />
           )}
-          {active === "payroll" && <PayrollModule notify={notify} />}
+          {active === "payroll" && (authenticatedCompany ? <LivePayrollModule notify={notify} /> : <PayrollModule notify={notify} />)}
           {active === "foreman" && <Foreman notify={notify} />}
           {active === "site-manager" && <SiteManager notify={notify} />}
           {active === "materials" && <Materials notify={notify} />}
