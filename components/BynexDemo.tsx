@@ -21,7 +21,9 @@ import Connect from "@/components/modules/connect/Connect";
 import ChangeOrders from "@/components/modules/commercial/ChangeOrders";
 import Quotes from "@/components/modules/commercial/Quotes";
 import CoreFlow from "@/components/modules/core/CoreFlow";
+import CompanySettings from "@/components/modules/settings/CompanySettings";
 import type { ModuleId } from "@/lib/navigation";
+import type { CompanyContext } from "@/lib/company-context";
 
 const modules: Array<{
   id: ModuleId;
@@ -29,7 +31,7 @@ const modules: Array<{
   icon: React.ComponentType<{ className?: string }>;
   productModule?: string;
 }> = [
-  { id: "core-flow", label: "Starta & genomför", icon: Workflow },
+  { id: "core-flow", label: "Starta & genomför", icon: Workflow, productModule: "projects" },
   { id: "dashboard", label: "Översikt", icon: Home },
   { id: "projects", label: "Projekt", icon: FolderKanban, productModule: "projects" },
   { id: "people", label: "Personal & UE", icon: UsersRound, productModule: "time_payroll" },
@@ -41,10 +43,27 @@ const modules: Array<{
   { id: "connect", label: "Bynex Connect", icon: MessageCircle, productModule: "projects" },
   { id: "change-orders", label: "ÄTA", icon: FileSignature, productModule: "change_orders" },
   { id: "quotes", label: "Offerter", icon: ReceiptText, productModule: "quotes" },
+  { id: "settings", label: "Företagsinställningar", icon: Settings },
 ];
 
-export default function BynexDemo({ enabledProductModules }: { enabledProductModules?: string[] }) {
-  const [active, setActive] = useState<ModuleId>("core-flow");
+const demoCompany: CompanyContext = {
+  organizationId: "demo",
+  name: "Bynex Demoföretag",
+  organizationNumber: "",
+  businessForm: "limited_company",
+  timezone: "Europe/Stockholm",
+  defaultLanguage: "sv",
+  role: "demo",
+  userFullName: "Bynex Demo",
+  planName: "Publik produktvisning",
+  subscriptionStatus: "demo",
+  trialEndsAt: null,
+  modules: [],
+};
+
+export default function BynexDemo({ enabledProductModules, company: initialCompany }: { enabledProductModules?: string[]; company?: CompanyContext }) {
+  const [active, setActive] = useState<ModuleId>("dashboard");
+  const [company, setCompany] = useState(initialCompany ?? demoCompany);
   const [mobileNav, setMobileNav] = useState(false);
   const [clockedIn, setClockedIn] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -163,7 +182,7 @@ export default function BynexDemo({ enabledProductModules }: { enabledProductMod
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => notify("Inställningar öppnade")}
+                onClick={() => setActive("settings")}
                 className="rounded-2xl border border-zinc-200 bg-white p-3"
                 aria-label="Inställningar"
               >
@@ -171,11 +190,11 @@ export default function BynexDemo({ enabledProductModules }: { enabledProductMod
               </button>
               <div className="hidden items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-3 py-2 sm:flex">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-950 text-sm font-bold text-white">
-                  CA
+                  {company.userFullName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "BY"}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold">Christoffer</p>
-                  <p className="text-xs text-zinc-500">Administratör</p>
+                  <p className="max-w-40 truncate text-sm font-semibold">{company.userFullName}</p>
+                  <p className="text-xs capitalize text-zinc-500">{company.role}</p>
                 </div>
               </div>
             </div>
@@ -202,6 +221,7 @@ export default function BynexDemo({ enabledProductModules }: { enabledProductMod
           {active === "connect" && <Connect notify={notify} />}
           {active === "change-orders" && <ChangeOrders notify={notify} />}
           {active === "quotes" && <Quotes notify={notify} />}
+          {active === "settings" && <CompanySettings company={company} onSaved={setCompany} notify={notify} />}
         </main>
       </div>
 

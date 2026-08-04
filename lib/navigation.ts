@@ -11,4 +11,5 @@ export type ModuleId =
   | "materials"
   | "connect"
   | "change-orders"
-  | "quotes";
+  | "quotes"
+  | "settings";
