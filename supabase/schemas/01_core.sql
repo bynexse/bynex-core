@@ -176,6 +176,7 @@ create table public.change_orders (
 create table public.invoice_drafts (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id),
+  request_key uuid not null default gen_random_uuid(),
   project_id uuid,
   customer_id uuid not null,
   status text not null default 'draft' check (status in ('draft', 'ready', 'issued', 'void')),
@@ -189,6 +190,7 @@ create table public.invoice_drafts (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (organization_id, id),
+  unique (organization_id, request_key),
   constraint invoice_drafts_project_fk foreign key (organization_id, project_id)
     references public.projects(organization_id, id),
   constraint invoice_drafts_customer_fk foreign key (organization_id, customer_id)
@@ -321,7 +323,14 @@ language plpgsql
 set search_path = ''
 as $$
 begin
-  if old.locked_at is not null and new is distinct from old then
+  if old.locked_at is not null
+    and (
+      tg_table_name <> 'invoice_drafts'
+      or (to_jsonb(new) - array['status', 'updated_at'])
+        is distinct from (to_jsonb(old) - array['status', 'updated_at'])
+    )
+    and new is distinct from old
+  then
     raise exception 'Locked financial records are immutable';
   end if;
   return new;
@@ -661,3 +670,177 @@ grant select, insert, update on public.project_tasks to authenticated;
 grant select, insert on public.task_dependencies to authenticated;
 grant select, insert, update on public.material_requirements to authenticated;
 grant select, update on public.smart_suggestions to authenticated;
+
+-- Transactional workflow functions prevent partial state and duplicate work
+-- when clients retry after a lost network response. They run as the caller;
+-- normal grants and RLS remain in force.
+create or replace function public.create_project_from_quote(
+  requested_quote_id uuid,
+  requested_project_code text
+)
+returns public.projects
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  source_quote public.quotes;
+  existing_project public.projects;
+  created_project public.projects;
+begin
+  if length(btrim(requested_project_code)) < 1 then
+    raise exception 'Project code is required';
+  end if;
+
+  select * into source_quote
+  from public.quotes
+  where id = requested_quote_id
+  for update;
+
+  if source_quote.id is null then
+    raise exception 'Quote not found or access denied';
+  end if;
+  if source_quote.status <> 'accepted' or source_quote.locked_at is null then
+    raise exception 'Only an accepted and locked quote can become a project';
+  end if;
+
+  select * into existing_project
+  from public.projects
+  where organization_id = source_quote.organization_id
+    and quote_id = source_quote.id
+  order by created_at
+  limit 1;
+
+  if existing_project.id is not null then
+    return existing_project;
+  end if;
+
+  insert into public.projects (
+    organization_id, customer_id, quote_id, code, name, status, created_by
+  ) values (
+    source_quote.organization_id,
+    source_quote.customer_id,
+    source_quote.id,
+    requested_project_code,
+    source_quote.title,
+    'planned',
+    (select auth.uid())
+  )
+  returning * into created_project;
+
+  return created_project;
+end;
+$$;
+
+revoke all on function public.create_project_from_quote(uuid, text) from public;
+grant execute on function public.create_project_from_quote(uuid, text) to authenticated;
+
+create or replace function public.create_project_invoice_draft(
+  requested_project_id uuid,
+  requested_key uuid
+)
+returns public.invoice_drafts
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  source_project public.projects;
+  existing_draft public.invoice_drafts;
+  quote_minor bigint := 0;
+  time_minor bigint := 0;
+  material_minor bigint := 0;
+  change_minor bigint := 0;
+  calculated_subtotal bigint := 0;
+  calculated_vat bigint := 0;
+  created_draft public.invoice_drafts;
+begin
+  select * into source_project
+  from public.projects
+  where id = requested_project_id
+  for update;
+
+  if source_project.id is null then
+    raise exception 'Project not found or access denied';
+  end if;
+
+  select * into existing_draft
+  from public.invoice_drafts
+  where organization_id = source_project.organization_id
+    and request_key = requested_key;
+
+  if existing_draft.id is not null then
+    return existing_draft;
+  end if;
+
+  if exists (
+    select 1 from public.change_orders change_order
+    where change_order.organization_id = source_project.organization_id
+      and change_order.project_id = source_project.id
+      and change_order.work_status <> 'cancelled'
+      and change_order.price_status not in ('customer_approved', 'rejected')
+  ) then
+    raise exception 'Every active change order must have a final price decision';
+  end if;
+
+  if source_project.quote_id is not null then
+    select coalesce(subtotal_minor, 0) into quote_minor
+    from public.quotes
+    where organization_id = source_project.organization_id
+      and id = source_project.quote_id
+      and status = 'accepted';
+  end if;
+
+  select coalesce(sum(round((entry.minutes::numeric / 60) * coalesce(entry.hourly_rate_minor, 0)))::bigint, 0)
+    into time_minor
+  from public.time_entries entry
+  where entry.organization_id = source_project.organization_id
+    and entry.project_id = source_project.id
+    and entry.billable;
+
+  select coalesce(sum(round(entry.quantity * entry.billable_minor))::bigint, 0)
+    into material_minor
+  from public.material_entries entry
+  where entry.organization_id = source_project.organization_id
+    and entry.project_id = source_project.id;
+
+  select coalesce(sum(change_order.reviewed_minor), 0)
+    into change_minor
+  from public.change_orders change_order
+  where change_order.organization_id = source_project.organization_id
+    and change_order.project_id = source_project.id
+    and change_order.price_status = 'customer_approved';
+
+  calculated_subtotal := quote_minor + time_minor + material_minor + change_minor;
+  calculated_vat := round(calculated_subtotal * 0.25)::bigint;
+
+  insert into public.invoice_drafts (
+    organization_id, request_key, project_id, customer_id, status,
+    subtotal_minor, vat_minor, total_minor, source_snapshot, locked_at, created_by
+  ) values (
+    source_project.organization_id,
+    requested_key,
+    source_project.id,
+    source_project.customer_id,
+    'ready',
+    calculated_subtotal,
+    calculated_vat,
+    calculated_subtotal + calculated_vat,
+    jsonb_build_object(
+      'quote_minor', quote_minor,
+      'time_minor', time_minor,
+      'material_minor', material_minor,
+      'change_order_minor', change_minor,
+      'calculated_at', now()
+    ),
+    now(),
+    (select auth.uid())
+  )
+  returning * into created_draft;
+
+  return created_draft;
+end;
+$$;
+
+revoke all on function public.create_project_invoice_draft(uuid, uuid) from public;
+grant execute on function public.create_project_invoice_draft(uuid, uuid) to authenticated;

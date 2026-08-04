@@ -10,7 +10,9 @@ const ORG_B = "20000000-0000-4000-8000-000000000002";
 const CUSTOMER_A = "30000000-0000-4000-8000-000000000001";
 const CUSTOMER_B = "30000000-0000-4000-8000-000000000002";
 const QUOTE_A = "40000000-0000-4000-8000-000000000001";
+const QUOTE_NEW = "40000000-0000-4000-8000-000000000002";
 const PROJECT_A = "50000000-0000-4000-8000-000000000001";
+const INVOICE_KEY = "60000000-0000-4000-8000-000000000001";
 
 const db = new PGlite();
 
@@ -46,6 +48,13 @@ await db.exec(`
     '${QUOTE_A}', '${ORG_A}', '${CUSTOMER_A}', 'Låst offert', 100000,
     'accepted', now(), '${USER_A}'
   );
+  insert into public.quotes (
+    id, organization_id, customer_id, title, subtotal_minor, status,
+    locked_at, created_by
+  ) values (
+    '${QUOTE_NEW}', '${ORG_A}', '${CUSTOMER_A}', 'Ny accepterad offert', 250000,
+    'accepted', now(), '${USER_A}'
+  );
   insert into public.projects (id, organization_id, customer_id, quote_id, code, name, created_by)
   values ('${PROJECT_A}', '${ORG_A}', '${CUSTOMER_A}', '${QUOTE_A}', 'A-001', 'Projekt A', '${USER_A}');
   insert into public.portal_memberships (organization_id, project_id, user_id)
@@ -56,6 +65,20 @@ await db.exec(`
   ) values
     ('${ORG_A}', '${PROJECT_A}', 'milestone', 'Publicerad', 'published', now(), '${USER_A}', '${USER_A}'),
     ('${ORG_A}', '${PROJECT_A}', 'document', 'Internt utkast', 'draft', null, null, '${USER_A}');
+  insert into public.time_entries (
+    organization_id, project_id, user_id, minutes, hourly_rate_minor
+  ) values ('${ORG_A}', '${PROJECT_A}', '${USER_A}', 60, 69500);
+  insert into public.material_entries (
+    organization_id, project_id, description, quantity, billable_minor, created_by
+  ) values ('${ORG_A}', '${PROJECT_A}', 'Material', 1, 125000, '${USER_A}');
+  insert into public.change_orders (
+    organization_id, project_id, description, work_status, price_status,
+    reviewed_minor, human_reviewed_at, human_reviewed_by,
+    customer_approved_at, customer_approved_by, created_by
+  ) values (
+    '${ORG_A}', '${PROJECT_A}', 'Godkänd ÄTA', 'in_progress', 'customer_approved',
+    158000, now(), '${USER_A}', now(), '${USER_A}', '${USER_A}'
+  );
 `);
 
 async function asUser(userId, callback) {
@@ -80,6 +103,41 @@ await asUser(USER_A, async () => {
       [ORG_B, "Otillåten kund"],
     ),
     /row-level security|violates row-level security/i,
+  );
+
+  const firstProject = await db.query(
+    "select (public.create_project_from_quote($1, $2)).id as id",
+    [QUOTE_NEW, "A-002"],
+  );
+  const retriedProject = await db.query(
+    "select (public.create_project_from_quote($1, $2)).id as id",
+    [QUOTE_NEW, "IGNORED-RETRY"],
+  );
+  assert.equal(firstProject.rows[0].id, retriedProject.rows[0].id);
+
+  const projectCount = await db.query(
+    "select count(*)::integer as count from public.projects where quote_id = $1",
+    [QUOTE_NEW],
+  );
+  assert.equal(projectCount.rows[0].count, 1);
+
+  const firstInvoice = await db.query(
+    "select (public.create_project_invoice_draft($1, $2)).*",
+    [PROJECT_A, INVOICE_KEY],
+  );
+  const retriedInvoice = await db.query(
+    "select (public.create_project_invoice_draft($1, $2)).*",
+    [PROJECT_A, INVOICE_KEY],
+  );
+  assert.equal(firstInvoice.rows[0].id, retriedInvoice.rows[0].id);
+  assert.equal(firstInvoice.rows[0].subtotal_minor, 452500);
+  assert.equal(firstInvoice.rows[0].vat_minor, 113125);
+  assert.equal(firstInvoice.rows[0].total_minor, 565625);
+
+  await db.query("update public.invoice_drafts set status = 'issued' where id = $1", [firstInvoice.rows[0].id]);
+  await assert.rejects(
+    db.query("update public.invoice_drafts set subtotal_minor = 1 where id = $1", [firstInvoice.rows[0].id]),
+    /immutable/i,
   );
 });
 
@@ -109,5 +167,5 @@ await assert.rejects(
   /approved_artifact_has_reviewer|check constraint/i,
 );
 
-console.log("Core schema: RLS-isolering, portalfilter, granskningskrav och låsning godkända.");
+console.log("Core schema: RLS, portalfilter, idempotenta flöden, granskning och låsning godkända.");
 await db.close();
