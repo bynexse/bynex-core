@@ -92,7 +92,7 @@ export default function OnboardingPage() {
           <button disabled={status === "saving"} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-4 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60">
             <Building2 className="h-5 w-5" /> {status === "saving" ? "Skapar testföretaget…" : "Öppna Bynex"}
           </button>
-          {status === "error" && <p className="text-sm text-red-700">Testföretaget kunde inte skapas. Kontrollera att e-postadressen är verifierad och försök igen.</p>}
+          {status === "error" && <p className="text-sm text-red-700">Företaget kunde inte skapas. Kontrollera att e-postadressen är verifierad och försök igen.</p>}
         </form>
       </section>
     </main>

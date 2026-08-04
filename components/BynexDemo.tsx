@@ -24,6 +24,8 @@ import ChangeOrders from "@/components/modules/commercial/ChangeOrders";
 import Quotes from "@/components/modules/commercial/Quotes";
 import CoreFlow from "@/components/modules/core/CoreFlow";
 import CompanySettings from "@/components/modules/settings/CompanySettings";
+import LiveWorkspaceHome from "@/components/modules/core/LiveWorkspaceHome";
+import LiveModuleEmptyState from "@/components/modules/core/LiveModuleEmptyState";
 import type { ModuleId } from "@/lib/navigation";
 import type { CompanyContext } from "@/lib/company-context";
 
@@ -117,7 +119,7 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
             Bynex Smart
           </div>
           <p className="mt-3 text-sm leading-6 text-zinc-300">
-            3 åtgärder är förberedda för godkännande.
+            {authenticatedCompany ? "Arbetar med företagets egna projekt och behörigheter." : "Utforska hur Bynex Smart stödjer arbetsdagen."}
           </p>
           <button
             onClick={() => {
@@ -205,23 +207,23 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
         </header>
 
         <main className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8">
-          {active === "core-flow" && <CoreFlow notify={notify} />}
-          {active === "dashboard" && <Dashboard onOpen={setActive} notify={notify} />}
-          {active === "projects" && <Projects notify={notify} />}
-          {active === "project-detail" && <ProjectDetail notify={notify} />}
-          {active === "people" && <PeopleAndSubcontractors notify={notify} />}
+          {active === "core-flow" && (authenticatedCompany ? <LiveModuleEmptyState title="Starta & genomför" /> : <CoreFlow notify={notify} />)}
+          {active === "dashboard" && (authenticatedCompany ? <LiveWorkspaceHome company={company} onOpen={setActive} /> : <Dashboard onOpen={setActive} notify={notify} />)}
+          {active === "projects" && (authenticatedCompany ? <LiveModuleEmptyState title="Projekt" /> : <Projects notify={notify} />)}
+          {active === "project-detail" && (authenticatedCompany ? <LiveModuleEmptyState title="Projekt" /> : <ProjectDetail notify={notify} />)}
+          {active === "people" && (authenticatedCompany ? <LiveModuleEmptyState title="Personal & UE" /> : <PeopleAndSubcontractors notify={notify} />)}
           {active === "time" && (
             authenticatedCompany
               ? <LiveTimeModule notify={notify} />
               : <TimeModule clockedIn={clockedIn} setClockedIn={setClockedIn} notify={notify} />
           )}
           {active === "payroll" && (authenticatedCompany ? <LivePayrollModule notify={notify} /> : <PayrollModule notify={notify} />)}
-          {active === "foreman" && <Foreman notify={notify} />}
-          {active === "site-manager" && <SiteManager notify={notify} />}
-          {active === "materials" && <Materials notify={notify} />}
-          {active === "connect" && <Connect notify={notify} />}
-          {active === "change-orders" && <ChangeOrders notify={notify} />}
-          {active === "quotes" && <Quotes notify={notify} />}
+          {active === "foreman" && (authenticatedCompany ? <LiveModuleEmptyState title="Arbetsledaren" /> : <Foreman notify={notify} />)}
+          {active === "site-manager" && (authenticatedCompany ? <LiveModuleEmptyState title="Platschef" /> : <SiteManager notify={notify} />)}
+          {active === "materials" && (authenticatedCompany ? <LiveModuleEmptyState title="Material & inköp" /> : <Materials notify={notify} />)}
+          {active === "connect" && (authenticatedCompany ? <LiveModuleEmptyState title="Bynex Connect" /> : <Connect notify={notify} />)}
+          {active === "change-orders" && (authenticatedCompany ? <LiveModuleEmptyState title="ÄTA" /> : <ChangeOrders notify={notify} />)}
+          {active === "quotes" && (authenticatedCompany ? <LiveModuleEmptyState title="Offerter" /> : <Quotes notify={notify} />)}
           {active === "settings" && <CompanySettings company={company} onSaved={setCompany} notify={notify} />}
         </main>
       </div>
