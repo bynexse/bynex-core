@@ -17,6 +17,7 @@ import {
   Sparkles,
   UserRound,
 } from "lucide-react";
+import ProjectSmartStudio from "@/components/modules/core/ProjectSmartStudio";
 
 type Props = { notify: (message: string) => void };
 
@@ -272,6 +273,14 @@ export default function CoreFlow({ notify }: Props) {
 
       {stage === 4 && (
         <div className="grid gap-6 xl:grid-cols-3">
+          <ProjectSmartStudio
+            projectName={state.work}
+            notify={notify}
+            onCreateChangeOrder={(description) => {
+              patch({ changeDescription: description });
+              notify("Smart-underlaget lades in som ÄTA-utkast");
+            }}
+          />
           <section className="rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-sm">
             <Clock3 className="h-7 w-7" /><h3 className="mt-4 text-xl font-semibold">Tid</h3>
             <p className="mt-2 text-sm text-zinc-500">Registrerad arbetstid: {Math.floor(state.minutes / 60)} h {state.minutes % 60} min</p>
