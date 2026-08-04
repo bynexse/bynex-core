@@ -13,6 +13,7 @@ import Projects from "@/components/modules/projects/Projects";
 import ProjectDetail from "@/components/modules/projects/ProjectDetail";
 import PeopleAndSubcontractors from "@/components/modules/people/PeopleAndSubcontractors";
 import TimeModule from "@/components/modules/time/TimeModule";
+import LiveTimeModule from "@/components/modules/time/LiveTimeModule";
 import PayrollModule from "@/components/modules/payroll/PayrollModule";
 import Foreman from "@/components/modules/operations/Foreman";
 import SiteManager from "@/components/modules/operations/SiteManager";
@@ -64,6 +65,7 @@ const demoCompany: CompanyContext = {
 export default function BynexDemo({ enabledProductModules, company: initialCompany }: { enabledProductModules?: string[]; company?: CompanyContext }) {
   const [active, setActive] = useState<ModuleId>("dashboard");
   const [company, setCompany] = useState(initialCompany ?? demoCompany);
+  const authenticatedCompany = Boolean(initialCompany);
   const [mobileNav, setMobileNav] = useState(false);
   const [clockedIn, setClockedIn] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -208,11 +210,9 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
           {active === "project-detail" && <ProjectDetail notify={notify} />}
           {active === "people" && <PeopleAndSubcontractors notify={notify} />}
           {active === "time" && (
-            <TimeModule
-              clockedIn={clockedIn}
-              setClockedIn={setClockedIn}
-              notify={notify}
-            />
+            authenticatedCompany
+              ? <LiveTimeModule notify={notify} />
+              : <TimeModule clockedIn={clockedIn} setClockedIn={setClockedIn} notify={notify} />
           )}
           {active === "payroll" && <PayrollModule notify={notify} />}
           {active === "foreman" && <Foreman notify={notify} />}

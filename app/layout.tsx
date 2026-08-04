@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Bynex | Bygg mer. Administrera mindre.",
-  description: "Bynex-plattformen för byggbranschen",
+  title: "Bynex | Från idé till en byggnad som står i 100 år",
+  description: "Bynex samlar projekt, tid, lön, offert, ÄTA, material, fakturering och fastighetens digitala minne.",
 };
 
 export default function RootLayout({
