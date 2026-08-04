@@ -13,6 +13,27 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 
 En secret/service-role-nyckel får aldrig läggas i en `NEXT_PUBLIC_`-variabel eller skickas till webbläsaren.
 
+## Offentlig beta
+
+Registrering sker på `/signup` med verifierad e-post. Efter verifieringen kör
+`/onboarding` databasfunktionen `provision_beta_organization`. Funktionen är
+idempotent och skapar företag, ägarmedlemskap, 30 dagars provabonnemang och
+modulrättigheter i samma transaktion.
+
+I Supabase Auth ska följande adresser tillåtas innan betan öppnas:
+
+```text
+Site URL: https://bynex.se
+Redirect URL: https://bynex.se/auth/callback
+```
+
+Konfigurera egen SMTP för skarp publik testning. Supabases inbyggda e-posttjänst
+är endast avsedd för begränsad utveckling och har låg sändningsgräns.
+
+Modulåtkomst lagras i `organization_module_entitlements` och läses genom den
+RLS-säkrade vyn `active_organization_module_entitlements`. Appen visar endast
+de moduler som hör till företagets aktiva provperiod eller abonnemang.
+
 ## Databasflöde
 
 Källan till schemat ligger i `supabase/schemas/01_core.sql`. När Supabase CLI kan köras tillsammans med Docker genereras och verifieras migrationen från det deklarativa schemat:

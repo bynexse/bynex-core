@@ -42,7 +42,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (path.startsWith("/app") || path.startsWith("/portal") || path.startsWith("/api/private")) {
+  if (path.startsWith("/app") || path.startsWith("/onboarding") || path.startsWith("/portal") || path.startsWith("/api/private")) {
     return updateSupabaseSession(request);
   }
 

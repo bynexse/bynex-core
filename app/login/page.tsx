@@ -21,7 +21,7 @@ export default function LoginPage() {
     const redirectTo = `${window.location.origin}/auth/callback?next=/app`;
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: redirectTo },
+      options: { emailRedirectTo: redirectTo, shouldCreateUser: false },
     });
     setStatus(error ? "error" : "sent");
   }
@@ -65,6 +65,9 @@ export default function LoginPage() {
             )}
           </form>
         )}
+        <p className="mt-7 text-center text-sm text-zinc-500">
+          Ny hos Bynex? <Link href="/signup" className="font-semibold text-zinc-950 underline">Skapa testkonto</Link>
+        </p>
       </section>
     </main>
   );

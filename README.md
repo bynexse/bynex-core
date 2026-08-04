@@ -58,6 +58,11 @@ När låset är aktivt skyddas hela pilotytan av en signerad, HttpOnly-baserad
 session. Testkoden skickas bara till servern och lagras inte i webbläsarens
 JavaScript.
 
+För en offentlig beta på `bynex.se` ska pilotlåset vara avstängt. Besökare
+registrerar sig då via `/signup`, verifierar sin e-post och skapar ett isolerat
+testföretag på `/onboarding`. De kan välja en fristående testperiod för
+**Tid & Lön** eller hela Bynex beta.
+
 ## Kvalitetskontroll
 
 ```bash

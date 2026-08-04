@@ -27,30 +27,36 @@ const modules: Array<{
   id: ModuleId;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  productModule?: string;
 }> = [
   { id: "core-flow", label: "Starta & genomför", icon: Workflow },
   { id: "dashboard", label: "Översikt", icon: Home },
-  { id: "projects", label: "Projekt", icon: FolderKanban },
-  { id: "people", label: "Personal & UE", icon: UsersRound },
-  { id: "time", label: "Bynex Tid", icon: Clock3 },
-  { id: "payroll", label: "Tid & Lön", icon: Banknote },
-  { id: "foreman", label: "Arbetsledaren", icon: HardHat },
-  { id: "site-manager", label: "Platschef", icon: Building2 },
-  { id: "materials", label: "Material & inköp", icon: PackageSearch },
-  { id: "connect", label: "Bynex Connect", icon: MessageCircle },
-  { id: "change-orders", label: "ÄTA", icon: FileSignature },
-  { id: "quotes", label: "Offerter", icon: ReceiptText },
+  { id: "projects", label: "Projekt", icon: FolderKanban, productModule: "projects" },
+  { id: "people", label: "Personal & UE", icon: UsersRound, productModule: "time_payroll" },
+  { id: "time", label: "Bynex Tid", icon: Clock3, productModule: "time_payroll" },
+  { id: "payroll", label: "Tid & Lön", icon: Banknote, productModule: "time_payroll" },
+  { id: "foreman", label: "Arbetsledaren", icon: HardHat, productModule: "projects" },
+  { id: "site-manager", label: "Platschef", icon: Building2, productModule: "projects" },
+  { id: "materials", label: "Material & inköp", icon: PackageSearch, productModule: "materials" },
+  { id: "connect", label: "Bynex Connect", icon: MessageCircle, productModule: "projects" },
+  { id: "change-orders", label: "ÄTA", icon: FileSignature, productModule: "change_orders" },
+  { id: "quotes", label: "Offerter", icon: ReceiptText, productModule: "quotes" },
 ];
 
-export default function BynexDemo() {
+export default function BynexDemo({ enabledProductModules }: { enabledProductModules?: string[] }) {
   const [active, setActive] = useState<ModuleId>("core-flow");
   const [mobileNav, setMobileNav] = useState(false);
   const [clockedIn, setClockedIn] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const visibleModules = useMemo(() => {
+    if (!enabledProductModules) return modules;
+    const enabled = new Set(enabledProductModules);
+    return modules.filter((item) => !item.productModule || enabled.has(item.productModule));
+  }, [enabledProductModules]);
 
   const title = useMemo(
-    () => modules.find((item) => item.id === active)?.label ?? "Bynex",
-    [active],
+    () => visibleModules.find((item) => item.id === active)?.label ?? "Bynex",
+    [active, visibleModules],
   );
 
   function notify(message: string) {
@@ -63,7 +69,7 @@ export default function BynexDemo() {
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-zinc-200 bg-white p-5 lg:block">
         <Logo />
         <nav className="mt-8 space-y-1">
-          {modules.map((item) => {
+          {visibleModules.map((item) => {
             const Icon = item.icon;
             const selected = item.id === active;
             return (
@@ -114,7 +120,7 @@ export default function BynexDemo() {
               </button>
             </div>
             <nav className="mt-8 space-y-1">
-              {modules.map((item) => {
+              {visibleModules.map((item) => {
                 const Icon = item.icon;
                 return (
                   <button
