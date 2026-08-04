@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import {
   ArrowRight, Banknote, Building2, Clock3, FileSignature, FolderKanban,
   HardHat, Home, Menu, MessageCircle, PackageSearch, ReceiptText,
-  Settings, Sparkles, UsersRound, X
+  Settings, Sparkles, UsersRound, Workflow, X
 } from "lucide-react";
 
 import Logo from "@/components/layout/Logo";
@@ -20,6 +20,7 @@ import Materials from "@/components/modules/materials/Materials";
 import Connect from "@/components/modules/connect/Connect";
 import ChangeOrders from "@/components/modules/commercial/ChangeOrders";
 import Quotes from "@/components/modules/commercial/Quotes";
+import CoreFlow from "@/components/modules/core/CoreFlow";
 import type { ModuleId } from "@/lib/navigation";
 
 const modules: Array<{
@@ -27,6 +28,7 @@ const modules: Array<{
   label: string;
   icon: React.ComponentType<{ className?: string }>;
 }> = [
+  { id: "core-flow", label: "Starta & genomför", icon: Workflow },
   { id: "dashboard", label: "Översikt", icon: Home },
   { id: "projects", label: "Projekt", icon: FolderKanban },
   { id: "people", label: "Personal & UE", icon: UsersRound },
@@ -41,7 +43,7 @@ const modules: Array<{
 ];
 
 export default function BynexDemo() {
-  const [active, setActive] = useState<ModuleId>("dashboard");
+  const [active, setActive] = useState<ModuleId>("core-flow");
   const [mobileNav, setMobileNav] = useState(false);
   const [clockedIn, setClockedIn] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -84,7 +86,7 @@ export default function BynexDemo() {
         <div className="absolute bottom-5 left-5 right-5 rounded-3xl bg-zinc-950 p-5 text-white">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Sparkles className="h-4 w-4" />
-            Bynex AI
+            Bynex Smart
           </div>
           <p className="mt-3 text-sm leading-6 text-zinc-300">
             3 åtgärder är förberedda för godkännande.
@@ -147,7 +149,7 @@ export default function BynexDemo() {
               </button>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
-                  Bynex Demo
+                  Bynex
                 </p>
                 <h1 className="text-xl font-semibold">{title}</h1>
               </div>
@@ -155,7 +157,7 @@ export default function BynexDemo() {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => notify("Demo-inställningar öppnade")}
+                onClick={() => notify("Inställningar öppnade")}
                 className="rounded-2xl border border-zinc-200 bg-white p-3"
                 aria-label="Inställningar"
               >
@@ -175,6 +177,7 @@ export default function BynexDemo() {
         </header>
 
         <main className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8">
+          {active === "core-flow" && <CoreFlow notify={notify} />}
           {active === "dashboard" && <Dashboard onOpen={setActive} notify={notify} />}
           {active === "projects" && <Projects notify={notify} />}
           {active === "project-detail" && <ProjectDetail notify={notify} />}

@@ -16,7 +16,7 @@
 ## Grundregler
 1. Materialbehov ska kunna uppstå från kalkyl, ritning, arbetsmoment eller manuell registrering.
 2. Pris, tillgänglighet och leveranstid ska versionsmärkas.
-3. AI föreslår leverantör men ansvarig godkänner ordern.
+3. Bynex Smart föreslår leverantör men ansvarig godkänner ordern.
 4. Leverans ska kunna kvitteras mot projekt, order och mottagare.
 5. Restnoteringar ska direkt påverka projektets riskprognos.
 6. Materialkostnader ska synas i projektets marginal i realtid.

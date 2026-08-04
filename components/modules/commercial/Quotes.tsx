@@ -188,7 +188,7 @@ export default function Quotes({
       notify("Skriv en kort beskrivning av jobbet först");
       return;
     }
-    notify("AI skapade offert, kalkyl och villkor");
+    notify("Bynex Smart skapade offert, kalkyl och villkor");
     setBrief("");
     setShowCreate(false);
   };
@@ -214,7 +214,7 @@ export default function Quotes({
           <div>
             <div className="flex flex-wrap gap-2">
               <Badge tone="neutral">Offert 3.0</Badge>
-              <Badge tone="success">AI-kalkyl</Badge>
+              <Badge tone="success">Bynex Smart-kalkyl</Badge>
             </div>
 
             <h2 className="mt-5 text-4xl font-semibold tracking-tight">
@@ -230,7 +230,7 @@ export default function Quotes({
               {[
                 "Tre offerter väntar på kundbeslut.",
                 "En signerad offert kan bli projekt.",
-                "AI har kontrollerat kalkyl och marginal.",
+                "Bynex Smart har kontrollerat kalkyl och marginal.",
                 "Alla offerter har aktuella juridiska villkor.",
               ].map((item) => (
                 <div
@@ -268,7 +268,7 @@ export default function Quotes({
             <div>
               <div className="flex items-center gap-3">
                 <Sparkles className="h-5 w-5" />
-                <h3 className="text-2xl font-semibold">Skapa offert med AI</h3>
+                <h3 className="text-2xl font-semibold">Skapa offert med Bynex Smart</h3>
               </div>
               <p className="mt-2 text-zinc-500">
                 Beskriv jobbet på vanligt språk. Bynex bygger kalkyl och offert.
@@ -546,7 +546,7 @@ export default function Quotes({
             <Card className="p-6">
               <div className="flex items-center gap-3">
                 <Sparkles className="h-5 w-5" />
-                <h3 className="text-2xl font-semibold">AI-offertkontroll</h3>
+                <h3 className="text-2xl font-semibold">Bynex Smart-offertkontroll</h3>
               </div>
 
               <div className="mt-5 rounded-3xl bg-emerald-50 p-5">
@@ -604,11 +604,11 @@ export default function Quotes({
                 <button
                   onClick={() => {
                     setSigned(true);
-                    notify("Kundsignering simulerades");
+                    notify("Kundsigneringen registrerades");
                   }}
                   className="mt-5 w-full rounded-2xl border border-zinc-200 py-3 font-semibold"
                 >
-                  Simulera kundsignering
+                  Registrera kundsignering
                 </button>
               )}
             </Card>

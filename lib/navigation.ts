@@ -1,4 +1,5 @@
 export type ModuleId =
+  | "core-flow"
   | "dashboard"
   | "projects"
   | "project-detail"

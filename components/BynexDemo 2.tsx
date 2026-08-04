@@ -84,7 +84,7 @@ export default function BynexDemo() {
         <div className="absolute bottom-5 left-5 right-5 rounded-3xl bg-zinc-950 p-5 text-white">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Sparkles className="h-4 w-4" />
-            Bynex AI
+            Bynex Smart
           </div>
           <p className="mt-3 text-sm leading-6 text-zinc-300">
             3 åtgärder är förberedda för godkännande.
@@ -147,7 +147,7 @@ export default function BynexDemo() {
               </button>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
-                  Bynex Demo
+                  Bynex
                 </p>
                 <h1 className="text-xl font-semibold">{title}</h1>
               </div>
@@ -155,7 +155,7 @@ export default function BynexDemo() {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => notify("Demo-inställningar öppnade")}
+                onClick={() => notify("Inställningar öppnade")}
                 className="rounded-2xl border border-zinc-200 bg-white p-3"
                 aria-label="Inställningar"
               >

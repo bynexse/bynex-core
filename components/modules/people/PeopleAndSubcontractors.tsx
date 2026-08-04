@@ -457,7 +457,7 @@ export default function PeopleAndSubcontractors({
             <Card className="p-6">
               <div className="flex items-center gap-3">
                 <Sparkles className="h-5 w-5" />
-                <h3 className="text-2xl font-semibold">AI-bemanning</h3>
+                <h3 className="text-2xl font-semibold">Bynex Smart-bemanning</h3>
               </div>
               <div className="mt-5 rounded-2xl bg-zinc-950 p-5 text-white">
                 <p className="font-semibold">Rekommenderad åtgärd</p>
@@ -467,7 +467,7 @@ export default function PeopleAndSubcontractors({
                     : "Måleri Öst är tillgängliga nästa vecka och matchar kommande moment på Villa Björkvägen."}
                 </p>
                 <button
-                  onClick={() => notify("AI-bemanningsförslaget skapades")}
+                  onClick={() => notify("Bynex Smart-bemanningsförslaget skapades")}
                   className="mt-5 w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-zinc-950"
                 >
                   Skapa bemanningsförslag

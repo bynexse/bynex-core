@@ -84,6 +84,22 @@ import {
 import { Badge, Card, Stat } from "@/components/ui/core";
 import { projects, type Project } from "@/lib/projects";
 import { getRealtimeGreeting } from "@/lib/greeting";
+import NewProjectDrawer, { type NewProjectData } from "@/components/projects/NewProjectDrawer";
+
+type ProjectView = Project & {
+  contract: string;
+  budgetValue: number;
+  spentValue: number;
+  forecastValue: number;
+  marginValue: number;
+  people: number;
+  companies: number;
+  documents: number;
+  changes: number;
+  invoiceReady: number;
+  riskLevel: string;
+  nextMilestone: string;
+};
 
 export default function Projects({
   notify,
@@ -94,8 +110,10 @@ export default function Projects({
   const [statusFilter, setStatusFilter] = useState("Alla");
   const [selectedProjectId, setSelectedProjectId] = useState(projects[0].id);
   const [showDetails, setShowDetails] = useState(true);
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [createdProjects, setCreatedProjects] = useState<ProjectView[]>([]);
 
-  const enrichedProjects = [
+  const enrichedProjects: ProjectView[] = [
     {
       ...projects[0],
       customer: "Andersson Fastigheter AB",
@@ -144,7 +162,41 @@ export default function Projects({
       riskLevel: "Låg",
       nextMilestone: "Slutmontering VVS",
     },
+    ...createdProjects,
   ];
+
+  function createProject(data: NewProjectData) {
+    const id = `BX-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+    const formatter = new Intl.NumberFormat("sv-SE");
+    const project: ProjectView = {
+      id,
+      name: data.name,
+      customer: data.customer,
+      location: data.location,
+      progress: 0,
+      margin: 0,
+      team: 0,
+      value: `${formatter.format(data.budget)} kr`,
+      status: "Planerat",
+      endDate: data.endDate || "Ej fastställt",
+      contract: "Ej valt",
+      budgetValue: data.budget,
+      spentValue: 0,
+      forecastValue: data.budget,
+      marginValue: 0,
+      people: 0,
+      companies: 1,
+      documents: 0,
+      changes: 0,
+      invoiceReady: 0,
+      riskLevel: "Ej bedömd",
+      nextMilestone: data.startDate ? `Byggstart ${data.startDate}` : "Planera byggstart",
+    };
+    setCreatedProjects((current) => [...current, project]);
+    setSelectedProjectId(id);
+    setShowDetails(true);
+    notify(`Projektet ${data.name} skapades`);
+  }
 
   const visibleProjects = enrichedProjects.filter((project) => {
     const matchesQuery = `${project.name} ${project.id} ${project.customer} ${project.location}`
@@ -181,11 +233,11 @@ export default function Projects({
             </h2>
             <p className="mt-3 max-w-3xl text-lg leading-8 text-zinc-600">
               Tid, material, UE, ÄTA, dokument och ekonomi uppdateras i samma
-              projektbild. AI visar vad som behöver din uppmärksamhet.
+              projektbild. Bynex Smart visar vad som behöver din uppmärksamhet.
             </p>
           </div>
           <button
-            onClick={() => notify("Nytt projekt öppnas i nästa produktionssteg")}
+            onClick={() => setNewProjectOpen(true)}
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-5 py-3 font-semibold text-white"
           >
             <Plus className="h-5 w-5" />
@@ -446,7 +498,7 @@ export default function Projects({
               <Card className="p-6">
                 <div className="flex items-center gap-3">
                   <Sparkles className="h-5 w-5" />
-                  <h3 className="text-2xl font-semibold">AI-prognos</h3>
+                  <h3 className="text-2xl font-semibold">Bynex Smart-prognos</h3>
                 </div>
 
                 <div className={`mt-5 rounded-2xl p-5 ${
@@ -470,7 +522,7 @@ export default function Projects({
                         selected.risk ? "text-amber-800" : "text-emerald-800"
                       }`}>
                         {selected.risk
-                          ? "Materialkostnaden har ökat och två UE-underlag saknas. AI föreslår omplanering och snabbare fakturering av godkända ÄTA."
+                          ? "Materialkostnaden har ökat och två UE-underlag saknas. Bynex Smart föreslår omplanering och snabbare fakturering av godkända ÄTA."
                           : "Bemanning, material och fakturering följer plan. Nästa milstolpe bedöms kunna slutföras i tid."}
                       </p>
                     </div>
@@ -497,8 +549,8 @@ export default function Projects({
                   onClick={() =>
                     notify(
                       selected.risk
-                        ? "AI-åtgärdsplan skapades"
-                        : "AI-prognosen uppdaterades",
+                        ? "Bynex Smart-åtgärdsplan skapades"
+                        : "Bynex Smart-prognosen uppdaterades",
                     )
                   }
                   className="mt-5 w-full rounded-2xl bg-zinc-950 py-3 font-semibold text-white"
@@ -577,7 +629,7 @@ export default function Projects({
                 {[
                   ["10:47", "Johan åter på projektet", "Tid & GPS", UserRoundCheck],
                   ["10:32", "Materialleverans kvitterad", "Inköp", PackageSearch],
-                  ["09:18", "ÄTA 04 godkänd av kund", "BankID-demo", FileCheck2],
+                  ["09:18", "ÄTA 04 godkänd av kund", "Digital signering", FileCheck2],
                   ["08:15", "Elektrikern informerades", "Bynex Connect", MessageCircle],
                 ].map(([time, title, source, Icon]) => {
                   const RowIcon = Icon as typeof Users;
@@ -603,6 +655,11 @@ export default function Projects({
           </div>
         )}
       </div>
+      <NewProjectDrawer
+        open={newProjectOpen}
+        onClose={() => setNewProjectOpen(false)}
+        onCreate={createProject}
+      />
     </div>
   );
 }

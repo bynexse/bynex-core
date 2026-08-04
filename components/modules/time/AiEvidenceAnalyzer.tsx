@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Camera,
   CheckCircle2,
@@ -87,10 +87,6 @@ export default function AiEvidenceAnalyzer({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setResult(null);
-  }, [projectId]);
-
   async function chooseFile(file: File | undefined) {
     if (!file) return;
     setError(null);
@@ -128,7 +124,7 @@ export default function AiEvidenceAnalyzer({
       if (!response.ok) throw new Error(payload.error ?? "Underlaget kunde inte analyseras.");
       setResult(payload);
       onAnalyzed(`${categoryLabel(payload.category)} · ${payload.title}`);
-      notify("Bynex AI analyserade bilden och kopplade den till projektet");
+      notify("Bynex Smart analyserade bilden och kopplade den till projektet");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Ett oväntat fel uppstod.");
     } finally {
@@ -145,7 +141,7 @@ export default function AiEvidenceAnalyzer({
           </div>
           <div>
             <p className="text-sm font-semibold text-zinc-500">Sprint 2</p>
-            <h3 className="text-2xl font-semibold">AI Foto & underlag</h3>
+            <h3 className="text-2xl font-semibold">Bynex Smart Foto & underlag</h3>
           </div>
         </div>
         <Badge tone="neutral">{projectName}</Badge>
@@ -206,7 +202,7 @@ export default function AiEvidenceAnalyzer({
             className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-5 py-3.5 font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Sparkles className={`h-5 w-5 ${loading ? "animate-pulse" : ""}`} />
-            {loading ? "Analyserar bilden…" : "Analysera med Bynex AI"}
+            {loading ? "Analyserar bilden…" : "Analysera med Bynex Smart"}
           </button>
           {error && (
             <div className="mt-4 flex items-start gap-3 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800">
@@ -230,7 +226,7 @@ export default function AiEvidenceAnalyzer({
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone="dark">{categoryLabel(result.category)}</Badge>
                 <Badge tone={result.source === "openai" ? "success" : "neutral"}>
-                  {result.source === "openai" ? "OpenAI aktiv" : "Lokal reservanalys"}
+                  {result.source === "openai" ? "Bynex Smart molntjänst aktiv" : "Lokal reservanalys"}
                 </Badge>
                 <Badge tone="neutral">{Math.round(result.confidence * 100)} % säkerhet</Badge>
               </div>

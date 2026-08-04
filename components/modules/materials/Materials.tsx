@@ -172,7 +172,7 @@ export default function Materials({
               Bynex vet vad som behövs innan arbetslaget frågar.
             </h2>
             <p className="mt-3 max-w-3xl text-lg leading-8 text-zinc-300">
-              AI analyserar projektplan, materialåtgång, lager och leveranstider.
+              Bynex Smart analyserar projektplan, materialåtgång, lager och leveranstider.
               Beställningen förbereds automatiskt och ansvarig behöver bara
               kontrollera och godkänna.
             </p>
@@ -197,7 +197,7 @@ export default function Materials({
 
           <div className="flex min-w-[245px] flex-col gap-3">
             <button
-              onClick={() => notify("AI skapade dagens samlade inköpsförslag")}
+              onClick={() => notify("Bynex Smart skapade dagens samlade inköpsförslag")}
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-4 font-semibold text-zinc-950"
             >
               <Sparkles className="h-5 w-5" />
@@ -419,7 +419,7 @@ export default function Materials({
             <Card className="p-6">
               <div className="flex items-center gap-3">
                 <Sparkles className="h-5 w-5" />
-                <h3 className="text-2xl font-semibold">AI-inköpsförslag</h3>
+                <h3 className="text-2xl font-semibold">Bynex Smart-inköpsförslag</h3>
               </div>
 
               <div className="mt-5 rounded-3xl bg-emerald-50 p-5">

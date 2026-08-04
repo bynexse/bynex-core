@@ -11,7 +11,7 @@ export default function Logo() {
       </div>
       <div>
         <p className="text-xl font-black tracking-tight">BYNEX</p>
-        <p className="text-xs font-semibold text-zinc-400">AI för byggbranschen</p>
+        <p className="text-xs font-semibold text-zinc-400">Smartare byggprojekt</p>
       </div>
     </div>
   );

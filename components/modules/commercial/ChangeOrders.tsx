@@ -196,7 +196,7 @@ export default function ChangeOrders({
       notify("Skriv en kort beskrivning först");
       return;
     }
-    notify("AI skapade komplett ÄTA-förslag på några sekunder");
+    notify("Bynex Smart skapade komplett ÄTA-förslag på några sekunder");
     setShowCreate(false);
     setQuickDescription("");
   };
@@ -262,10 +262,10 @@ export default function ChangeOrders({
             <div>
               <div className="flex items-center gap-3">
                 <Sparkles className="h-5 w-5" />
-                <h3 className="text-2xl font-semibold">Skapa med AI</h3>
+                <h3 className="text-2xl font-semibold">Skapa med Bynex Smart</h3>
               </div>
               <p className="mt-2 text-zinc-500">
-                Skriv vad kunden vill ändra. AI föreslår komplett omfattning och pris.
+                Skriv vad kunden vill ändra. Bynex Smart föreslår komplett omfattning och pris.
               </p>
               <textarea
                 value={quickDescription}
@@ -559,7 +559,7 @@ export default function ChangeOrders({
                       onClick={() => setBeforeApproved(true)}
                       className="mt-4 w-full rounded-xl bg-amber-900 py-2.5 text-sm font-semibold text-white"
                     >
-                      Simulera kundsignering
+                      Registrera kundsignering
                     </button>
                   )}
                 </div>
@@ -588,7 +588,7 @@ export default function ChangeOrders({
                       onClick={() => setAfterApproved(true)}
                       className="mt-4 w-full rounded-xl bg-zinc-950 py-2.5 text-sm font-semibold text-white"
                     >
-                      Simulera slutkvittens
+                      Registrera slutkvittens
                     </button>
                   )}
                 </div>
@@ -607,7 +607,7 @@ export default function ChangeOrders({
             <Card className="p-6">
               <div className="flex items-center gap-3">
                 <Sparkles className="h-5 w-5" />
-                <h3 className="text-2xl font-semibold">AI-kontroll</h3>
+                <h3 className="text-2xl font-semibold">Bynex Smart-kontroll</h3>
               </div>
 
               <div className="mt-5 rounded-3xl bg-zinc-950 p-5 text-white">

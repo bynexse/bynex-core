@@ -8,7 +8,7 @@ export async function askBynexAi(request: AiRequest): Promise<AiResponse> {
   });
 
   if (!response.ok) {
-    throw new Error("Bynex AI kunde inte svara just nu.");
+    throw new Error("Bynex Smart kunde inte svara just nu.");
   }
 
   return response.json() as Promise<AiResponse>;

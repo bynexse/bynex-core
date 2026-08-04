@@ -2,9 +2,19 @@
 
 Bynex är en modulär Next.js/TypeScript-plattform med Bynex Workforce som bred produkt för tid, personal och lön, samt byggspecifika moduler för projekt, offert, ÄTA och material.
 
-## Nuvarande demo
+## Körbar pilot
 
-- Dashboard och AI-sammanfattning
+Startsidan innehåller ett sammanhängande, lokalt sparat pilotflöde:
+
+1. Kund och offert
+2. Kundgodkännande
+3. Automatisk projektstart
+4. Tid, material och ÄTA med startbesked på plats
+5. Låst fakturaunderlag och granskad kundportal
+
+Övriga tillgängliga arbetsytor:
+
+- Dashboard och Bynex Smart-sammanfattning
 - Projekt och projektdetalj
 - Tidrapportering
 - Personal och underentreprenörer
@@ -38,6 +48,8 @@ npm run dev
 npm run build
 ```
 
-## Viktigt
+## Produktionsgräns
 
-Nuvarande version använder simulerad data. Databas, autentisering, BankID, GPS, Fortnox och externa AI-/leverantörstjänster är ännu inte produktionskopplade.
+Pilotflödet och tidrapporteringen sparar data lokalt i webbläsaren. Bynex Smart har ett lokalt reservläge. Multi-tenant-databas, autentisering, BankID, e-post/e-faktura och externa leverantörskopplingar måste anslutas och säkerhetstestas innan skarp kunddrift.
+
+Bynex Bokföring ingår inte i den aktuella leveransprioriteringen. Fokus ligger på byggflödet, kundportalen och projektets operativa kärna.

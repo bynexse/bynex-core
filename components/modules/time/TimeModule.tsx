@@ -128,7 +128,7 @@ export default function TimeModule({
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [breakStartedAt, setBreakStartedAt] = useState<number | null>(null);
   const [accumulatedBreakMs, setAccumulatedBreakMs] = useState(0);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(0);
   const [hydrated, setHydrated] = useState(false);
   const [entries, setEntries] = useState<TimelineEntry[]>([]);
   const [lastPosition, setLastPosition] = useState<GeoPoint | null>(null);
@@ -144,26 +144,30 @@ export default function TimeModule({
   const projectPoint = projectCoordinates[selectedProjectId];
 
   useEffect(() => {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const saved = JSON.parse(raw) as PersistedDay;
-        setClockedIn(saved.clockedIn);
-        setOnBreak(saved.onBreak);
-        setSelectedProjectId(saved.selectedProjectId);
-        setActivity(saved.activity);
-        setStartedAt(saved.startedAt);
-        setBreakStartedAt(saved.breakStartedAt);
-        setAccumulatedBreakMs(saved.accumulatedBreakMs);
-        setEntries(saved.entries);
-        setLastPosition(saved.lastPosition ?? null);
-        setWorkdayNote(saved.workdayNote ?? "");
-        setAiResult(saved.aiResult ?? null);
-      } catch {
-        window.localStorage.removeItem(STORAGE_KEY);
+    const frame = window.requestAnimationFrame(() => {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        try {
+          const saved = JSON.parse(raw) as PersistedDay;
+          setClockedIn(saved.clockedIn);
+          setOnBreak(saved.onBreak);
+          setSelectedProjectId(saved.selectedProjectId);
+          setActivity(saved.activity);
+          setStartedAt(saved.startedAt);
+          setBreakStartedAt(saved.breakStartedAt);
+          setAccumulatedBreakMs(saved.accumulatedBreakMs);
+          setEntries(saved.entries);
+          setLastPosition(saved.lastPosition ?? null);
+          setWorkdayNote(saved.workdayNote ?? "");
+          setAiResult(saved.aiResult ?? null);
+        } catch {
+          window.localStorage.removeItem(STORAGE_KEY);
+        }
       }
-    }
-    setHydrated(true);
+      setNow(Date.now());
+      setHydrated(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [setClockedIn]);
 
   useEffect(() => {
@@ -325,16 +329,16 @@ export default function TimeModule({
 
       const payload = (await response.json()) as WorkdayAiResult & { error?: string };
       if (!response.ok) {
-        throw new Error(payload.error ?? "AI-analysen kunde inte genomföras.");
+        throw new Error(payload.error ?? "Bynex Smart-analysen kunde inte genomföras.");
       }
 
       setAiResult(payload);
       addEntry(
-        "AI-dagbok skapad",
-        `${activeProject.name} · ${payload.source === "openai" ? "OpenAI" : "lokal analys"}`,
+        "Bynex Smart-dagbok skapad",
+        `${activeProject.name} · ${payload.source === "openai" ? "molntjänst" : "lokal analys"}`,
         "system",
       );
-      notify("Bynex AI skapade ett arbetsdagsförslag");
+      notify("Bynex Smart skapade ett arbetsdagsförslag");
     } catch (error) {
       setAiError(error instanceof Error ? error.message : "Ett oväntat fel uppstod.");
     } finally {
@@ -355,7 +359,7 @@ export default function TimeModule({
     setAiResult(null);
     setAiError(null);
     window.localStorage.removeItem(STORAGE_KEY);
-    notify("Dagens demodata återställdes");
+    notify("Dagens registrering återställdes");
   }
 
   return (
@@ -466,11 +470,11 @@ export default function TimeModule({
               </div>
               <div>
                 <p className="text-sm font-semibold text-zinc-500">Patch 3</p>
-                <h3 className="text-2xl font-semibold">AI Arbetsdag</h3>
+                <h3 className="text-2xl font-semibold">Bynex Smart Arbetsdag</h3>
               </div>
             </div>
             <p className="mt-4 text-sm leading-6 text-zinc-600">
-              Skriv kort vad som gjordes. Bynex skapar dagbok, hittar material och markerar möjlig ÄTA. Funktionen fungerar lokalt även innan en AI-nyckel är aktiverad.
+              Skriv kort vad som gjordes. Bynex skapar dagbok, hittar material och markerar möjlig ÄTA. Funktionen fungerar även i lokalt reservläge.
             </p>
             <textarea
               value={workdayNote}
@@ -486,11 +490,11 @@ export default function TimeModule({
                 className="inline-flex items-center gap-2 rounded-2xl bg-zinc-950 px-5 py-3 font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
               >
                 <Sparkles className={`h-5 w-5 ${aiLoading ? "animate-pulse" : ""}`} />
-                {aiLoading ? "Analyserar…" : "Skapa med Bynex AI"}
+                {aiLoading ? "Analyserar…" : "Skapa med Bynex Smart"}
               </button>
               {aiResult && (
                 <Badge tone={aiResult.source === "openai" ? "success" : "neutral"}>
-                  {aiResult.source === "openai" ? "OpenAI aktiv" : "Lokal AI-reserv"}
+                  {aiResult.source === "openai" ? "Bynex Smart molntjänst aktiv" : "Lokalt reservläge"}
                 </Badge>
               )}
             </div>
@@ -506,7 +510,7 @@ export default function TimeModule({
             {!aiResult ? (
               <div className="flex min-h-72 flex-col items-center justify-center text-center">
                 <Sparkles className="h-8 w-8 text-zinc-400" />
-                <p className="mt-4 font-semibold">AI-förslaget visas här</p>
+                <p className="mt-4 font-semibold">Bynex Smart-förslaget visas här</p>
                 <p className="mt-2 max-w-sm text-sm text-zinc-500">
                   Resultatet sparas tillsammans med dagens arbetsdag och finns kvar efter omladdning.
                 </p>
@@ -555,11 +559,12 @@ export default function TimeModule({
       </Card>
 
       <AiEvidenceAnalyzer
+        key={activeProject.id}
         projectId={activeProject.id}
         projectName={activeProject.name}
         activity={activity}
         notify={notify}
-        onAnalyzed={(detail) => addEntry("AI-underlag analyserat", detail, "system")}
+        onAnalyzed={(detail) => addEntry("Bynex Smart-underlag analyserat", detail, "system")}
       />
 
       <Card className="p-6">

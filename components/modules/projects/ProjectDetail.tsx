@@ -105,7 +105,7 @@ export default function ProjectDetail({
     "Ritningar",
     "Fakturering",
     "Kundportal",
-    "AI",
+    "Bynex Smart",
   ];
 
   const timeline = [
@@ -202,7 +202,7 @@ export default function ProjectDetail({
               <div>
                 <div className="flex items-center gap-3">
                   <Sparkles className="h-5 w-5" />
-                  <Badge tone="neutral">AI Projektchef</Badge>
+                  <Badge tone="neutral">Bynex Smart Projektchef</Badge>
                 </div>
                 <h3 className="mt-5 text-3xl font-semibold">
                   {realtimeGreeting} Christoffer.
@@ -228,13 +228,13 @@ export default function ProjectDetail({
 
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={() => notify("AI skapade en samlad åtgärdsplan")}
+                  onClick={() => notify("Bynex Smart skapade en samlad åtgärdsplan")}
                   className="rounded-2xl bg-white px-6 py-3 font-semibold text-zinc-950"
                 >
-                  Lös allt med AI
+                  Lös allt med Bynex Smart
                 </button>
                 <button
-                  onClick={() => notify("AI-analysen öppnades")}
+                  onClick={() => notify("Bynex Smart-analysen öppnades")}
                   className="rounded-2xl border border-white/20 px-6 py-3 font-semibold"
                 >
                   Visa full analys
@@ -370,7 +370,7 @@ export default function ProjectDetail({
               till riktig data i kommande produktionssteg.
             </p>
             <button
-              onClick={() => notify(`${tab} öppnades i demon`)}
+              onClick={() => notify(`${tab} öppnades`)}
               className="mt-6 rounded-2xl bg-zinc-950 px-6 py-3 font-semibold text-white"
             >
               Öppna {tab}

@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     };
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Bynex AI fallback:", error);
+    console.error("Bynex Smart fallback:", error);
     return NextResponse.json(localFallback(payload));
   }
 }

@@ -96,7 +96,7 @@ export default function Dashboard({
   onOpen: (module: ModuleId) => void;
   notify: (message: string) => void;
 }) {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(0);
   const [timeState, setTimeState] = useState<LiveTimeState>(emptyTimeState);
 
   useEffect(() => {
@@ -184,7 +184,7 @@ export default function Dashboard({
                 className="inline-flex items-center gap-2 rounded-2xl border border-zinc-200 px-5 py-3 font-semibold"
               >
                 <Bot className="h-5 w-5" />
-                Öppna AI Platschef
+                Öppna Bynex Smart Platschef
               </button>
             </div>
           </div>

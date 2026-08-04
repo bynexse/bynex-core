@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model,
         instructions:
-          "Du är Bynex AI och analyserar bilder från arbetsplatser. Identifiera om bilden visar kvitto, leverans, material, skada/avvikelse, utfört arbete eller annat. Läs endast tydligt synlig information. Gissa inte belopp, leverantör eller mängder. Markera möjlig ÄTA endast när bild eller anteckning tydligt visar tillägg, ändring, skada eller hinder. Svara endast med giltig JSON utan markdown med fälten category, title, summary, supplier, totalAmount, currency, materials, possibleChangeOrder, suggestedAction och confidence. category måste vara receipt, delivery, material, damage, work_progress eller other. materials är en lista med name, quantity och unit. confidence är 0 till 1.",
+          "Du är Bynex Smart och analyserar bilder från arbetsplatser. Identifiera om bilden visar kvitto, leverans, material, skada/avvikelse, utfört arbete eller annat. Läs endast tydligt synlig information. Gissa inte belopp, leverantör eller mängder. Markera möjlig ÄTA endast när bild eller anteckning tydligt visar tillägg, ändring, skada eller hinder. Svara endast med giltig JSON utan markdown med fälten category, title, summary, supplier, totalAmount, currency, materials, possibleChangeOrder, suggestedAction och confidence. category måste vara receipt, delivery, material, damage, work_progress eller other. materials är en lista med name, quantity och unit. confidence är 0 till 1.",
         input: [
           {
             role: "user",
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
     const fallback = createLocalEvidenceAnalysis(body);
     return NextResponse.json({
       ...fallback,
-      warning: "Bildanalysen kunde inte nå AI-tjänsten. Lokal analys användes.",
+      warning: "Bildanalysen kunde inte nå analystjänsten. Lokal analys användes.",
     });
   }
 }

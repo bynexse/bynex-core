@@ -98,8 +98,8 @@ export default function Connect({ notify }: { notify: (message: string) => void 
     },
     {
       id: "2",
-      author: "Bynex AI",
-      role: "AI-sammanfattning",
+      author: "Bynex Smart",
+      role: "Bynex Smart-sammanfattning",
       time: "08:15",
       text: "Arbetsmomentet har markerats som klart. Trosa Elteknik har informerats och tidplanen är uppdaterad.",
       mine: false,
@@ -115,8 +115,8 @@ export default function Connect({ notify }: { notify: (message: string) => void 
     },
     {
       id: "4",
-      author: "Bynex AI",
-      role: "AI-svar",
+      author: "Bynex Smart",
+      role: "Bynex Smart-svar",
       time: "08:18",
       text: "VVS ligger en halv dag före plan. Två montörer är instämplade och material finns på plats.",
       mine: false,
@@ -151,8 +151,8 @@ export default function Connect({ notify }: { notify: (message: string) => void 
       ...current,
       {
         id: String(Date.now()),
-        author: "Bynex AI",
-        role: "AI Status",
+        author: "Bynex Smart",
+        role: "Bynex Smart-status",
         time: new Date().toLocaleTimeString("sv-SE", {
           hour: "2-digit",
           minute: "2-digit",
@@ -174,7 +174,7 @@ export default function Connect({ notify }: { notify: (message: string) => void 
               Kommunikation som blir arbete.
             </h2>
             <p className="mt-3 max-w-3xl text-lg leading-8 text-zinc-600">
-              Företagschat, projektkanaler, direktmeddelanden och AI i samma flöde.
+              Företagschat, projektkanaler, direktmeddelanden och Bynex Smart i samma flöde.
               Meddelanden kan bli uppgifter, inköp, ÄTA eller projektuppdateringar.
             </p>
           </div>
@@ -245,7 +245,7 @@ export default function Connect({ notify }: { notify: (message: string) => void 
             <div className="flex items-center gap-3">
               <Languages className="h-5 w-5" />
               <div>
-                <p className="font-semibold">AI-översättning</p>
+                <p className="font-semibold">Bynex Smart-översättning</p>
                 <p className="text-sm text-zinc-500">15 språk aktiverade</p>
               </div>
             </div>
@@ -256,7 +256,7 @@ export default function Connect({ notify }: { notify: (message: string) => void 
           <div className="flex items-center justify-between border-b border-zinc-200 p-5">
             <div>
               <p className="text-sm font-semibold">Villa Björkvägen 12</p>
-              <p className="mt-1 text-xs text-zinc-500">14 aktiva · 4 företag · AI ansluten</p>
+              <p className="mt-1 text-xs text-zinc-500">14 aktiva · 4 företag · Bynex Smart ansluten</p>
             </div>
             <Badge tone="success">Live</Badge>
           </div>
@@ -290,7 +290,7 @@ export default function Connect({ notify }: { notify: (message: string) => void 
 
                   {item.ai && item.text.includes("saknas") && (
                     <button
-                      onClick={() => notify("AI-åtgärden skapades")}
+                      onClick={() => notify("Bynex Smart-åtgärden skapades")}
                       className="mt-4 rounded-xl bg-zinc-950 px-4 py-2 text-xs font-semibold text-white"
                     >
                       Skapa åtgärd
@@ -304,7 +304,7 @@ export default function Connect({ notify }: { notify: (message: string) => void 
           <div className="border-t border-zinc-200 bg-white p-4">
             <div className="flex items-end gap-2">
               <button
-                onClick={() => notify("Röstmemo aktiverat i demon")}
+                onClick={() => notify("Röstanteckning startad")}
                 className="rounded-2xl border border-zinc-200 p-3"
                 aria-label="Spela in röstmemo"
               >
@@ -319,7 +319,7 @@ export default function Connect({ notify }: { notify: (message: string) => void 
                     sendMessage();
                   }
                 }}
-                placeholder="Skriv till projektet eller fråga Bynex AI..."
+                placeholder="Skriv till projektet eller fråga Bynex Smart..."
                 className="min-h-12 flex-1 resize-none rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-zinc-950"
               />
               <button

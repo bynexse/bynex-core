@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Bynex Demo",
-  description: "AI-operativsystemet för byggbranschen",
+  title: "Bynex | Bygg mer. Administrera mindre.",
+  description: "Bynex-plattformen för byggbranschen",
 };
 
 export default function RootLayout({

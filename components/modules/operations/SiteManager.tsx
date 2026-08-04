@@ -109,7 +109,7 @@ export default function SiteManager({ notify }: { notify: (message: string) => v
       <Card className="bg-zinc-950 p-6 text-white sm:p-8">
         <div className="flex items-center gap-3">
           <Bot className="h-6 w-6" />
-          <Badge>AI aktiv</Badge>
+          <Badge>Bynex Smart aktiv</Badge>
         </div>
         <h2 className="mt-5 text-4xl font-semibold">Bynex Platschef</h2>
         <p className="mt-3 max-w-3xl text-lg leading-8 text-zinc-300">
@@ -133,7 +133,7 @@ export default function SiteManager({ notify }: { notify: (message: string) => v
               <p className="mt-4 text-lg font-semibold">{item.title}</p>
               <p className="mt-2 text-sm leading-6 text-zinc-600">{item.text}</p>
               <button
-                onClick={() => notify(`${item.action} genomfört i demon`)}
+                onClick={() => notify(`${item.action} genomfört`)}
                 className="mt-5 w-full rounded-2xl bg-zinc-950 py-3 text-sm font-semibold text-white"
               >
                 {item.action}

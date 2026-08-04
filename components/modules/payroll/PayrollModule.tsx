@@ -137,7 +137,7 @@ export default function PayrollModule({
             <div className="flex flex-wrap gap-2">
               <Badge tone="neutral">Tid & Lön 3.0</Badge>
               <Badge tone={payrollApproved ? "success" : "warning"}>
-                {payrollApproved ? "Godkänd" : "Förberedd av AI"}
+                {payrollApproved ? "Godkänd" : "Förberedd av Bynex Smart"}
               </Badge>
             </div>
 
@@ -432,7 +432,7 @@ export default function PayrollModule({
             <Card className="p-6">
               <div className="flex items-center gap-3">
                 <Sparkles className="h-5 w-5" />
-                <h3 className="text-2xl font-semibold">AI Lönechef</h3>
+                <h3 className="text-2xl font-semibold">Bynex Smart Lönechef</h3>
               </div>
               <div className="mt-5 rounded-2xl bg-amber-50 p-5">
                 <p className="font-semibold text-amber-900">
@@ -444,10 +444,10 @@ export default function PayrollModule({
                   sluttid med 35 minuter.
                 </p>
                 <button
-                  onClick={() => notify("AI-förslagen för avvikelser öppnades")}
+                  onClick={() => notify("Bynex Smart-förslagen för avvikelser öppnades")}
                   className="mt-4 rounded-xl bg-amber-900 px-4 py-2 text-sm font-semibold text-white"
                 >
-                  Visa AI-förslag
+                  Visa Bynex Smart-förslag
                 </button>
               </div>
             </Card>
@@ -460,7 +460,7 @@ export default function PayrollModule({
               <div className="mt-5 space-y-3">
                 {[
                   ["Underlag låst", "1 september 00:01"],
-                  ["AI-kontroll", "1 september 00:05"],
+                  ["Bynex Smart-kontroll", "1 september 00:05"],
                   ["Attest", "Ett klick"],
                   ["Export", "Fortnox / filunderlag"],
                 ].map(([label, value]) => (

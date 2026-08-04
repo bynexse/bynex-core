@@ -92,7 +92,7 @@ export default function Foreman({ notify }: { notify: (message: string) => void 
         <Badge tone="dark">Bynex Arbetsledaren</Badge>
         <h2 className="mt-5 text-4xl font-semibold">Din arbetsdag är förberedd.</h2>
         <p className="mt-3 max-w-3xl text-lg leading-8 text-zinc-600">
-          AI:n har samlat ritningar, arbetsmoment, material och risker i rätt ordning.
+          Bynex Smart har samlat ritningar, arbetsmoment, material och risker i rätt ordning.
         </p>
       </Card>
 
@@ -146,7 +146,7 @@ export default function Foreman({ notify }: { notify: (message: string) => void 
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-1 h-5 w-5 text-amber-700" />
               <div>
-                <p className="font-semibold text-amber-900">AI-varning</p>
+                <p className="font-semibold text-amber-900">Bynex Smart-varning</p>
                 <p className="mt-2 text-sm leading-6 text-amber-800">
                   Två reglar saknas efter lunch. Beställningen kan vara klar för hämtning 10:15.
                 </p>

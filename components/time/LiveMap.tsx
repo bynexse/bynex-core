@@ -41,7 +41,7 @@ export default function LiveMap({
       <div className="relative h-72 bg-zinc-100">
         <iframe title="Bynex livekarta" src={mapUrl} className="h-full w-full border-0" loading="lazy" />
         <div className="pointer-events-none absolute bottom-3 left-3 rounded-2xl bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
-          <div className="flex items-center gap-2 text-sm font-semibold"><MapPin className="h-4 w-4" /> {position ? "Position verifierad" : "Demoposition"}</div>
+          <div className="flex items-center gap-2 text-sm font-semibold"><MapPin className="h-4 w-4" /> {position ? "Position verifierad" : "Förhandsposition"}</div>
           <p className="mt-1 text-xs text-zinc-500">{position?.accuracy ? `Noggrannhet ±${Math.round(position.accuracy)} m` : "Geofence 150 m"}</p>
         </div>
       </div>

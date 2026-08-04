@@ -33,7 +33,7 @@ export default function AiInsights() {
 
         <div>
           <p className="text-xs font-bold tracking-[0.18em] text-[#696d70]">
-            BYNEX AI
+            BYNEX SMART
           </p>
           <h2 className="mt-1 text-xl font-bold">
             Det viktigaste just nu
