@@ -185,6 +185,11 @@
       "version": "20260805063634",
       "name": "bynex_solo_plan",
       "sha256": "11a41e64a5de23df2fb70b99f2b120fb7177f21b0bd48c8720d60382caa1ffd1"
+    },
+    {
+      "version": "20260805075548",
+      "name": "bynex_company_base_all_plans",
+      "sha256": "d7450d1a7452b9ba89e81f7defc278d88260930b106ad2ceae3f757c317619ce"
     }
   ]
 }

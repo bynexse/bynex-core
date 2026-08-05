@@ -52,7 +52,7 @@ export async function proxy(request: NextRequest) {
   const protectedCustomerPortal = path.startsWith("/kundportal")
     && path !== "/kundportal/login"
     && path !== "/kundportal/inbjudan";
-  if (path.startsWith("/app") || path.startsWith("/admin") || path.startsWith("/onboarding") || path.startsWith("/q/") || protectedCustomerPortal || path.startsWith("/api/private") || path.startsWith("/api/ai")) {
+  if (path.startsWith("/app") || path.startsWith("/admin") || path.startsWith("/account") || path.startsWith("/onboarding") || path.startsWith("/q/") || protectedCustomerPortal || path.startsWith("/api/private") || path.startsWith("/api/ai")) {
     return updateSupabaseSession(request);
   }
 

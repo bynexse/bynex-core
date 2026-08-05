@@ -1,4 +1,10 @@
-const allowedAuthDestinations = new Set(["/app", "/onboarding", "/kundportal", "/kundportal/inbjudan"]);
+const allowedAuthDestinations = new Set([
+  "/app",
+  "/onboarding",
+  "/kundportal",
+  "/kundportal/inbjudan",
+  "/account/set-password",
+]);
 const assetQrDestination = /^\/q\/[0-9a-f-]{36}\.[0-9a-f]{64}$/i;
 
 export function safeAuthDestination(value: string | null | undefined) {

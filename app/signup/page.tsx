@@ -1,15 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import Logo from "@/components/layout/Logo";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [message, setMessage] = useState("");
 
   async function signUp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -19,17 +24,35 @@ export default function SignupPage() {
       return;
     }
 
+    if (password !== passwordConfirmation) {
+      setMessage("Lösenorden är inte likadana.");
+      setStatus("error");
+      return;
+    }
+
     setStatus("sending");
     const redirectTo = `${window.location.origin}/auth/callback?next=/onboarding`;
-    const { error } = await supabase.auth.signInWithOtp({
+    const { data, error } = await supabase.auth.signUp({
       email,
+      password,
       options: {
-        shouldCreateUser: true,
         emailRedirectTo: redirectTo,
         data: { full_name: fullName.trim() },
       },
     });
-    setStatus(error ? "error" : "sent");
+    if (error) {
+      setMessage(error.message.toLowerCase().includes("already")
+        ? "Det finns redan ett konto med den e-postadressen. Prova att logga in eller återställ lösenordet."
+        : "Kontot kunde inte skapas just nu. Kontrollera uppgifterna och försök igen.");
+      setStatus("error");
+      return;
+    }
+    if (data.session) {
+      router.push("/onboarding");
+      router.refresh();
+      return;
+    }
+    setStatus("sent");
   }
 
   return (
@@ -60,10 +83,19 @@ export default function SignupPage() {
               <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-zinc-500">E-post</span>
               <input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="input" placeholder="namn@foretag.se" />
             </label>
+            <label className="block">
+              <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-zinc-500">Välj lösenord</span>
+              <input required minLength={10} type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="input" />
+              <span className="mt-2 block text-xs text-zinc-500">Minst 10 tecken.</span>
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-zinc-500">Upprepa lösenordet</span>
+              <input required minLength={10} type="password" autoComplete="new-password" value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} className="input" />
+            </label>
             <button disabled={status === "sending"} className="w-full rounded-2xl bg-[#b8bdc5] px-5 py-4 text-sm font-semibold text-[#090a0c] transition hover:bg-[#d5d8dc] disabled:opacity-60">
               {status === "sending" ? "Skickar…" : "Skapa konto"}
             </button>
-            {status === "error" && <p className="text-sm text-red-700">Kontot kunde inte skapas just nu. Försök igen om en stund.</p>}
+            {status === "error" && <p className="text-sm text-red-700">{message || "Kontot kunde inte skapas just nu."}</p>}
           </form>
         )}
 
