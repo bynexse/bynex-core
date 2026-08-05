@@ -16,7 +16,7 @@ function localFallback(request: AiRequest): AiResponse {
 }
 
 export async function POST(request: Request) {
-  const context = await requireSmartContext();
+  const context = await requireSmartContext(undefined, "time_payroll");
   if (!context.ok) return context.response;
 
   let payload: AiRequest;

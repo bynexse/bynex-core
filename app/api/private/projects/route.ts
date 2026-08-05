@@ -5,7 +5,7 @@ const statuses = new Set(["planned", "active", "paused", "completed", "cancelled
 const pricingTypes = new Set(["running", "fixed_price", "internal"]);
 
 async function projectContext() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("projects");
   if ("response" in auth) return { ok: false as const, response: auth.response };
   const { data: profile } = await auth.supabase.from("profiles").select("current_organization_id").eq("user_id", auth.userId).maybeSingle();
   if (!profile?.current_organization_id) return { ok: false as const, response: Response.json({ error: "Aktivt företag saknas." }, { status: 409 }) };

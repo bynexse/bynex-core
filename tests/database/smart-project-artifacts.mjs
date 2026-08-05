@@ -72,7 +72,7 @@ await db.exec(`
 `);
 
 const migration = await readFile(
-  new URL("../../supabase/migrations/20260805001000_smart_project_artifacts.sql", import.meta.url),
+  new URL("../../supabase/migrations/20260804181624_smart_project_artifacts.sql", import.meta.url),
   "utf8",
 );
 await db.exec(migration);

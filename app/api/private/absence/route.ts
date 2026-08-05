@@ -57,7 +57,7 @@ async function getContext(auth: Authenticated) {
 }
 
 export async function GET() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("time_payroll");
   if ("response" in auth) return auth.response;
   const context = await getContext(auth);
   if (!context) return Response.json({ error: "En aktiv företagsanslutning krävs." }, { status: 409 });

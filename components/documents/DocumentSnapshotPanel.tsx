@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ExternalLink, FileCheck2, LockKeyhole, RefreshCw } from "lucide-react";
+import { Check, Copy, ExternalLink, FileCheck2, LockKeyhole, RefreshCw, Send } from "lucide-react";
 
 type SnapshotPanelProps =
   | { mode: "quote"; quoteId: string; onNotice?: (message: string) => void }
@@ -39,6 +39,8 @@ export function DocumentSnapshotPanel(props: SnapshotPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [createdMessage, setCreatedMessage] = useState<string | null>(null);
   const [createdDocumentId, setCreatedDocumentId] = useState<string | null>(null);
+  const [approvalUrl, setApprovalUrl] = useState<string | null>(null);
+  const [validDays, setValidDays] = useState(14);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,6 +93,37 @@ export function DocumentSnapshotPanel(props: SnapshotPanelProps) {
     setCreating(false);
   }
 
+  async function approveSnapshot(documentVersionId: string) {
+    if (props.mode !== "quote") return;
+    setCreating(true);
+    const response = await fetch("/api/private/documents/snapshots", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "approve_quote_snapshot", quoteId: props.quoteId, documentVersionId }),
+    });
+    const payload = await response.json().catch(() => null) as { message?: string; error?: string } | null;
+    if (!response.ok) setError(payload?.error ?? "Offertversionen kunde inte godkännas.");
+    else { setError(null); props.onNotice?.(payload?.message ?? "Offertversionen godkändes."); await load(); }
+    setCreating(false);
+  }
+
+  async function createApprovalLink(documentVersionId: string) {
+    if (props.mode !== "quote") return;
+    setCreating(true);
+    const response = await fetch("/api/private/quotes/approval-link", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ quoteId: props.quoteId, documentVersionId, validDays }),
+    });
+    const payload = await response.json().catch(() => null) as { approvalUrl?: string; error?: string } | null;
+    if (!response.ok || !payload?.approvalUrl) setError(payload?.error ?? "Kundlänken kunde inte skapas.");
+    else {
+      setApprovalUrl(payload.approvalUrl);
+      setError(null);
+      props.onNotice?.("En ny säker kundlänk har skapats. Kopiera länken till kundens e-post.");
+      await load();
+    }
+    setCreating(false);
+  }
+
   const readiness = setup?.readiness;
   const quoteReady = props.mode !== "quote" || Boolean(setup?.approvedEstimate);
   const ready = Boolean(readiness?.ready && quoteReady);
@@ -116,6 +149,9 @@ export function DocumentSnapshotPanel(props: SnapshotPanelProps) {
 
       <button type="button" disabled={!ready || creating || loading} onClick={() => void createSnapshot()} className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-zinc-950 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"><FileCheck2 className="h-4 w-4" />{creating ? "Låser underlag…" : props.mode === "quote" ? "Skapa låst offertversion" : "Skapa låst tidrapportversion"}</button>
       {printableDocumentId && <a href={`/app/documents/print?kind=${printableKind}&id=${encodeURIComponent(printableDocumentId)}`} target="_blank" rel="noreferrer" className="ml-2 mt-4 inline-flex items-center gap-2 rounded-2xl border border-zinc-300 bg-white px-5 py-3 text-sm font-semibold"><ExternalLink className="h-4 w-4" /> Öppna utskriftsvy</a>}
+      {props.mode === "quote" && latest?.status === "draft" && <button type="button" disabled={creating} onClick={() => void approveSnapshot(latest.id)} className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"><Check className="h-4 w-4" /> Granska och godkänn version</button>}
+      {props.mode === "quote" && latest?.status === "approved" && <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-end"><label className="text-sm font-semibold">Länken gäller i dagar<input type="number" min={1} max={90} value={validDays} onChange={(event) => setValidDays(Number(event.target.value))} className="input mt-2 w-28 bg-white" /></label><button type="button" disabled={creating || validDays < 1 || validDays > 90} onClick={() => void createApprovalLink(latest.id)} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"><Send className="h-4 w-4" /> Skapa säker kundlänk</button></div><p className="mt-3 text-xs text-emerald-900">När länken skapas låses mottagare, dokumenthash och giltighet. Länken skickas inte automatiskt förrän e-postleveransen är verifierad.</p></div>}
+      {approvalUrl && <div className="mt-4 rounded-2xl bg-zinc-950 p-4 text-white"><p className="text-xs text-zinc-400">Säker kundlänk</p><p className="mt-2 break-all text-sm">{approvalUrl}</p><button type="button" onClick={() => void navigator.clipboard.writeText(approvalUrl)} className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-zinc-950"><Copy className="h-4 w-4" /> Kopiera länk</button></div>}
       <p className="mt-3 text-xs leading-5 text-zinc-500">Detta skapar ett spårbart underlag i Bynex. PDF och leverans är separata funktioner och markeras inte som klara här.</p>
       {createdMessage && <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{createdMessage}</p>}
       {error && <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}

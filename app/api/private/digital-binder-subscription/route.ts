@@ -18,7 +18,7 @@ function databaseStatus(code?: string) {
 }
 
 export async function GET() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("customer_portal");
   if ("response" in auth) return auth.response;
 
   const { data, error } = await auth.supabase.rpc("get_my_digital_binder_options");

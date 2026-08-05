@@ -3,7 +3,7 @@ import { requireSupabaseUser } from "@/lib/supabase/require-user";
 const payrollRoles = new Set(["owner", "admin", "office", "hr", "payroll"]);
 
 async function organizationContext() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("time_payroll");
   if ("response" in auth) return { ok: false as const, response: auth.response };
   const { data: profile } = await auth.supabase
     .from("profiles")

@@ -8,7 +8,7 @@ const skillLevels = new Set(["learning", "qualified", "expert"]);
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
 async function staffingContext() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("projects");
   if ("response" in auth) return { ok: false as const, response: auth.response };
   const { data: profile, error: profileError } = await auth.supabase
     .from("profiles").select("current_organization_id").eq("user_id", auth.userId).maybeSingle();

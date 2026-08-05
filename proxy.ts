@@ -13,7 +13,21 @@ export async function proxy(request: NextRequest) {
   // The billing worker authenticates every request with its own timing-safe
   // bearer secret. It must remain callable by the scheduler while the human
   // pilot gate is enabled.
-  if (path === "/api/internal/bynex-smart/digital-binder-billing") {
+  if (
+    path === "/api/internal/bynex-smart/digital-binder-billing" ||
+    path === "/api/internal/bynex-smart/customer-invoice-delivery"
+  ) {
+    return NextResponse.next();
+  }
+
+  // These customer endpoints are protected by 256-bit, one-time, hashed
+  // invitation/approval tokens and must remain reachable by the recipient.
+  if (
+    path.startsWith("/offert/") ||
+    path.startsWith("/ata/") ||
+    path === "/api/public/quotes/approval" ||
+    path === "/api/public/change-orders/decision"
+  ) {
     return NextResponse.next();
   }
 
@@ -41,7 +55,10 @@ export async function proxy(request: NextRequest) {
 
     if (!isAuthenticated) {
       if (path.startsWith("/api/")) {
-        return NextResponse.json({ error: "Pilotinloggning krävs." }, { status: 401 });
+        return NextResponse.json(
+          { error: "Pilotinloggning krävs." },
+          { status: 401 },
+        );
       }
       const loginUrl = new URL("/pilot-login", request.url);
       loginUrl.searchParams.set("next", `${path}${request.nextUrl.search}`);
@@ -49,10 +66,20 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  const protectedCustomerPortal = path.startsWith("/kundportal")
-    && path !== "/kundportal/login"
-    && path !== "/kundportal/inbjudan";
-  if (path.startsWith("/app") || path.startsWith("/admin") || path.startsWith("/onboarding") || path.startsWith("/q/") || protectedCustomerPortal || path.startsWith("/api/private") || path.startsWith("/api/ai")) {
+  const protectedCustomerPortal =
+    path.startsWith("/kundportal") &&
+    path !== "/kundportal/login" &&
+    path !== "/kundportal/inbjudan";
+  if (
+    path.startsWith("/app") ||
+    path.startsWith("/admin") ||
+    path.startsWith("/account") ||
+    path.startsWith("/onboarding") ||
+    path.startsWith("/q/") ||
+    protectedCustomerPortal ||
+    path.startsWith("/api/private") ||
+    path.startsWith("/api/ai")
+  ) {
     return updateSupabaseSession(request);
   }
 

@@ -1,8 +1,8 @@
 import { isUuid } from "@/lib/http/validation";
-import { requireSupabaseUser } from "@/lib/supabase/require-user";
+import { requireSupabaseUser, type ProductModuleSlug } from "@/lib/supabase/require-user";
 
-export async function requireSmartContext(projectId?: unknown) {
-  const auth = await requireSupabaseUser();
+export async function requireSmartContext(projectId?: unknown, requiredModule?: ProductModuleSlug) {
+  const auth = await requireSupabaseUser(requiredModule);
   if ("response" in auth) return { ok: false as const, response: auth.response };
 
   const { data: profile, error: profileError } = await auth.supabase

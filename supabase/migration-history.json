@@ -167,6 +167,61 @@
       "canonicalization": "Ett avslutande blanksteg i en kommentar togs bort; SQL-innehållet är oförändrat."
     },
     {
+      "version": "20260804181613",
+      "name": "smart_quote_outcome_analyses",
+      "sha256": "b0c824760d196a5c16a38e89689ebeb6e084a101fc141b511af960b4774858af"
+    },
+    {
+      "version": "20260804181624",
+      "name": "smart_project_artifacts",
+      "sha256": "e00c74bda1ccdbf024829a56eb54350ef2ecf3a0d19013745c75e0a2ad652bfd"
+    },
+    {
+      "version": "20260804181631",
+      "name": "organization_document_settings",
+      "sha256": "f997eb03d8fa45c49668217e1b129e7320cb472e3914182405f120750d762a1f"
+    },
+    {
+      "version": "20260804181637",
+      "name": "immutable_quote_time_document_snapshots",
+      "sha256": "a676ae0110d8a46de209001847ed5e6308c5a929393497ff64d705e3fcf84ff7"
+    },
+    {
+      "version": "20260804181643",
+      "name": "worker_employment_profiles",
+      "sha256": "2534941c71df2483edf11a0e360899a600a5afc1aea0a05d0f87bc632cb62895"
+    },
+    {
+      "version": "20260804181650",
+      "name": "document_branding_snapshots",
+      "sha256": "b63018af16c7d7acd875fb0407b37265a967a0c70a92f161e13b71c31d54c1f7"
+    },
+    {
+      "version": "20260804181657",
+      "name": "skill_based_staffing",
+      "sha256": "2c904fa468724ac3835abf33f65cc1ea0c00a61e9fc4097af2710feaafbaee52"
+    },
+    {
+      "version": "20260804181702",
+      "name": "organization_branding_workspace_visibility",
+      "sha256": "7a5518b18377b41cb2c0198d1a0c364c3f165dcf8c028920ad44822a910f53fd"
+    },
+    {
+      "version": "20260804182300",
+      "name": "public_pricing_catalog_alignment",
+      "sha256": "9ba1e4c5a534145bd27701bd127c6515183165956ff3f334853dc318881f68c9"
+    },
+    {
+      "version": "20260804183559",
+      "name": "authenticated_asset_qr_flows",
+      "sha256": "fd88807fd89a6c2e4b8948cef545bf32372d8fb8f41b896cce4a3fbcaf11cffe"
+    },
+    {
+      "version": "20260804184355",
+      "name": "asset_maintenance_plans",
+      "sha256": "5b5d7e9d02c2b1584a963d06c7e4e198ff7756a7978db1138a9c92257c122200"
+    },
+    {
       "version": "20260805063518",
       "name": "asset_theft_evidence_gps_registry",
       "sha256": "d636d11610b4cd9ac429df82f9bc01dc85f62e4cc5da07593510075bf837e52c"
@@ -185,6 +240,11 @@
       "version": "20260805063634",
       "name": "bynex_solo_plan",
       "sha256": "11a41e64a5de23df2fb70b99f2b120fb7177f21b0bd48c8720d60382caa1ffd1"
+    },
+    {
+      "version": "20260805075548",
+      "name": "bynex_company_base_all_plans",
+      "sha256": "d7450d1a7452b9ba89e81f7defc278d88260930b106ad2ceae3f757c317619ce"
     }
   ]
 }

@@ -24,7 +24,7 @@ await db.exec(`
   create function public.set_updated_at() returns trigger language plpgsql as $$ begin new.updated_at=now(); return new; end $$;
   grant usage on schema public,auth to anon,authenticated;
 `);
-const migration = await readFile(new URL("../../supabase/migrations/20260805011000_asset_maintenance_plans.sql", import.meta.url), "utf8");
+const migration = await readFile(new URL("../../supabase/migrations/20260804184355_asset_maintenance_plans.sql", import.meta.url), "utf8");
 await db.exec(migration);
 await db.exec(`
   insert into auth.users values ('${MANAGER_A}'),('${SUPERVISOR_A}'),('${OWNER_B}');

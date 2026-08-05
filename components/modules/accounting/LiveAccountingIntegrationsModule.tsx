@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
   ArrowDownToLine,
@@ -15,6 +15,7 @@ import {
   Unplug,
 } from "lucide-react";
 import { Badge, Card, Stat } from "@/components/ui/core";
+import SieTransferPanel from "@/components/modules/accounting/SieTransferPanel";
 
 type Connector = {
   id: string;
@@ -149,7 +150,7 @@ type Payload = {
   };
 };
 
-type Tab = "connections" | "imports" | "sync";
+type Tab = "sie" | "connections" | "imports" | "sync";
 
 const dateTime = new Intl.DateTimeFormat("sv-SE", { dateStyle: "short", timeStyle: "short" });
 
@@ -202,7 +203,7 @@ function StatusBadge({ status, labels }: { status: string; labels: Record<string
 
 export default function LiveAccountingIntegrationsModule({ notify }: { notify: (message: string) => void }) {
   const [data, setData] = useState<Payload | null>(null);
-  const [tab, setTab] = useState<Tab>("connections");
+  const [tab, setTab] = useState<Tab>("sie");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<string | null>(null);
@@ -224,21 +225,18 @@ export default function LiveAccountingIntegrationsModule({ notify }: { notify: (
     return () => window.cancelAnimationFrame(frame);
   }, [load]);
 
-  const connectorById = useMemo(
-    () => new Map((data?.connectors ?? []).map((connector) => [connector.id, connector])),
-    [data?.connectors],
-  );
-  const supplierById = useMemo(
-    () => new Map((data?.suppliers ?? []).map((supplier) => [supplier.id, supplier])),
-    [data?.suppliers],
-  );
-  const projectById = useMemo(
-    () => new Map((data?.projects ?? []).map((project) => [project.id, project])),
-    [data?.projects],
-  );
+  const connectorById = new Map((data?.connectors ?? []).map((connector) => [connector.id, connector]));
+  const supplierById = new Map((data?.suppliers ?? []).map((supplier) => [supplier.id, supplier]));
+  const projectById = new Map((data?.projects ?? []).map((project) => [project.id, project]));
   const activeConnections = (data?.connections ?? []).filter((connection) => connection.status === "active");
   const openConflicts = (data?.conflicts ?? []).filter((conflict) => conflict.status === "open");
   const reviewInvoices = (data?.supplierInvoices ?? []).filter((invoice) => ["received", "review", "matched", "failed"].includes(invoice.status));
+  const availableTabs: Array<[Tab, string]> = [
+    ["sie", "SIE-filer"],
+    ["imports", "Leverantörsfakturor"],
+    ...((data?.connections.length ?? 0) > 0 ? [["connections", "Anslutningar"] as [Tab, string]] : []),
+    ...((data?.jobs.length ?? 0) > 0 || (data?.conflicts.length ?? 0) > 0 ? [["sync", "Synk & konflikter"] as [Tab, string]] : []),
+  ];
 
   async function post(body: Record<string, unknown>, successMessage: string) {
     setSaving(true);
@@ -285,9 +283,9 @@ export default function LiveAccountingIntegrationsModule({ notify }: { notify: (
   return <div className="space-y-5">
     <Card className="flex flex-col justify-between gap-5 bg-zinc-950 p-7 text-white lg:flex-row lg:items-end">
       <div>
-        <Badge tone="success">Verifierade dataflöden</Badge>
-        <h2 className="mt-5 text-4xl font-semibold tracking-tight">Ekonomisystem & import</h2>
-        <p className="mt-3 max-w-3xl text-zinc-300">Här visas bara verkliga anslutningar, mottagna leverantörsfakturor och synkjobb. En kartlagd leverantör visas aldrig som aktiv innan adaptern och behörighetsflödet är verifierade.</p>
+        <Badge tone="success">Bokföring utan inlåsning</Badge>
+        <h2 className="mt-5 text-4xl font-semibold tracking-tight">SIE & ekonomifiler</h2>
+        <p className="mt-3 max-w-3xl text-zinc-300">Flytta bokföringsdata med SIE-fil nu. Externa direktkopplingar visas separat och aktiveras först när deras tekniska flöde och behörigheter är verifierade.</p>
       </div>
       <button onClick={() => void load()} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-700 px-4 py-3 text-sm font-semibold"><RefreshCw className="h-4 w-4" /> Uppdatera</button>
     </Card>
@@ -302,12 +300,10 @@ export default function LiveAccountingIntegrationsModule({ notify }: { notify: (
     </div>
 
     <div className="flex flex-wrap gap-2 rounded-2xl bg-zinc-100 p-2">
-      {([
-        ["connections", "Anslutningar"],
-        ["imports", "Leverantörsfakturor"],
-        ["sync", "Synk & konflikter"],
-      ] as Array<[Tab, string]>).map(([value, label]) => <button key={value} onClick={() => setTab(value)} className={`rounded-xl px-4 py-2 text-sm font-semibold ${tab === value ? "bg-white shadow-sm" : "text-zinc-500"}`}>{label}</button>)}
+      {availableTabs.map(([value, label]) => <button key={value} onClick={() => setTab(value)} className={`rounded-xl px-4 py-2 text-sm font-semibold ${tab === value ? "bg-white shadow-sm" : "text-zinc-500"}`}>{label}</button>)}
     </div>
+
+    {tab === "sie" && <SieTransferPanel notify={notify} />}
 
     {tab === "connections" && <div className="space-y-5">
       <div className="grid gap-5 xl:grid-cols-2">

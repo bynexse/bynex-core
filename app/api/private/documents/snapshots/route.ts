@@ -1,5 +1,5 @@
 import { isUuid, readJsonObject } from "@/lib/http/validation";
-import { requireSupabaseUser } from "@/lib/supabase/require-user";
+import { requireSupabaseUser, type ProductModuleSlug } from "@/lib/supabase/require-user";
 
 const documentRoles = new Set(["owner", "admin", "office", "manager", "hr", "payroll"]);
 const quoteRoles = new Set(["owner", "admin", "office", "manager"]);
@@ -13,8 +13,8 @@ type DocumentContext = {
   role: string;
 } | { ok: false; response: Response };
 
-async function currentDocumentContext(): Promise<DocumentContext> {
-  const auth = await requireSupabaseUser();
+async function currentDocumentContext(requiredModule: ProductModuleSlug): Promise<DocumentContext> {
+  const auth = await requireSupabaseUser(requiredModule);
   if (!auth.supabase || !auth.userId) return {
     ok: false,
     response: auth.response ?? Response.json({ error: "Inloggning krävs." }, { status: 401 }),
@@ -57,11 +57,11 @@ function rpcRow(value: unknown): Record<string, unknown> | null {
 }
 
 export async function GET(request: Request) {
-  const context = await currentDocumentContext();
-  if (!context.ok) return context.response;
   const search = new URL(request.url).searchParams;
   const quoteId = search.get("quoteId");
   const mode = search.get("mode");
+  const context = await currentDocumentContext(mode === "time" ? "time_payroll" : "quotes");
+  if (!context.ok) return context.response;
   const projectId = search.get("projectId");
   const workerId = search.get("workerId");
   if (quoteId !== null && !isUuid(quoteId)) return Response.json({ error: "Giltigt offert-id krävs." }, { status: 400 });
@@ -126,10 +126,28 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const context = await currentDocumentContext();
-  if (!context.ok) return context.response;
   const body = await readJsonObject(request);
   const action = body?.action;
+  const context = await currentDocumentContext(action === "create_time_report_snapshot" ? "time_payroll" : "quotes");
+  if (!context.ok) return context.response;
+
+  if (action === "approve_quote_snapshot") {
+    if (!quoteRoles.has(context.role)) return Response.json({ error: "Behörighet att godkänna offertdokument saknas." }, { status: 403 });
+    if (!isUuid(body?.documentVersionId) || !isUuid(body?.quoteId)) return Response.json({ error: "Offert och dokumentversion krävs." }, { status: 400 });
+    const { data, error } = await context.supabase
+      .from("quote_document_versions")
+      .update({ status: "approved" })
+      .eq("organization_id", context.organizationId)
+      .eq("quote_id", body.quoteId)
+      .eq("id", body.documentVersionId)
+      .eq("status", "draft")
+      .select("id,version,status,content_hash,pdf_storage_path,created_at")
+      .maybeSingle();
+    if (error) return Response.json({ error: error.message || "Dokumentversionen kunde inte godkännas." }, { status: error.code === "42501" ? 403 : 409 });
+    if (!data) return Response.json({ error: "Endast en låst offertversion i utkast kan godkännas." }, { status: 409 });
+    return Response.json({ documentVersion: snapshotSummary(data), message: "Offertversionen är mänskligt godkänd och kan nu skickas via säker kundlänk." });
+  }
+
   const snapshotKey = body?.snapshotKey;
   if (!isUuid(snapshotKey)) return Response.json({ error: "Giltig idempotensnyckel krävs." }, { status: 400 });
 

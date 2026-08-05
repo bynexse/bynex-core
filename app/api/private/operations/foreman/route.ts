@@ -6,7 +6,7 @@ const managementRoles = new Set(["owner", "admin", "office", "manager"]);
 const riskStatuses = new Set(["open", "mitigated", "closed"]);
 
 async function foremanContext() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("projects");
   if ("response" in auth) return { ok: false as const, response: auth.response };
 
   const { data: profile, error: profileError } = await auth.supabase

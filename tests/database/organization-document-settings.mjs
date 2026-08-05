@@ -63,12 +63,12 @@ await db.exec(`
 `);
 
 const migration = await readFile(
-  new URL("../../supabase/migrations/20260805002000_organization_document_settings.sql", import.meta.url),
+  new URL("../../supabase/migrations/20260804181631_organization_document_settings.sql", import.meta.url),
   "utf8",
 );
 await db.exec(migration);
 const workspaceVisibilityMigration = await readFile(
-  new URL("../../supabase/migrations/20260805008000_organization_branding_workspace_visibility.sql", import.meta.url),
+  new URL("../../supabase/migrations/20260804181702_organization_branding_workspace_visibility.sql", import.meta.url),
   "utf8",
 );
 await db.exec(workspaceVisibilityMigration);

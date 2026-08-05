@@ -9,7 +9,7 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
 async function employmentContext() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("time_payroll");
   if ("response" in auth) return { ok: false as const, response: auth.response };
 
   const { data: profile, error: profileError } = await auth.supabase

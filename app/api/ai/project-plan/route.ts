@@ -30,7 +30,7 @@ function outputText(payload: unknown) {
 }
 
 export async function POST(request: Request) {
-  const context = await requireSmartContext();
+  const context = await requireSmartContext(undefined, "projects");
   if (!context.ok) return context.response;
 
   let body: unknown;

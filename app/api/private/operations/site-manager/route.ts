@@ -6,7 +6,7 @@ const projectStatuses = new Set(["planned", "active", "paused", "completed", "ca
 const riskStatuses = new Set(["open", "mitigated", "closed"]);
 
 async function siteManagerContext() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("projects");
   if ("response" in auth) return { ok: false as const, response: auth.response };
   const { data: profile, error: profileError } = await auth.supabase
     .from("profiles")

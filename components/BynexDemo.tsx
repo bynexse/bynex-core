@@ -21,6 +21,7 @@ import LiveConnectModule from "@/components/modules/connect/LiveConnectModule";
 import LiveChangeOrdersModule from "@/components/modules/commercial/LiveChangeOrdersModule";
 import LiveQuotesModule from "@/components/modules/commercial/LiveQuotesModule";
 import LiveInvoicesModule from "@/components/modules/invoices/LiveInvoicesModule";
+import LiveBookkeepingModule from "@/components/modules/bookkeeping/LiveBookkeepingModule";
 import LiveAccountingIntegrationsModule from "@/components/modules/accounting/LiveAccountingIntegrationsModule";
 import LiveYearEndModule from "@/components/modules/bookkeeping/LiveYearEndModule";
 import LiveSoleTraderModule from "@/components/modules/sole-trader/LiveSoleTraderModule";
@@ -52,6 +53,7 @@ const modules: Array<{
   { id: "change-orders", label: "ÄTA", icon: FileSignature, productModule: "change_orders" },
   { id: "quotes", label: "Offerter", icon: ReceiptText, productModule: "quotes" },
   { id: "invoices", label: "Fakturering", icon: CircleDollarSign, productModule: "invoicing" },
+  { id: "bookkeeping", label: "Bokföring", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
   { id: "accounting-integrations", label: "Ekonomikopplingar", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
   { id: "year-end", label: "Bokslut", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader", "limited_company"] },
   { id: "sole-trader", label: "Enskild ekonomi", icon: WalletCards, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader"] },
@@ -247,6 +249,7 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
           {active === "change-orders" && <LiveChangeOrdersModule notify={notify} />}
           {active === "quotes" && <LiveQuotesModule notify={notify} role={company.role} />}
           {active === "invoices" && <LiveInvoicesModule notify={notify} />}
+          {active === "bookkeeping" && <LiveBookkeepingModule notify={notify} />}
           {active === "accounting-integrations" && <LiveAccountingIntegrationsModule notify={notify} />}
           {active === "year-end" && <LiveYearEndModule />}
           {active === "sole-trader" && <LiveSoleTraderModule />}

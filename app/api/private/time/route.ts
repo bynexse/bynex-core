@@ -68,7 +68,7 @@ async function getContext(auth: Awaited<ReturnType<typeof requireSupabaseUser>>)
 }
 
 export async function GET() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("time_payroll");
   if ("response" in auth) return auth.response;
   const context = await getContext(auth);
   if (!context) return Response.json({ error: "En personalprofil behöver skapas av företagets administratör." }, { status: 409 });

@@ -19,7 +19,7 @@ function uuid(value: unknown) {
 }
 
 async function assetsContext() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("assets");
   if ("response" in auth) return { ok: false as const, response: auth.response };
 
   const { data: profile, error: profileError } = await auth.supabase

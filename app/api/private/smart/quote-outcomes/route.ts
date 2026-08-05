@@ -15,7 +15,7 @@ type MaterialRow = { project_id: string | null; quantity: number | string; unit_
 type ChangeOrderRow = { project_id: string | null; status: string; price_amount: number | string };
 
 async function analysisContext() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("quotes");
   if ("response" in auth) return { ok: false as const, response: auth.response };
 
   const { data: profile, error: profileError } = await auth.supabase
