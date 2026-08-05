@@ -66,7 +66,7 @@ await db.exec(`
 `);
 
 const migration = await readFile(
-  new URL("../../supabase/migrations/20260805005000_worker_employment_profiles.sql", import.meta.url),
+  new URL("../../supabase/migrations/20260804181643_worker_employment_profiles.sql", import.meta.url),
   "utf8",
 );
 await db.exec(migration);

@@ -114,7 +114,7 @@ await db.exec(`
 `);
 
 const migration = await readFile(
-  new URL("../../supabase/migrations/20260805004000_immutable_quote_time_document_snapshots.sql", import.meta.url),
+  new URL("../../supabase/migrations/20260804181637_immutable_quote_time_document_snapshots.sql", import.meta.url),
   "utf8",
 );
 await db.exec(migration);
