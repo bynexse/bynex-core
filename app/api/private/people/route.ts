@@ -7,7 +7,7 @@ const compensationRoles = new Set(["owner", "admin", "office", "hr", "payroll"])
 const employmentTypes = new Set(["employee", "contractor", "subcontractor", "temporary"]);
 
 async function peopleContext() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("time_payroll");
   if ("response" in auth) return { ok: false as const, response: auth.response };
 
   const { data: profile, error: profileError } = await auth.supabase

@@ -31,7 +31,7 @@ async function soleTraderContext(auth: Authenticated) {
 }
 
 export async function GET() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("bookkeeping");
   if ("response" in auth) return auth.response;
 
   const context = await soleTraderContext(auth);

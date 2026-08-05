@@ -27,7 +27,7 @@ function sameOrigin(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("customer_portal");
   if ("response" in auth) return auth.response;
   const projectId = request.nextUrl.searchParams.get("projectId");
   if (!isUuid(projectId)) return Response.json({ error: "Projektet är ogiltigt." }, { status: 400 });

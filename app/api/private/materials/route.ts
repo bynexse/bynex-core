@@ -5,7 +5,7 @@ const managementRoles = new Set(["owner", "admin", "office", "manager"]);
 const itemStatuses = new Set(["needed", "order_today", "ordered", "delivered", "backordered", "cancelled"]);
 
 async function materialsContext() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("materials");
   if ("response" in auth) return { ok: false as const, response: auth.response };
 
   const { data: profile, error: profileError } = await auth.supabase

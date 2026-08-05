@@ -5,7 +5,7 @@ const managementRoles = new Set(["owner", "admin", "office", "manager"]);
 const channelTypes = new Set(["company", "project"]);
 
 async function connectContext() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("projects");
   if ("response" in auth) return { ok: false as const, response: auth.response };
   const { data: profile } = await auth.supabase
     .from("profiles")

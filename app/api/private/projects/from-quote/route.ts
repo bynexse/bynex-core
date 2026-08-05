@@ -2,7 +2,7 @@ import { readJsonObject, isUuid } from "@/lib/http/validation";
 import { requireSupabaseUser } from "@/lib/supabase/require-user";
 
 export async function POST(request: Request) {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("projects");
   if ("response" in auth) return auth.response;
 
   const body = await readJsonObject(request);

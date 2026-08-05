@@ -5,7 +5,7 @@ const financeRoles = new Set(["owner", "admin", "office"]);
 const connectionAdminRoles = new Set(["owner", "admin"]);
 
 async function accountingContext() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("bookkeeping");
   if ("response" in auth) return { ok: false as const, response: auth.response };
 
   const { data: profile } = await auth.supabase

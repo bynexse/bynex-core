@@ -20,7 +20,7 @@ function uuid(value: unknown) {
 }
 
 async function context() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("assets");
   if ("response" in auth) return { ok: false as const, response: auth.response };
   const { data: profile, error: profileError } = await auth.supabase.from("profiles").select("current_organization_id").eq("user_id", auth.userId).maybeSingle();
   if (profileError) return { ok: false as const, response: Response.json({ error: "Företaget kunde inte hämtas." }, { status: 500 }) };

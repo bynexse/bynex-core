@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Arbetsanteckningen är för lång." }, { status: 400 });
   }
 
-  const context = await requireSmartContext(payload.projectId);
+  const context = await requireSmartContext(payload.projectId, "time_payroll");
   if (!context.ok) return context.response;
 
   const input = {

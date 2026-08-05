@@ -22,7 +22,7 @@ function text(value: unknown, max = 1000) {
 }
 
 export async function GET() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("invoicing");
   if ("response" in auth) return auth.response;
   const ctx = await context(auth);
   if (!ctx) return Response.json({ error: "Ekonomibehörighet krävs." }, { status: 403 });

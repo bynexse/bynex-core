@@ -50,7 +50,7 @@ function parseLocalPath(value: unknown) {
 }
 
 async function propertyPortalContext() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("customer_portal");
   if ("response" in auth) return { ok: false as const, response: auth.response };
 
   const { data: profile, error: profileError } = await auth.supabase

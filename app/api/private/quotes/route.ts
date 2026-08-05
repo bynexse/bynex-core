@@ -19,7 +19,7 @@ function nonNegativeMoney(value: unknown) {
 }
 
 async function quoteContext() {
-  const auth = await requireSupabaseUser();
+  const auth = await requireSupabaseUser("quotes");
   if ("response" in auth) return { ok: false as const, response: auth.response };
 
   const { data: profile, error: profileError } = await auth.supabase

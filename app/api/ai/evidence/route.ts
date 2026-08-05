@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const context = await requireSmartContext(body.projectId);
+  const context = await requireSmartContext(body.projectId, "projects");
   if (!context.ok) return context.response;
   if (!context.project) {
     return NextResponse.json({ error: "Projektet kunde inte verifieras." }, { status: 404 });
