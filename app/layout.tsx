@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://bynex.se"),
-  title: "Bynex | Från idé till en byggnad som står i 100 år",
-  description: "Bynex samlar projekt, tid, lön, offert, ÄTA, material, fakturering och fastighetens digitala minne.",
+  metadataBase: new URL("https://www.bynex.se"),
+  title: "Bynex | Hela företaget i ett system",
+  description: "Bynex samlar tid, personal, projekt, offert, ÄTA, material, fakturering, bokföring och fastighet i ett sammanhängande arbetsflöde.",
   icons: {
     icon: "/brand/bynex-mark.png",
     apple: "/brand/bynex-mark.png",
   },
   openGraph: {
-    title: "Bynex",
-    description: "Bygg mer. Administrera mindre.",
+    title: "Bynex | Hela företaget i ett system",
+    description: "Mindre administration, bättre kontroll och snabbare väg från utfört arbete till betald faktura.",
     images: ["/brand/bynex-wordmark.png"],
   },
 };

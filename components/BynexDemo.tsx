@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  ArrowRight, Building2, CircleDollarSign, Clock3, FileSignature, FolderKanban,
+  Building2, CircleDollarSign, Clock3, FileSignature, FolderKanban,
   BookOpenCheck, HardHat, Headphones, Home, Menu, MessageCircle, PackageSearch,
   ReceiptText, Settings, Sparkles, UsersRound, WalletCards, Wrench, X
 } from "lucide-react";
@@ -113,7 +113,7 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
 
   return (
     <div className="min-h-screen bg-[#f7f5f0] text-[#090a0c]">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-[#34373c] bg-[#202226] p-5 text-white lg:block">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 overflow-y-auto border-r border-[#34373c] bg-[#202226] p-5 text-white lg:block">
         <Logo />
         <nav className="mt-8 space-y-1">
           {visibleModules.map((item) => {
@@ -137,24 +137,6 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
           {company.platformRole && <Link href="/admin" className="mt-3 flex w-full items-center justify-center rounded-2xl bg-[#b8bdc5] px-4 py-3 text-sm font-semibold text-[#090a0c] transition hover:bg-[#d5d8dc]">Bynex HQ</Link>}
         </nav>
 
-        <div className="absolute bottom-5 left-5 right-5 rounded-3xl border border-white/10 bg-[#090a0c] p-5 text-white shadow-2xl">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Sparkles className="h-4 w-4" />
-            Bynex Smart
-          </div>
-          <p className="mt-3 text-sm leading-6 text-zinc-300">
-            Arbetar med företagets egna projekt och behörigheter.
-          </p>
-          <button
-            onClick={() => {
-              setSmartCommandsOpen(true);
-            }}
-            className="mt-4 flex w-full items-center justify-between rounded-2xl bg-[#b8bdc5] px-4 py-3 text-sm font-semibold text-[#090a0c] transition hover:bg-[#d5d8dc]"
-          >
-            Visa eller dölj modul
-            <ArrowRight className="h-4 w-4" />
-          </button>
-        </div>
       </aside>
 
       {mobileNav && (
@@ -215,6 +197,14 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSmartCommandsOpen(true)}
+                className="inline-flex items-center gap-2 rounded-2xl bg-[#202226] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#090a0c]"
+                aria-label="Öppna Bynex Smart"
+              >
+                <Sparkles className="h-5 w-5 text-[#c9cdd3]" />
+                <span className="hidden sm:inline">Bynex Smart</span>
+              </button>
               <button onClick={() => setSupportOpen(true)} className="rounded-2xl border border-[#d8d8d5] bg-[#e8e8e6] p-3 text-[#454950]" aria-label="Hjälp och support"><Headphones className="h-5 w-5" /></button>
               <button
                 onClick={() => setActive("settings")}
