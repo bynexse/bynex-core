@@ -1,5 +1,7 @@
 import { requireSupabaseUser } from "@/lib/supabase/require-user";
 
+const payrollRoles = new Set(["owner", "admin", "office", "hr", "payroll"]);
+
 async function organizationContext() {
   const auth = await requireSupabaseUser();
   if ("response" in auth) return { ok: false as const, response: auth.response };
@@ -14,11 +16,25 @@ async function organizationContext() {
       response: Response.json({ error: "Aktivt företag saknas." }, { status: 409 }),
     };
   }
+  const { data: membership } = await auth.supabase
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", profile.current_organization_id)
+    .eq("user_id", auth.userId)
+    .eq("active", true)
+    .maybeSingle();
+  if (!membership || !payrollRoles.has(membership.role)) {
+    return {
+      ok: false as const,
+      response: Response.json({ error: "Du saknar behörighet till företagets löneuppgifter." }, { status: 403 }),
+    };
+  }
   return {
     ok: true as const,
     supabase: auth.supabase,
     userId: auth.userId,
     organizationId: profile.current_organization_id,
+    role: membership.role,
   };
 }
 
@@ -26,7 +42,7 @@ export async function GET() {
   const context = await organizationContext();
   if (!context.ok) return context.response;
 
-  const [{ data: periods }, { data: workers }, { data: settings }] = await Promise.all([
+  const [periodsResult, workersResult, settingsResult] = await Promise.all([
     context.supabase
       .from("payroll_periods")
       .select("id,payroll_month,period_start,period_end,status,payment_date,calculation_cutoff_date,total_gross_pay,total_net_pay,total_preliminary_tax,total_employer_contributions,approved_at")
@@ -47,24 +63,82 @@ export async function GET() {
       .maybeSingle(),
   ]);
 
-  const currentPeriod = periods?.[0] ?? null;
-  const { data: entries } = currentPeriod
-    ? await context.supabase
-        .from("payroll_entries")
-        .select("id,worker_id,regular_minutes,overtime_minutes,cash_compensation,taxable_benefits,expense_reimbursements,gross_taxable_amount,preliminary_tax,employer_contributions,deductions,net_pay,vacation_balance_days,absence_percent,status,calculated_at")
-        .eq("organization_id", context.organizationId)
-        .eq("payroll_period_id", currentPeriod.id)
-        .order("created_at")
-    : { data: [] };
+  const failed = [periodsResult, workersResult, settingsResult].find((result) => result.error);
+  if (failed?.error) {
+    return Response.json({ error: "Löneunderlaget kunde inte hämtas." }, { status: failed.error.code === "42501" ? 403 : 500 });
+  }
 
-  return Response.json({ periods: periods ?? [], currentPeriod, entries: entries ?? [], workers: workers ?? [], settings });
+  const periods = periodsResult.data;
+  const workers = workersResult.data;
+  const settings = settingsResult.data;
+
+  const currentPeriod = periods?.[0] ?? null;
+  const [entriesResult, payslipsResult] = currentPeriod
+    ? await Promise.all([
+        context.supabase
+          .from("payroll_entries")
+          .select("id,worker_id,regular_minutes,overtime_minutes,cash_compensation,taxable_benefits,expense_reimbursements,gross_taxable_amount,preliminary_tax,employer_contributions,deductions,net_pay,vacation_balance_days,absence_percent,status,calculated_at")
+          .eq("organization_id", context.organizationId)
+          .eq("payroll_period_id", currentPeriod.id)
+          .order("created_at"),
+        context.supabase
+          .from("payslip_files")
+          .select("id,payroll_entry_id,worker_id,published_at,document_branding_snapshot_hash,document_evidence_hash")
+          .eq("organization_id", context.organizationId)
+          .eq("payroll_period_id", currentPeriod.id),
+      ])
+    : [{ data: [], error: null }, { data: [], error: null }];
+
+  if (entriesResult.error || payslipsResult.error) {
+    return Response.json({ error: "Löneposterna kunde inte hämtas." }, { status: (entriesResult.error?.code ?? payslipsResult.error?.code) === "42501" ? 403 : 500 });
+  }
+
+  return Response.json({ periods: periods ?? [], currentPeriod, entries: entriesResult.data ?? [], payslips: payslipsResult.data ?? [], workers: workers ?? [], settings });
 }
 
 export async function POST() {
   const context = await organizationContext();
   if (!context.ok) return context.response;
 
-  const todayParts = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Stockholm", year: "numeric", month: "2-digit", day: "2-digit" })
+  const [{ data: organization, error: organizationError }, { data: settings, error: settingsError }] = await Promise.all([
+    context.supabase
+      .from("organizations")
+      .select("timezone")
+      .eq("id", context.organizationId)
+      .single(),
+    context.supabase
+      .from("payroll_cycle_settings")
+      .select("payment_day")
+      .eq("organization_id", context.organizationId)
+      .eq("active", true)
+      .maybeSingle(),
+  ]);
+  if (organizationError || settingsError) {
+    return Response.json({ error: "Löneinställningarna kunde inte hämtas." }, { status: 500 });
+  }
+  if (!settings) {
+    return Response.json(
+      { error: "Ställ först in företagets utbetalningsdag under Företagsinställningar." },
+      { status: 409 },
+    );
+  }
+
+  const timezone = organization?.timezone;
+  if (!timezone) {
+    return Response.json(
+      { error: "Företagets tidszon måste anges innan en löneperiod kan skapas." },
+      { status: 409 },
+    );
+  }
+
+  let formatter: Intl.DateTimeFormat;
+  try {
+    formatter = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" });
+  } catch {
+    return Response.json({ error: "Företagets tidszon är inte giltig." }, { status: 409 });
+  }
+
+  const todayParts = formatter
     .formatToParts(new Date())
     .reduce<Record<string, string>>((parts, part) => ({ ...parts, [part.type]: part.value }), {});
   const year = Number(todayParts.year);
@@ -81,13 +155,7 @@ export async function POST() {
     .maybeSingle();
   if (existing) return Response.json({ period: existing });
 
-  const { data: settings } = await context.supabase
-    .from("payroll_cycle_settings")
-    .select("payment_day")
-    .eq("organization_id", context.organizationId)
-    .eq("active", true)
-    .maybeSingle();
-  const paymentDay = Math.min(settings?.payment_day ?? 25, lastDay);
+  const paymentDay = Math.min(settings.payment_day, lastDay);
   const paymentDate = `${todayParts.year}-${todayParts.month}-${String(paymentDay).padStart(2, "0")}`;
 
   const { data, error } = await context.supabase

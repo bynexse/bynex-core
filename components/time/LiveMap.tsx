@@ -1,6 +1,6 @@
 "use client";
 
-import { Crosshair, MapPin, Navigation, ShieldCheck } from "lucide-react";
+import { Crosshair, MapPin, ShieldCheck } from "lucide-react";
 
 export type MapPosition = {
   latitude: number;

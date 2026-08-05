@@ -73,8 +73,8 @@ export function createLocalEvidenceAnalysis(input: EvidenceAiInput): EvidenceAiR
     category,
     title: categoryTitle[category],
     summary: input.note.trim()
-      ? `${input.note.trim()} Bilden kopplades till ${input.projectName}.`
-      : `Bilden kopplades till ${input.projectName}. Lägg gärna till en kort anteckning för säkrare analys.`,
+      ? `${input.note.trim()} Analysen gäller ${input.projectName}.`
+      : `Analysen gäller ${input.projectName}. Lägg till en kort anteckning för säkrare analys.`,
     supplier: null,
     totalAmount: null,
     currency: null,

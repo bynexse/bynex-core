@@ -1,4 +1,5 @@
 import styles from "./pilot-login.module.css";
+import Image from "next/image";
 
 type PilotLoginPageProps = {
   searchParams: Promise<{ error?: string; next?: string }>;
@@ -14,7 +15,7 @@ export default async function PilotLoginPage({ searchParams }: PilotLoginPagePro
   return (
     <main className={styles.shell}>
       <section className={styles.card} aria-labelledby="pilot-title">
-        <div className={styles.brand}>BYNEX</div>
+        <Image className={styles.brand} src="/brand/bynex-wordmark.png" alt="Bynex" width={2172} height={724} priority />
         <div className={styles.badge}>Privat pilot</div>
         <h1 id="pilot-title">Välkommen in</h1>
         <p className={styles.intro}>

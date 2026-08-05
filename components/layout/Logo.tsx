@@ -1,18 +1,10 @@
-import {
-  Bot,
-  PanelTop
-} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
-export default function Logo() {
+export default function Logo({ priority = false }: { priority?: boolean }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-zinc-950 text-white">
-        <PanelTop className="h-6 w-6" />
-      </div>
-      <div>
-        <p className="text-xl font-black tracking-tight">BYNEX</p>
-        <p className="text-xs font-semibold text-zinc-400">Smartare byggprojekt</p>
-      </div>
-    </div>
+    <Link href="/" aria-label="Bynex startsida" className="inline-flex overflow-hidden rounded-xl bg-[#07090d] shadow-sm">
+      <Image src="/brand/bynex-wordmark.png" alt="Bynex" width={2172} height={724} priority={priority} className="h-auto w-40" />
+    </Link>
   );
 }

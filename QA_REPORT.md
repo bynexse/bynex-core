@@ -1,15 +1,33 @@
-# QA Report – Bynex Tid 1.0 + AI Core
+# QA-rapport – aktuell arbetskopia
 
-- Patch testad ovanpå uppladdad `bynex-core 3.zip`
-- TypeScript: `tsc --noEmit` godkänd utan fel
-- Dubbla paketberoenden: inga nya
-- Externa kartpaket: inga
-- AI fungerar utan API-nyckel via lokal fallback
-- OpenAI-nyckel används endast server-side i `app/api/ai/route.ts`
-- Browser-GPS aktiveras endast efter användaråtgärd
-- LocalStorage återställer aktiv stämpling efter omladdning
-- Patchen innehåller inga borttagningskommandon
-- Patchen innehåller inte `.git`, `.next` eller `node_modules`
+## Godkända kontroller
 
-## Produktionsbuild i testmiljön
-`npm run build` kunde inte slutföras eftersom testmiljöns interna npm-register saknade Linux-paketet `@next/swc-linux-x64-gnu@14.2.15` (404). Detta är miljörelaterat och inte ett TypeScript- eller modulfel. Lokal macOS-körning använder ditt redan installerade Next.js/SWC-paket.
+- TypeScript: `npm run typecheck`
+- ESLint: `npm run lint`
+- Next.js produktionsbygge: `npm run build`
+- Databaskärna: `npm run test:db`
+- Bynex Smart-kommandon och säkra auth-redirecter: Node-tester
+- Digitalpärm: idempotent PDF-, leverans- och bokföringskö i isolerat databastest
+- Maskinpark: QR, företagsisolering, underhållsgranskning, stöldhändelser och låsta bevispaket
+- Privat maskindokumentation: kvitto/bild/manual/intyg via kortlivad signerad fillänk
+- Kundportal: tokenbunden inbjudan, exakt e-postbindning, engångsanvändning, återkallning och revisionsspår
+- Modulrättigheter: Maskiner & tillgångar spärras i databasen utan aktivt paket eller tillägg
+- `git diff --check`
+
+## Säkerhetskontroller
+
+- Bynex Smart kräver verifierad inloggning, aktiv organisation och aktivt medlemskap.
+- Projektbaserad bild- och arbetsdagsanalys verifierar att projektet tillhör aktuellt företag.
+- Företagsdata används aldrig över organisationsgränser.
+- Kundportalens publicerade kundversion är separerad från företagets interna data.
+- Auth-callback tillåter endast uttryckligen godkända interna destinationer.
+- GPS-positioner kan endast matas in av en framtida verifierad adapter; klienter kan inte skapa falska snapshots.
+- Tillverkar-ID, stöldstatus och bevispaket har separata spärrar mot självcertifiering och efterhandsändring.
+
+## Kvar före skarp betalande drift
+
+- Gör hela Supabase-schemat reproducerbart från ett tomt projekt.
+- Konfigurera juridisk fakturautställare, privat PDF-lagring och verkliga leverans-/bokföringsadaptrar.
+- Aktivera och verifiera externa avtal för BankID/Freja, Peppol/e-faktura, banker, bokföringssystem och myndighetsinlämning.
+- Aktivera läckta-lösenordsskyddet i Supabase Auth.
+- Genomför last-, återställnings- och incidenttester innan 10 000 företag ansluts.

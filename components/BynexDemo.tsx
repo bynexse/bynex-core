@@ -1,31 +1,34 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import {
-  ArrowRight, Banknote, Building2, Clock3, FileSignature, FolderKanban,
-  HardHat, Home, Menu, MessageCircle, PackageSearch, ReceiptText,
-  Settings, Sparkles, UsersRound, Workflow, X
+  ArrowRight, Building2, CircleDollarSign, Clock3, FileSignature, FolderKanban,
+  BookOpenCheck, HardHat, Headphones, Home, Menu, MessageCircle, PackageSearch,
+  ReceiptText, Settings, Sparkles, UsersRound, WalletCards, Wrench, X
 } from "lucide-react";
 
 import Logo from "@/components/layout/Logo";
-import Dashboard from "@/components/modules/dashboard/Dashboard";
-import Projects from "@/components/modules/projects/Projects";
-import ProjectDetail from "@/components/modules/projects/ProjectDetail";
-import PeopleAndSubcontractors from "@/components/modules/people/PeopleAndSubcontractors";
-import TimeModule from "@/components/modules/time/TimeModule";
-import LiveTimeModule from "@/components/modules/time/LiveTimeModule";
-import PayrollModule from "@/components/modules/payroll/PayrollModule";
-import LivePayrollModule from "@/components/modules/payroll/LivePayrollModule";
-import Foreman from "@/components/modules/operations/Foreman";
-import SiteManager from "@/components/modules/operations/SiteManager";
-import Materials from "@/components/modules/materials/Materials";
-import Connect from "@/components/modules/connect/Connect";
-import ChangeOrders from "@/components/modules/commercial/ChangeOrders";
-import Quotes from "@/components/modules/commercial/Quotes";
-import CoreFlow from "@/components/modules/core/CoreFlow";
+import LiveProjectsModule from "@/components/modules/projects/LiveProjectsModule";
+import LivePeopleModule from "@/components/modules/people/LivePeopleModule";
+import LiveTimePayrollModule from "@/components/modules/time/LiveTimePayrollModule";
+import LiveForemanModule from "@/components/modules/operations/LiveForemanModule";
+import LiveSiteManagerModule from "@/components/modules/operations/LiveSiteManagerModule";
+import LiveMaterialsModule from "@/components/modules/materials/LiveMaterialsModule";
+import LiveAssetsModule from "@/components/modules/assets/LiveAssetsModule";
+import LiveConnectModule from "@/components/modules/connect/LiveConnectModule";
+import LiveChangeOrdersModule from "@/components/modules/commercial/LiveChangeOrdersModule";
+import LiveQuotesModule from "@/components/modules/commercial/LiveQuotesModule";
+import LiveInvoicesModule from "@/components/modules/invoices/LiveInvoicesModule";
+import LiveAccountingIntegrationsModule from "@/components/modules/accounting/LiveAccountingIntegrationsModule";
+import LiveYearEndModule from "@/components/modules/bookkeeping/LiveYearEndModule";
+import LiveSoleTraderModule from "@/components/modules/sole-trader/LiveSoleTraderModule";
+import LivePropertyPortalModule from "@/components/modules/property/LivePropertyPortalModule";
 import CompanySettings from "@/components/modules/settings/CompanySettings";
+import SupportPanel from "@/components/modules/support/SupportPanel";
 import LiveWorkspaceHome from "@/components/modules/core/LiveWorkspaceHome";
-import LiveModuleEmptyState from "@/components/modules/core/LiveModuleEmptyState";
+import SmartModuleCommands from "@/components/smart/SmartModuleCommands";
 import type { ModuleId } from "@/lib/navigation";
 import type { CompanyContext } from "@/lib/company-context";
 
@@ -34,54 +37,72 @@ const modules: Array<{
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   productModule?: string;
+  roles?: string[];
+  businessForms?: string[];
 }> = [
-  { id: "core-flow", label: "Starta & genomför", icon: Workflow, productModule: "projects" },
   { id: "dashboard", label: "Översikt", icon: Home },
   { id: "projects", label: "Projekt", icon: FolderKanban, productModule: "projects" },
   { id: "people", label: "Personal & UE", icon: UsersRound, productModule: "time_payroll" },
   { id: "time", label: "Bynex Tid", icon: Clock3, productModule: "time_payroll" },
-  { id: "payroll", label: "Tid & Lön", icon: Banknote, productModule: "time_payroll" },
   { id: "foreman", label: "Arbetsledaren", icon: HardHat, productModule: "projects" },
   { id: "site-manager", label: "Platschef", icon: Building2, productModule: "projects" },
   { id: "materials", label: "Material & inköp", icon: PackageSearch, productModule: "materials" },
+  { id: "assets", label: "Maskiner & tillgångar", icon: Wrench, productModule: "assets" },
   { id: "connect", label: "Bynex Connect", icon: MessageCircle, productModule: "projects" },
   { id: "change-orders", label: "ÄTA", icon: FileSignature, productModule: "change_orders" },
   { id: "quotes", label: "Offerter", icon: ReceiptText, productModule: "quotes" },
+  { id: "invoices", label: "Fakturering", icon: CircleDollarSign, productModule: "invoicing" },
+  { id: "accounting-integrations", label: "Ekonomikopplingar", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
+  { id: "year-end", label: "Bokslut", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader", "limited_company"] },
+  { id: "sole-trader", label: "Enskild ekonomi", icon: WalletCards, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader"] },
+  { id: "property-portal", label: "Kundportal & digital pärm", icon: Building2, productModule: "customer_portal", roles: ["owner", "admin", "office", "manager", "supervisor"] },
   { id: "settings", label: "Företagsinställningar", icon: Settings },
 ];
 
-const demoCompany: CompanyContext = {
-  organizationId: "demo",
-  name: "Bynex Demoföretag",
-  organizationNumber: "",
-  businessForm: "limited_company",
-  timezone: "Europe/Stockholm",
-  defaultLanguage: "sv",
-  role: "demo",
-  userFullName: "Bynex Demo",
-  planName: "Publik produktvisning",
-  subscriptionStatus: "demo",
-  trialEndsAt: null,
-  modules: [],
-};
-
-export default function BynexDemo({ enabledProductModules, company: initialCompany }: { enabledProductModules?: string[]; company?: CompanyContext }) {
+export default function BynexDemo({ enabledProductModules, company: initialCompany }: { enabledProductModules?: string[]; company: CompanyContext }) {
   const [active, setActive] = useState<ModuleId>("dashboard");
-  const [company, setCompany] = useState(initialCompany ?? demoCompany);
-  const authenticatedCompany = Boolean(initialCompany);
+  const [company, setCompany] = useState(initialCompany);
   const [mobileNav, setMobileNav] = useState(false);
-  const [clockedIn, setClockedIn] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [smartCommandsOpen, setSmartCommandsOpen] = useState(false);
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+  const enabledModuleSlugs = useMemo(
+    () => enabledProductModules ? new Set(company.modules.filter((item) => item.visible).map((item) => item.slug)) : null,
+    [company.modules, enabledProductModules],
+  );
   const visibleModules = useMemo(() => {
-    if (!enabledProductModules) return modules;
-    const enabled = new Set(enabledProductModules);
-    return modules.filter((item) => !item.productModule || enabled.has(item.productModule));
-  }, [enabledProductModules]);
+    const roleFiltered = modules.filter((item) =>
+      (!item.roles || item.roles.includes(company.role)) &&
+      (!item.businessForms || item.businessForms.includes(company.businessForm)),
+    );
+    if (!enabledModuleSlugs) return roleFiltered;
+    return roleFiltered.filter((item) => !item.productModule || enabledModuleSlugs.has(item.productModule));
+  }, [company.businessForm, company.role, enabledModuleSlugs]);
 
   const title = useMemo(
     () => visibleModules.find((item) => item.id === active)?.label ?? "Bynex",
     [active, visibleModules],
   );
+
+  const loadCompanyBranding = useCallback(async () => {
+    const response = await fetch("/api/private/company/branding", { cache: "no-store" });
+    if (!response.ok) return;
+    const payload = await response.json().catch(() => null);
+    setCompanyLogoUrl(typeof payload?.logoUrl === "string" ? payload.logoUrl : null);
+  }, []);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => void loadCompanyBranding());
+    return () => window.cancelAnimationFrame(frame);
+  }, [loadCompanyBranding]);
+
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("module") as ModuleId | null;
+    if (!requested || !visibleModules.some((item) => item.id === requested)) return;
+    const frame = window.requestAnimationFrame(() => setActive(requested));
+    return () => window.cancelAnimationFrame(frame);
+  }, [visibleModules]);
 
   function notify(message: string) {
     setToast(message);
@@ -89,8 +110,8 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f4f2] text-zinc-950">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-zinc-200 bg-white p-5 lg:block">
+    <div className="min-h-screen bg-[#f7f5f0] text-[#090a0c]">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-[#34373c] bg-[#202226] p-5 text-white lg:block">
         <Logo />
         <nav className="mt-8 space-y-1">
           {visibleModules.map((item) => {
@@ -102,8 +123,8 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
                 onClick={() => setActive(item.id)}
                 className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${
                   selected
-                    ? "bg-zinc-950 text-white"
-                    : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
+                    ? "bg-[#c9cdd3] text-[#090a0c] shadow-sm"
+                    : "text-[#c9cdd3] hover:bg-white/10 hover:text-white"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -111,24 +132,24 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
               </button>
             );
           })}
+          {company.platformRole && <Link href="/admin" className="mt-3 flex w-full items-center justify-center rounded-2xl bg-[#b8bdc5] px-4 py-3 text-sm font-semibold text-[#090a0c] transition hover:bg-[#d5d8dc]">Bynex HQ</Link>}
         </nav>
 
-        <div className="absolute bottom-5 left-5 right-5 rounded-3xl bg-zinc-950 p-5 text-white">
+        <div className="absolute bottom-5 left-5 right-5 rounded-3xl border border-white/10 bg-[#090a0c] p-5 text-white shadow-2xl">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Sparkles className="h-4 w-4" />
             Bynex Smart
           </div>
           <p className="mt-3 text-sm leading-6 text-zinc-300">
-            {authenticatedCompany ? "Arbetar med företagets egna projekt och behörigheter." : "Utforska hur Bynex Smart stödjer arbetsdagen."}
+            Arbetar med företagets egna projekt och behörigheter.
           </p>
           <button
             onClick={() => {
-              setActive("site-manager");
-              notify("Bynex Platschef öppnad");
+              setSmartCommandsOpen(true);
             }}
-            className="mt-4 flex w-full items-center justify-between rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-zinc-950"
+            className="mt-4 flex w-full items-center justify-between rounded-2xl bg-[#b8bdc5] px-4 py-3 text-sm font-semibold text-[#090a0c] transition hover:bg-[#d5d8dc]"
           >
-            Visa rekommendationer
+            Visa eller dölj modul
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>
@@ -136,10 +157,10 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
 
       {mobileNav && (
         <div className="fixed inset-0 z-50 bg-black/30 lg:hidden">
-          <div className="h-full w-[86%] max-w-sm bg-white p-5">
+          <div className="h-full w-[86%] max-w-sm bg-[#202226] p-5 text-white">
             <div className="flex items-center justify-between">
               <Logo />
-              <button onClick={() => setMobileNav(false)} className="rounded-xl p-2 hover:bg-zinc-100">
+              <button onClick={() => setMobileNav(false)} className="rounded-xl p-2 text-[#c9cdd3] hover:bg-white/10 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -154,7 +175,7 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
                       setMobileNav(false);
                     }}
                     className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold ${
-                      item.id === active ? "bg-zinc-950 text-white" : "text-zinc-600"
+                      item.id === active ? "bg-[#c9cdd3] text-[#090a0c]" : "text-[#c9cdd3] hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -168,38 +189,45 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
       )}
 
       <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 border-b border-zinc-200 bg-[#f4f4f2]/90 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 border-b border-[#d8d8d5] bg-[#f7f5f0]/90 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-[1500px] items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileNav(true)}
-                className="rounded-xl border border-zinc-200 bg-white p-2 lg:hidden"
+                className="rounded-xl border border-[#d8d8d5] bg-[#fcfbf8] p-2 text-[#454950] lg:hidden"
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
-                  Bynex
-                </p>
-                <h1 className="text-xl font-semibold">{title}</h1>
+              <div className="flex items-center gap-3">
+                <Image src="/brand/bynex-mark.png" alt="" width={1254} height={1254} className="h-9 w-9 rounded-xl" />
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7e858f]">Bynex</p>
+                  <h1 className="text-xl font-semibold">{title}</h1>
+                </div>
+                <div className="ml-1 hidden h-9 w-px bg-[#d8d8d5] md:block" />
+                <div className="hidden min-w-0 items-center gap-2 md:flex" aria-label={`Aktivt företag: ${company.name}`}>
+                  {companyLogoUrl ? <div className="h-10 w-16 shrink-0 rounded-xl border border-[#d8d8d5] bg-[#fcfbf8] bg-contain bg-center bg-no-repeat shadow-sm" style={{ backgroundImage: `url("${companyLogoUrl}")` }} /> : <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e8e8e6] text-sm font-bold text-[#454950] shadow-sm">{company.name.slice(0, 1).toUpperCase()}</div>}
+                  <p className="max-w-40 truncate text-sm font-semibold text-[#454950]">{company.name}</p>
+                </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
+              <button onClick={() => setSupportOpen(true)} className="rounded-2xl border border-[#d8d8d5] bg-[#e8e8e6] p-3 text-[#454950]" aria-label="Hjälp och support"><Headphones className="h-5 w-5" /></button>
               <button
                 onClick={() => setActive("settings")}
-                className="rounded-2xl border border-zinc-200 bg-white p-3"
+                className="rounded-2xl border border-[#d8d8d5] bg-[#e8e8e6] p-3 text-[#454950]"
                 aria-label="Inställningar"
               >
                 <Settings className="h-5 w-5" />
               </button>
-              <div className="hidden items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-3 py-2 sm:flex">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-950 text-sm font-bold text-white">
+              <div className="hidden items-center gap-3 rounded-2xl border border-[#d8d8d5] bg-[#fcfbf8] px-3 py-2 sm:flex">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#202226] text-sm font-bold text-white">
                   {company.userFullName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "BY"}
                 </div>
                 <div>
                   <p className="max-w-40 truncate text-sm font-semibold">{company.userFullName}</p>
-                  <p className="text-xs capitalize text-zinc-500">{company.role}</p>
+                  <p className="text-xs capitalize text-[#7e858f]">{company.role}</p>
                 </div>
               </div>
             </div>
@@ -207,32 +235,36 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
         </header>
 
         <main className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8">
-          {active === "core-flow" && (authenticatedCompany ? <LiveModuleEmptyState title="Starta & genomför" /> : <CoreFlow notify={notify} />)}
-          {active === "dashboard" && (authenticatedCompany ? <LiveWorkspaceHome company={company} onOpen={setActive} /> : <Dashboard onOpen={setActive} notify={notify} />)}
-          {active === "projects" && (authenticatedCompany ? <LiveModuleEmptyState title="Projekt" /> : <Projects notify={notify} />)}
-          {active === "project-detail" && (authenticatedCompany ? <LiveModuleEmptyState title="Projekt" /> : <ProjectDetail notify={notify} />)}
-          {active === "people" && (authenticatedCompany ? <LiveModuleEmptyState title="Personal & UE" /> : <PeopleAndSubcontractors notify={notify} />)}
-          {active === "time" && (
-            authenticatedCompany
-              ? <LiveTimeModule notify={notify} />
-              : <TimeModule clockedIn={clockedIn} setClockedIn={setClockedIn} notify={notify} />
-          )}
-          {active === "payroll" && (authenticatedCompany ? <LivePayrollModule notify={notify} /> : <PayrollModule notify={notify} />)}
-          {active === "foreman" && (authenticatedCompany ? <LiveModuleEmptyState title="Arbetsledaren" /> : <Foreman notify={notify} />)}
-          {active === "site-manager" && (authenticatedCompany ? <LiveModuleEmptyState title="Platschef" /> : <SiteManager notify={notify} />)}
-          {active === "materials" && (authenticatedCompany ? <LiveModuleEmptyState title="Material & inköp" /> : <Materials notify={notify} />)}
-          {active === "connect" && (authenticatedCompany ? <LiveModuleEmptyState title="Bynex Connect" /> : <Connect notify={notify} />)}
-          {active === "change-orders" && (authenticatedCompany ? <LiveModuleEmptyState title="ÄTA" /> : <ChangeOrders notify={notify} />)}
-          {active === "quotes" && (authenticatedCompany ? <LiveModuleEmptyState title="Offerter" /> : <Quotes notify={notify} />)}
-          {active === "settings" && <CompanySettings company={company} onSaved={setCompany} notify={notify} />}
+          {active === "dashboard" && <LiveWorkspaceHome company={company} onOpen={setActive} />}
+          {active === "projects" && <LiveProjectsModule role={company.role} notify={notify} />}
+          {active === "people" && <LivePeopleModule notify={notify} />}
+          {active === "time" && <LiveTimePayrollModule role={company.role} notify={notify} />}
+          {active === "foreman" && <LiveForemanModule notify={notify} />}
+          {active === "site-manager" && <LiveSiteManagerModule notify={notify} />}
+          {active === "materials" && <LiveMaterialsModule notify={notify} />}
+          {active === "assets" && <LiveAssetsModule notify={notify} />}
+          {active === "connect" && <LiveConnectModule notify={notify} />}
+          {active === "change-orders" && <LiveChangeOrdersModule notify={notify} />}
+          {active === "quotes" && <LiveQuotesModule notify={notify} role={company.role} />}
+          {active === "invoices" && <LiveInvoicesModule notify={notify} />}
+          {active === "accounting-integrations" && <LiveAccountingIntegrationsModule notify={notify} />}
+          {active === "year-end" && <LiveYearEndModule />}
+          {active === "sole-trader" && <LiveSoleTraderModule />}
+          {active === "property-portal" && <LivePropertyPortalModule notify={notify} />}
+          {active === "settings" && <CompanySettings company={company} onSaved={setCompany} onBrandingSaved={loadCompanyBranding} notify={notify} />}
         </main>
       </div>
 
       {toast && (
-        <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-2xl bg-zinc-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">
+        <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-2xl bg-[#202226] px-5 py-3 text-sm font-semibold text-white shadow-xl">
           {toast}
         </div>
       )}
+      {supportOpen && <SupportPanel onClose={() => setSupportOpen(false)} notify={notify} />}
+      {smartCommandsOpen && <SmartModuleCommands company={company} onClose={() => setSmartCommandsOpen(false)} notify={notify} onSaved={(moduleSlug, visible) => {
+        setCompany((current) => ({ ...current, modules: current.modules.map((item) => item.slug === moduleSlug ? { ...item, visible } : item) }));
+        setActive("dashboard");
+      }} />}
     </div>
   );
 }

@@ -124,7 +124,9 @@ export default function AiEvidenceAnalyzer({
       if (!response.ok) throw new Error(payload.error ?? "Underlaget kunde inte analyseras.");
       setResult(payload);
       onAnalyzed(`${categoryLabel(payload.category)} · ${payload.title}`);
-      notify("Bynex Smart analyserade bilden och kopplade den till projektet");
+      notify(payload.source === "openai"
+        ? "Bynex Smart analyserade bilden. Spara underlaget i projektet när du har granskat resultatet."
+        : "Ett lokalt utkast skapades från filnamn och anteckning. Själva bilden analyserades inte.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Ett oväntat fel uppstod.");
     } finally {
@@ -140,7 +142,7 @@ export default function AiEvidenceAnalyzer({
             <Camera className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-zinc-500">Sprint 2</p>
+            <p className="text-sm font-semibold text-zinc-500">Projektunderlag</p>
             <h3 className="text-2xl font-semibold">Bynex Smart Foto & underlag</h3>
           </div>
         </div>
