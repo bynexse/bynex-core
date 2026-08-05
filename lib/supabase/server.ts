@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { getPublicSupabaseConfig } from "@/lib/supabase/config";
 
@@ -24,5 +25,13 @@ export async function createServerSupabaseClient() {
         }
       },
     },
+  });
+}
+
+export function createAnonymousSupabaseClient() {
+  const config = getPublicSupabaseConfig();
+  if (!config) return null;
+  return createClient(config.url, config.publishableKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
 }

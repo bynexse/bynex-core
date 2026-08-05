@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAnonymousSupabaseClient } from "@/lib/supabase/server";
 
 const tokenPattern = /^[0-9a-f]{64}$/;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Inbjudan eller e-postadressen är ogiltig." }, { status: 400 });
   }
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAnonymousSupabaseClient();
   if (!supabase) return NextResponse.json({ error: "Bynex autentisering är inte konfigurerad." }, { status: 503 });
   const { data: valid, error: validationError } = await supabase.rpc("validate_project_portal_invite", {
     requested_token: token,

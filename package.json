@@ -16,6 +16,8 @@
     "test:qualifications": "node tests/people/qualifications.test.mjs",
     "test:sie": "node --experimental-strip-types --test tests/accounting/sie.test.mjs",
     "test:quote-approval": "node tests/auth/quote-approval-routes.test.mjs",
+    "test:bookkeeping-workspace": "node --test tests/auth/bookkeeping-workspace-route.test.mjs",
+    "test:change-order-decision": "node --test tests/auth/change-order-decision-routes.test.mjs",
     "test:migrations": "node tests/database/migration-history.mjs"
   },
   "dependencies": {

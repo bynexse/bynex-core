@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAnonymousSupabaseClient } from "@/lib/supabase/server";
 
 const tokenPattern = /^[0-9a-f]{64}$/;
 
@@ -14,7 +14,7 @@ function ipEvidence(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token")?.trim().toLowerCase() ?? "";
   if (!tokenPattern.test(token)) return NextResponse.json({ error: "Offertlänken är ogiltig." }, { status: 400 });
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAnonymousSupabaseClient();
   if (!supabase) return NextResponse.json({ error: "Kundvyn är inte konfigurerad." }, { status: 503 });
   const { data, error } = await supabase.rpc("get_quote_acceptance_link", { p_secret: token });
   if (error || !data) return NextResponse.json({ error: "Offertlänken är ogiltig, använd eller har gått ut." }, { status: 404 });
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
   const token = typeof body?.token === "string" ? body.token.trim().toLowerCase() : "";
   if (!tokenPattern.test(token)) return NextResponse.json({ error: "Offertlänken är ogiltig." }, { status: 400 });
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAnonymousSupabaseClient();
   if (!supabase) return NextResponse.json({ error: "Kundvyn är inte konfigurerad." }, { status: 503 });
   const stringValue = (key: string, max: number) => typeof body?.[key] === "string" ? body[key].trim().slice(0, max) : "";
   const { data, error } = await supabase.rpc("submit_quote_customer_decision", {

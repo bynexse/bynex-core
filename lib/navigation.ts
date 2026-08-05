@@ -13,6 +13,7 @@ export type ModuleId =
   | "change-orders"
   | "quotes"
   | "invoices"
+  | "bookkeeping"
   | "accounting-integrations"
   | "year-end"
   | "sole-trader"
