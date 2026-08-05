@@ -15,6 +15,7 @@
     "test:staffing": "node tests/staffing/match.test.mjs && node tests/database/skill-based-staffing.mjs",
     "test:qualifications": "node tests/people/qualifications.test.mjs",
     "test:sie": "node --experimental-strip-types --test tests/accounting/sie.test.mjs",
+    "test:quote-approval": "node tests/auth/quote-approval-routes.test.mjs",
     "test:migrations": "node tests/database/migration-history.mjs"
   },
   "dependencies": {

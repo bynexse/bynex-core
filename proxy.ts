@@ -17,6 +17,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // These customer endpoints are protected by 256-bit, one-time, hashed
+  // invitation/approval tokens and must remain reachable by the recipient.
+  if (path.startsWith("/offert/") || path === "/api/public/quotes/approval") {
+    return NextResponse.next();
+  }
+
   if (isPilotGateEnabled()) {
     const config = getPilotConfig();
     if (!config) {
