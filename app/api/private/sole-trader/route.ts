@@ -141,7 +141,7 @@ export async function GET() {
   const failed = results.find((result) => result.error);
   if (failed?.error) {
     return Response.json(
-      { error: "Översikten för Bynex Enskild kunde inte hämtas." },
+      { error: "Översikten för enskild ekonomi kunde inte hämtas." },
       { status: failed.error.code === "42501" ? 403 : 500 },
     );
   }

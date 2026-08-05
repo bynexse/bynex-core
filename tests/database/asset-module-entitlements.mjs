@@ -47,7 +47,7 @@ await db.exec(`
     select '${ORG_TIME}',id,'active',now() from public.plans where slug='time-payroll';
 `);
 
-const migration = await readFile(new URL("../../supabase/migrations/20260805013000_asset_module_entitlement_enforcement.sql", import.meta.url), "utf8");
+const migration = await readFile(new URL("../../supabase/migrations/20260805063554_asset_module_entitlement_enforcement.sql", import.meta.url), "utf8");
 await db.exec(migration);
 await db.exec(`insert into public.assets(organization_id,asset_number) values ('${ORG_BUILD}','BYGG-1'),('${ORG_TIME}','TID-1');`);
 

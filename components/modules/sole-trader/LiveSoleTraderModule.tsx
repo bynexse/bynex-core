@@ -111,20 +111,20 @@ export default function LiveSoleTraderModule() {
   }
 
   if (error && !data) {
-    return <Card className="p-7"><div className="flex items-start gap-3"><AlertCircle className="mt-0.5 h-5 w-5 text-red-600" /><div><h2 className="font-semibold">Bynex Enskild kunde inte öppnas</h2><p className="mt-1 text-sm text-zinc-600">{error}</p><button onClick={() => void load()} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white"><RefreshCw className="h-4 w-4" /> Försök igen</button></div></div></Card>;
+    return <Card className="p-7"><div className="flex items-start gap-3"><AlertCircle className="mt-0.5 h-5 w-5 text-red-600" /><div><h2 className="font-semibold">Enskild ekonomi kunde inte öppnas</h2><p className="mt-1 text-sm text-zinc-600">{error}</p><button onClick={() => void load()} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white"><RefreshCw className="h-4 w-4" /> Försök igen</button></div></div></Card>;
   }
 
   if (!data) return null;
 
   if (!data.eligible) {
-    return <Card className="p-7 sm:p-9"><div className="flex max-w-3xl items-start gap-4"><div className="rounded-2xl bg-amber-100 p-3 text-amber-900"><Building2 className="h-6 w-6" /></div><div><Badge tone="warning">Företagsform: {businessForm(data.organization.business_form)}</Badge><h2 className="mt-4 text-3xl font-semibold">Bynex Enskild är byggt för enskild firma</h2><p className="mt-3 leading-7 text-zinc-600">Det aktiva företaget är inte registrerat som enskild firma. Inga skatte- eller uttagsberäkningar visas för fel företagsform. Företagets fakturering och övriga moduler påverkas inte.</p></div></div></Card>;
+    return <Card className="p-7 sm:p-9"><div className="flex max-w-3xl items-start gap-4"><div className="rounded-2xl bg-amber-100 p-3 text-amber-900"><Building2 className="h-6 w-6" /></div><div><Badge tone="warning">Företagsform: {businessForm(data.organization.business_form)}</Badge><h2 className="mt-4 text-3xl font-semibold">Enskild ekonomi är gjort för enskild firma</h2><p className="mt-3 leading-7 text-zinc-600">Det aktiva företaget är inte registrerat som enskild firma. Inga skatte- eller uttagsberäkningar visas för fel företagsform. Aktiebolag använder i stället Bynex Tid för ägarlön och Bokslut för rätt AB-flöde.</p></div></div></Card>;
   }
 
   const setupComplete = Boolean(data.bookkeeping.settings?.enabled && data.bookkeeping.fiscalYear);
 
   return <div className="space-y-6">
     <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-      <div><p className="text-sm font-semibold text-emerald-700">Verkliga ekonomiposter för {data.organization.name}</p><h2 className="mt-1 text-3xl font-semibold">Bynex Enskild</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">Samlad kontroll över kundfakturor, leverantörsfakturor, bokföring och deklarationsunderlag. Alla värden kommer från företagets isolerade data.</p></div>
+      <div><p className="text-sm font-semibold text-emerald-700">Verkliga ekonomiposter för {data.organization.name}</p><h2 className="mt-1 text-3xl font-semibold">Enskild ekonomi</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">Den företagsformsanpassade ekonomivyn i Bynex Solo. Alla värden kommer från företagets isolerade data.</p></div>
       <button onClick={() => void load()} disabled={loading} className="inline-flex w-fit items-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Uppdatera</button>
     </div>
 
@@ -174,9 +174,10 @@ function statusLabel(value: string) {
   return labels[value] ?? value;
 }
 
-function statusTone(value: string): "neutral" | "success" | "warning" | "dark" {
+function statusTone(value: string): "neutral" | "success" | "warning" | "danger" | "dark" {
   if (["paid", "posted", "approved", "exported", "submitted"].includes(value)) return "success";
-  if (["failed", "rejected", "overdue", "review"].includes(value)) return "warning";
+  if (["failed", "rejected", "overdue"].includes(value)) return "danger";
+  if (value === "review") return "warning";
   if (["issued", "queued", "sent", "delivered"].includes(value)) return "dark";
   return "neutral";
 }

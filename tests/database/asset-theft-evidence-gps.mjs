@@ -37,7 +37,7 @@ await db.exec(`
   grant usage on schema public,auth,storage to anon,authenticated;
   grant select,insert,update,delete on storage.objects to authenticated;
 `);
-const migration = await readFile(new URL("../../supabase/migrations/20260805012000_asset_theft_evidence_gps_registry.sql", import.meta.url), "utf8");
+const migration = await readFile(new URL("../../supabase/migrations/20260805063518_asset_theft_evidence_gps_registry.sql", import.meta.url), "utf8");
 await db.exec(migration);
 await db.exec(`
   insert into auth.users values ('${OWNER_A}'),('${OWNER_B}');

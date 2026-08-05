@@ -50,7 +50,9 @@
     {
       "version": "20260804103304",
       "name": "bynex_smart_ata_core_row_fix",
-      "sha256": "92f8a4192822cb8aa72e0125e4fc01ae48ad096c7f32f210d69ec8e9381e8051"
+      "sha256": "92f8a4192822cb8aa72e0125e4fc01ae48ad096c7f32f210d69ec8e9381e8051",
+      "canonical_sha256": "4e93f0242c402f538ff349413030074dfb48699250fdebdb179c216da4c2563e",
+      "canonicalization": "Ett avslutande tomt radslut togs bort; SQL-innehållet är oförändrat."
     },
     {
       "version": "20260804103731",
@@ -160,7 +162,29 @@
     {
       "version": "20260804172018",
       "name": "digital_binder_subscriptions",
-      "sha256": "ca3ae577e0d0f9d8bdc08b009583def1075e239ee034b1a7502f520419e9b950"
+      "sha256": "ca3ae577e0d0f9d8bdc08b009583def1075e239ee034b1a7502f520419e9b950",
+      "canonical_sha256": "53998931ee931ced60bdb36325da8dfc7280902186eb81ce73b706124c7c7a53",
+      "canonicalization": "Ett avslutande blanksteg i en kommentar togs bort; SQL-innehållet är oförändrat."
+    },
+    {
+      "version": "20260805063518",
+      "name": "asset_theft_evidence_gps_registry",
+      "sha256": "d636d11610b4cd9ac429df82f9bc01dc85f62e4cc5da07593510075bf837e52c"
+    },
+    {
+      "version": "20260805063554",
+      "name": "asset_module_entitlement_enforcement",
+      "sha256": "f4069c7b822325632203961d6d1be778d7159a5b859ef4f4ec97a4beb1d021e8"
+    },
+    {
+      "version": "20260805063613",
+      "name": "customer_portal_secure_invites",
+      "sha256": "c1b59db965854ab0098144e5a030df8cb047b7e4cb0f8050815454c5d344f3ef"
+    },
+    {
+      "version": "20260805063634",
+      "name": "bynex_solo_plan",
+      "sha256": "11a41e64a5de23df2fb70b99f2b120fb7177f21b0bd48c8720d60382caa1ffd1"
     }
   ]
 }

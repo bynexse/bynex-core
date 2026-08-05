@@ -53,10 +53,10 @@ function statusLabel(status: string) {
   return ({ requested: "Inväntar beslut", approved: "Godkänd", rejected: "Avslagen", cancelled: "Avbruten" } as Record<string, string>)[status] ?? status;
 }
 
-function statusTone(status: string): "success" | "warning" | "dark" | "neutral" {
+function statusTone(status: string): "success" | "warning" | "danger" | "dark" | "neutral" {
   if (status === "approved") return "success";
   if (status === "requested") return "warning";
-  if (status === "rejected") return "dark";
+  if (status === "rejected") return "danger";
   return "neutral";
 }
 

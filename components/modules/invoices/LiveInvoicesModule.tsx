@@ -16,10 +16,10 @@ type Data = { customers: Customer[]; invoices: Invoice[]; lines: Line[]; project
 const sek = new Intl.NumberFormat("sv-SE", { style: "currency", currency: "SEK" });
 const date = new Intl.DateTimeFormat("sv-SE", { dateStyle: "medium" });
 
-function statusTone(status: string): "success" | "warning" | "dark" | "neutral" {
+function statusTone(status: string): "success" | "warning" | "danger" | "dark" | "neutral" {
   if (["paid", "sent", "delivered", "synced", "succeeded", "active"].includes(status)) return "success";
   if (["draft", "queued", "pending", "waiting_for_connection"].includes(status)) return "warning";
-  if (["failed", "overdue", "expired"].includes(status)) return "dark";
+  if (["failed", "overdue", "expired"].includes(status)) return "danger";
   return "neutral";
 }
 

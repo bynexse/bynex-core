@@ -1,4 +1,4 @@
--- Tenant-isolated asset identity, theft evidence and neutral GPS adapter registry.
+-- Tenant-isolated asset identity, theft evidence, and neutral GPS adapter registry.
 -- Connector rows describe capabilities only. They do not imply a live integration.
 
 alter table public.asset_files

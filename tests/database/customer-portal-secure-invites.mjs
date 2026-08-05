@@ -40,7 +40,7 @@ await db.exec(`
   grant usage on schema public,auth to anon,authenticated;
   grant select,insert,update,delete on public.project_portal_members to authenticated;
 `);
-const migration = await readFile(new URL("../../supabase/migrations/20260805014000_customer_portal_secure_invites.sql", import.meta.url), "utf8");
+const migration = await readFile(new URL("../../supabase/migrations/20260805063613_customer_portal_secure_invites.sql", import.meta.url), "utf8");
 await db.exec(migration);
 await db.exec(`
   insert into auth.users values

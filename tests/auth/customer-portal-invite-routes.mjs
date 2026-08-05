@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 const startRoute = await readFile(new URL("../../app/api/public/customer-portal/invites/start/route.ts", import.meta.url), "utf8");
 const acceptRoute = await readFile(new URL("../../app/api/public/customer-portal/invites/accept/route.ts", import.meta.url), "utf8");
 const privateRoute = await readFile(new URL("../../app/api/private/customer-portal/invites/route.ts", import.meta.url), "utf8");
-const migration = await readFile(new URL("../../supabase/migrations/20260805014000_customer_portal_secure_invites.sql", import.meta.url), "utf8");
+const migration = await readFile(new URL("../../supabase/migrations/20260805063613_customer_portal_secure_invites.sql", import.meta.url), "utf8");
 
 assert.match(startRoute,/validate_project_portal_invite[\s\S]+shouldCreateUser:\s*true/);
 assert.doesNotMatch(startRoute,/service[_-]?role|SUPABASE_SERVICE/i);

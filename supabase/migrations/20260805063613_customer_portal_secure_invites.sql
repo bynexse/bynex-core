@@ -1,6 +1,6 @@
 begin;
 
--- Portal invitations are capability links. Only a SHA-256 digest is stored;
+-- Portal invitations are capability links; only a SHA-256 digest is stored.
 -- the plaintext token is returned once to the authorized issuer.
 alter table private.project_portal_invites
   add column if not exists revoked_at timestamptz,

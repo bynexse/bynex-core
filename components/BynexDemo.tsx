@@ -54,7 +54,7 @@ const modules: Array<{
   { id: "invoices", label: "Fakturering", icon: CircleDollarSign, productModule: "invoicing" },
   { id: "accounting-integrations", label: "Ekonomikopplingar", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
   { id: "year-end", label: "Bokslut", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader", "limited_company"] },
-  { id: "sole-trader", label: "Bynex Enskild", icon: WalletCards, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader"] },
+  { id: "sole-trader", label: "Enskild ekonomi", icon: WalletCards, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader"] },
   { id: "property-portal", label: "Kundportal & digital pärm", icon: Building2, productModule: "customer_portal", roles: ["owner", "admin", "office", "manager", "supervisor"] },
   { id: "settings", label: "Företagsinställningar", icon: Settings },
 ];
@@ -110,8 +110,8 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f4f2] text-zinc-950">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-zinc-200 bg-white p-5 lg:block">
+    <div className="min-h-screen bg-[#f7f5f0] text-[#090a0c]">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-[#34373c] bg-[#202226] p-5 text-white lg:block">
         <Logo />
         <nav className="mt-8 space-y-1">
           {visibleModules.map((item) => {
@@ -123,8 +123,8 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
                 onClick={() => setActive(item.id)}
                 className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${
                   selected
-                    ? "bg-zinc-950 text-white"
-                    : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
+                    ? "bg-[#c9cdd3] text-[#090a0c] shadow-sm"
+                    : "text-[#c9cdd3] hover:bg-white/10 hover:text-white"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -132,10 +132,10 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
               </button>
             );
           })}
-          {company.platformRole && <Link href="/admin" className="mt-3 flex w-full items-center justify-center rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white">Bynex HQ</Link>}
+          {company.platformRole && <Link href="/admin" className="mt-3 flex w-full items-center justify-center rounded-2xl bg-[#b8bdc5] px-4 py-3 text-sm font-semibold text-[#090a0c] transition hover:bg-[#d5d8dc]">Bynex HQ</Link>}
         </nav>
 
-        <div className="absolute bottom-5 left-5 right-5 rounded-3xl bg-zinc-950 p-5 text-white">
+        <div className="absolute bottom-5 left-5 right-5 rounded-3xl border border-white/10 bg-[#090a0c] p-5 text-white shadow-2xl">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Sparkles className="h-4 w-4" />
             Bynex Smart
@@ -147,7 +147,7 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
             onClick={() => {
               setSmartCommandsOpen(true);
             }}
-            className="mt-4 flex w-full items-center justify-between rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-zinc-950"
+            className="mt-4 flex w-full items-center justify-between rounded-2xl bg-[#b8bdc5] px-4 py-3 text-sm font-semibold text-[#090a0c] transition hover:bg-[#d5d8dc]"
           >
             Visa eller dölj modul
             <ArrowRight className="h-4 w-4" />
@@ -157,10 +157,10 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
 
       {mobileNav && (
         <div className="fixed inset-0 z-50 bg-black/30 lg:hidden">
-          <div className="h-full w-[86%] max-w-sm bg-white p-5">
+          <div className="h-full w-[86%] max-w-sm bg-[#202226] p-5 text-white">
             <div className="flex items-center justify-between">
               <Logo />
-              <button onClick={() => setMobileNav(false)} className="rounded-xl p-2 hover:bg-zinc-100">
+              <button onClick={() => setMobileNav(false)} className="rounded-xl p-2 text-[#c9cdd3] hover:bg-white/10 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -175,7 +175,7 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
                       setMobileNav(false);
                     }}
                     className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold ${
-                      item.id === active ? "bg-zinc-950 text-white" : "text-zinc-600"
+                      item.id === active ? "bg-[#c9cdd3] text-[#090a0c]" : "text-[#c9cdd3] hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -189,45 +189,45 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
       )}
 
       <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 border-b border-zinc-200 bg-[#f4f4f2]/90 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 border-b border-[#d8d8d5] bg-[#f7f5f0]/90 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-[1500px] items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileNav(true)}
-                className="rounded-xl border border-zinc-200 bg-white p-2 lg:hidden"
+                className="rounded-xl border border-[#d8d8d5] bg-[#fcfbf8] p-2 text-[#454950] lg:hidden"
               >
                 <Menu className="h-5 w-5" />
               </button>
               <div className="flex items-center gap-3">
                 <Image src="/brand/bynex-mark.png" alt="" width={1254} height={1254} className="h-9 w-9 rounded-xl" />
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">Bynex</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7e858f]">Bynex</p>
                   <h1 className="text-xl font-semibold">{title}</h1>
                 </div>
-                <div className="ml-1 hidden h-9 w-px bg-zinc-200 md:block" />
+                <div className="ml-1 hidden h-9 w-px bg-[#d8d8d5] md:block" />
                 <div className="hidden min-w-0 items-center gap-2 md:flex" aria-label={`Aktivt företag: ${company.name}`}>
-                  {companyLogoUrl ? <div className="h-10 w-16 shrink-0 rounded-xl border border-zinc-200 bg-white bg-contain bg-center bg-no-repeat shadow-sm" style={{ backgroundImage: `url("${companyLogoUrl}")` }} /> : <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-bold shadow-sm">{company.name.slice(0, 1).toUpperCase()}</div>}
-                  <p className="max-w-40 truncate text-sm font-semibold text-zinc-700">{company.name}</p>
+                  {companyLogoUrl ? <div className="h-10 w-16 shrink-0 rounded-xl border border-[#d8d8d5] bg-[#fcfbf8] bg-contain bg-center bg-no-repeat shadow-sm" style={{ backgroundImage: `url("${companyLogoUrl}")` }} /> : <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e8e8e6] text-sm font-bold text-[#454950] shadow-sm">{company.name.slice(0, 1).toUpperCase()}</div>}
+                  <p className="max-w-40 truncate text-sm font-semibold text-[#454950]">{company.name}</p>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <button onClick={() => setSupportOpen(true)} className="rounded-2xl border border-zinc-200 bg-white p-3" aria-label="Hjälp och support"><Headphones className="h-5 w-5" /></button>
+              <button onClick={() => setSupportOpen(true)} className="rounded-2xl border border-[#d8d8d5] bg-[#e8e8e6] p-3 text-[#454950]" aria-label="Hjälp och support"><Headphones className="h-5 w-5" /></button>
               <button
                 onClick={() => setActive("settings")}
-                className="rounded-2xl border border-zinc-200 bg-white p-3"
+                className="rounded-2xl border border-[#d8d8d5] bg-[#e8e8e6] p-3 text-[#454950]"
                 aria-label="Inställningar"
               >
                 <Settings className="h-5 w-5" />
               </button>
-              <div className="hidden items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-3 py-2 sm:flex">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-950 text-sm font-bold text-white">
+              <div className="hidden items-center gap-3 rounded-2xl border border-[#d8d8d5] bg-[#fcfbf8] px-3 py-2 sm:flex">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#202226] text-sm font-bold text-white">
                   {company.userFullName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "BY"}
                 </div>
                 <div>
                   <p className="max-w-40 truncate text-sm font-semibold">{company.userFullName}</p>
-                  <p className="text-xs capitalize text-zinc-500">{company.role}</p>
+                  <p className="text-xs capitalize text-[#7e858f]">{company.role}</p>
                 </div>
               </div>
             </div>
@@ -256,7 +256,7 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
       </div>
 
       {toast && (
-        <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-2xl bg-zinc-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">
+        <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-2xl bg-[#202226] px-5 py-3 text-sm font-semibold text-white shadow-xl">
           {toast}
         </div>
       )}

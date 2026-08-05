@@ -18,9 +18,14 @@ for (const item of manifest.applied_migrations) {
   assert(files.includes(file), `Historisk produktionsmigration saknas: ${file}`);
   const sql = await readFile(new URL(file, migrationDirectory), "utf8");
   assert(sql.trim().length > 0, `Tom migration: ${file}`);
+  const expectedRepositoryHash = item.canonical_sha256 ?? item.sha256;
+  if (item.canonical_sha256) {
+    assert.equal(typeof item.canonicalization, "string", `Orsak till kanonisering saknas: ${file}`);
+    assert(item.canonicalization.trim().length > 0, `Tom orsak till kanonisering: ${file}`);
+  }
   assert.equal(
     createHash("sha256").update(sql).digest("hex"),
-    item.sha256,
+    expectedRepositoryHash,
     `Produktionsmigrationen har ändrats i efterhand: ${file}`,
   );
 }

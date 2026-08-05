@@ -26,7 +26,7 @@ function formatDate(value: string | null) {
 function certificateTone(status: Certificate["status"]) {
   if (status === "valid") return "success" as const;
   if (status === "expiring" || status === "pending") return "warning" as const;
-  return "neutral" as const;
+  return "danger" as const;
 }
 
 export default function QualificationsPanel({

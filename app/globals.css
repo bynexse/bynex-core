@@ -4,20 +4,69 @@
 
 @layer components {
   .input {
-    @apply w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-950 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500;
+    @apply w-full rounded-2xl px-4 py-3 text-sm outline-none transition disabled:cursor-not-allowed disabled:text-zinc-500;
+    border: 1px solid var(--bynex-border);
+    background: var(--bynex-surface);
+  }
+
+  .input:focus {
+    border-color: var(--bynex-steel);
+    box-shadow: 0 0 0 3px rgb(145 151 160 / 16%);
+  }
+
+  .input:disabled {
+    background: var(--bynex-silver-soft);
+  }
+
+  .bynex-panel {
+    border: 1px solid var(--bynex-border);
+    background: var(--bynex-surface);
+    box-shadow: 0 12px 30px rgb(18 20 24 / 5%);
+  }
+
+  .bynex-button-primary {
+    background: var(--bynex-silver);
+    color: var(--bynex-black);
+  }
+
+  .bynex-button-primary:hover {
+    background: var(--bynex-steel-light);
+  }
+
+  .bynex-button-dark {
+    background: var(--bynex-anthracite);
+    color: white;
+  }
+
+  .bynex-icon-tile {
+    background: var(--bynex-silver-soft);
+    color: var(--bynex-graphite);
   }
 }
 
 :root {
   color-scheme: light;
+  --bynex-black: #090a0c;
+  --bynex-anthracite: #202226;
+  --bynex-warm-white: #f7f5f0;
+  --bynex-surface: #fcfbf8;
+  --bynex-silver: #b8bdc5;
+  --bynex-steel: #7e858f;
+  --bynex-steel-light: #c9cdd3;
+  --bynex-silver-soft: #e8e8e6;
+  --bynex-border: #d8d8d5;
+  --bynex-graphite: #454950;
+  --bynex-success: #2f7d4d;
+  --bynex-danger: #b23a3a;
+  --bynex-warning: #c47718;
 }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body {
   margin: 0;
-  background: #f4f4f2;
-  color: #18181b;
+  background: var(--bynex-warm-white);
+  color: var(--bynex-black);
   font-family: Arial, Helvetica, sans-serif;
 }
 button, input, select, textarea { font: inherit; }

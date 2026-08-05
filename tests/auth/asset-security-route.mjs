@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const route = await readFile(new URL("../../app/api/private/assets/security/route.ts", import.meta.url), "utf8");
-const migration = await readFile(new URL("../../supabase/migrations/20260805012000_asset_theft_evidence_gps_registry.sql", import.meta.url), "utf8");
+const migration = await readFile(new URL("../../supabase/migrations/20260805063518_asset_theft_evidence_gps_registry.sql", import.meta.url), "utf8");
 
 assert.match(route, /requireSupabaseUser/);
 assert.match(route, /current_organization_id/);

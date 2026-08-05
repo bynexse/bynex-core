@@ -1,6 +1,6 @@
 begin;
 
--- Maskiner & tillgångar is available in beta through the packages that
+-- Maskiner & tillgångar is available in beta through packages that
 -- explicitly include it. A separate paid checkout is not live yet.
 insert into public.product_modules (
   slug,name,description,product_area,standalone_available,beta_available,active,sort_order

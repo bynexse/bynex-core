@@ -40,10 +40,10 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 px-5 py-12 text-zinc-950">
-      <section className="mx-auto w-full max-w-3xl rounded-[2rem] border border-zinc-200 bg-white p-7 shadow-xl sm:p-10">
+    <main className="min-h-screen bg-[#f7f5f0] px-5 py-12 text-[#090a0c]">
+      <section className="mx-auto w-full max-w-3xl rounded-[2rem] border border-[#d8d8d5] bg-[#fcfbf8] p-7 shadow-xl sm:p-10">
         <Logo priority />
-        <p className="mt-8 text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">Ett steg kvar</p>
+        <p className="mt-8 text-sm font-bold uppercase tracking-[0.2em] text-[#454950]">Ett steg kvar</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Skapa ert testföretag</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600">
           Du blir ägare för en separat testmiljö. Inga andra företag kan läsa er information.
@@ -53,11 +53,11 @@ export default function OnboardingPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-zinc-500">Företagsnamn</span>
-              <input required minLength={2} maxLength={160} autoComplete="organization" value={organizationName} onChange={(event) => setOrganizationName(event.target.value)} className="w-full rounded-2xl border border-zinc-200 px-4 py-3 outline-none transition focus:border-zinc-950" />
+              <input required minLength={2} maxLength={160} autoComplete="organization" value={organizationName} onChange={(event) => setOrganizationName(event.target.value)} className="input" />
             </label>
             <label className="block">
               <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-zinc-500">Företagsform</span>
-              <select value={businessForm} onChange={(event) => setBusinessForm(event.target.value)} className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 outline-none transition focus:border-zinc-950">
+              <select value={businessForm} onChange={(event) => setBusinessForm(event.target.value)} className="input">
                 <option value="unknown">Välj senare</option>
                 <option value="sole_trader">Enskild firma</option>
                 <option value="limited_company">Aktiebolag</option>
@@ -87,11 +87,11 @@ export default function OnboardingPage() {
             </div>
           </fieldset>
 
-          <div className="flex items-start gap-3 rounded-2xl bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
-            <Check className="mt-0.5 h-5 w-5 shrink-0" /> 30 dagars beta. Ingen betalning och ingen bindningstid under testperioden.
+          <div className="flex items-start gap-3 rounded-2xl border border-[#d8d8d5] bg-[#e8e8e6] p-4 text-sm leading-6 text-[#454950]">
+            <Check className="mt-0.5 h-5 w-5 shrink-0 text-[#2f7d4d]" /> 30 dagars beta. Ingen betalning och ingen bindningstid under testperioden.
           </div>
 
-          <button disabled={status === "saving"} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-4 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60">
+          <button disabled={status === "saving"} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#b8bdc5] px-5 py-4 font-semibold text-[#090a0c] transition hover:bg-[#d5d8dc] disabled:opacity-60">
             <Building2 className="h-5 w-5" /> {status === "saving" ? "Skapar testföretaget…" : "Öppna Bynex"}
           </button>
           {status === "error" && <p className="text-sm text-red-700">Företaget kunde inte skapas. Kontrollera att e-postadressen är verifierad och försök igen.</p>}
