@@ -1,5 +1,12 @@
-import { readJsonObject, isUuid } from "@/lib/http/validation";
+import { isUuid, readJsonObject } from "@/lib/http/validation";
 import { requireSupabaseUser } from "@/lib/supabase/require-user";
+
+function databaseStatus(code?: string) {
+  if (code === "42501") return 403;
+  if (code === "P0002") return 404;
+  if (["22023", "23514"].includes(code ?? "")) return 400;
+  return 409;
+}
 
 export async function POST(request: Request) {
   const auth = await requireSupabaseUser("projects");
@@ -7,23 +14,25 @@ export async function POST(request: Request) {
 
   const body = await readJsonObject(request);
   const quoteId = body?.quoteId;
-  const projectCode = body?.projectCode;
 
-  if (!isUuid(quoteId) || typeof projectCode !== "string" || projectCode.trim().length > 80 || !projectCode.trim()) {
-    return Response.json({ error: "Giltigt offert-id och projektnummer krävs." }, { status: 400 });
+  if (!isUuid(quoteId)) {
+    return Response.json({ error: "Giltigt offert-id krävs." }, { status: 400 });
   }
 
   const { data, error } = await auth.supabase.rpc("create_project_from_quote", {
     requested_quote_id: quoteId,
-    requested_project_code: projectCode.trim(),
   });
+  const project = Array.isArray(data) ? data[0] : data;
 
-  if (error) {
+  if (error || !project) {
     return Response.json(
-      { error: "Projektet kunde inte skapas från offerten.", code: error.code },
-      { status: 409 },
+      {
+        error: error?.message || "Projektet kunde inte skapas från offerten.",
+        code: error?.code,
+      },
+      { status: databaseStatus(error?.code) },
     );
   }
 
-  return Response.json({ project: data }, { status: 201 });
+  return Response.json({ project }, { status: 201 });
 }
