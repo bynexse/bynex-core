@@ -124,6 +124,9 @@ jobs:
       - name: Validate migration history
         run: npm run test:migrations
 
+      - name: Validate Smart quote and ÄTA learning
+        run: npm run test:smart-estimate
+
       - name: Typecheck
         run: npm run typecheck
 
