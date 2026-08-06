@@ -58,23 +58,23 @@ type NavigationModule = {
 };
 
 const modules: NavigationModule[] = [
-  { id: "dashboard", label: "Bynex Översikt", section: "Start", icon: Home },
+  { id: "dashboard", label: "Bynex Start", section: "Start", icon: Home },
+  { id: "foreman", label: "Bynex Arbetsledare", section: "Start", icon: HardHat, productModule: "projects" },
+  { id: "site-manager", label: "Bynex Platschef", section: "Start", icon: Building2, productModule: "projects" },
   { id: "projects", label: "Bynex Projekt", section: "Projekt & affär", icon: FolderKanban, productModule: "projects" },
   { id: "people", label: "Bynex Personal & UE", section: "Projekt & affär", icon: UsersRound, productModule: "time_payroll" },
   { id: "time", label: "Bynex Tid", section: "Projekt & affär", icon: Clock3, productModule: "time_payroll" },
   { id: "change-orders", label: "Bynex ÄTA", section: "Projekt & affär", icon: FileSignature, productModule: "change_orders" },
   { id: "quotes", label: "Bynex Offert", section: "Projekt & affär", icon: ReceiptText, productModule: "quotes" },
   { id: "invoices", label: "Bynex Fakturering", section: "Projekt & affär", icon: CircleDollarSign, productModule: "invoicing" },
-  { id: "foreman", label: "Bynex Arbetsledare", section: "Byggplats", icon: HardHat, productModule: "projects" },
-  { id: "site-manager", label: "Bynex Platschef", section: "Byggplats", icon: Building2, productModule: "projects" },
-  { id: "materials", label: "Bynex Material", section: "Byggplats", icon: PackageSearch, productModule: "materials" },
-  { id: "assets", label: "Bynex Maskiner", section: "Byggplats", icon: Wrench, productModule: "assets" },
-  { id: "connect", label: "Bynex Connect", section: "Byggplats", icon: MessageCircle, productModule: "projects" },
+  { id: "materials", label: "Bynex Material", section: "Byggplats & resurser", icon: PackageSearch, productModule: "materials" },
+  { id: "assets", label: "Bynex Maskiner", section: "Byggplats & resurser", icon: Wrench, productModule: "assets" },
+  { id: "connect", label: "Bynex Connect", section: "Byggplats & resurser", icon: MessageCircle, productModule: "projects" },
   { id: "bookkeeping", label: "Bynex Bokföring", section: "Ekonomi", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
   { id: "accounting-integrations", label: "Bynex Ekonomikopplingar", section: "Ekonomi", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
   { id: "year-end", label: "Bynex Bokslut", section: "Ekonomi", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader", "limited_company"] },
   { id: "property-portal", label: "Bynex Pärmen", section: "Kund & system", icon: Building2, productModule: "customer_portal", roles: ["owner", "admin", "office", "manager", "supervisor"] },
-  { id: "settings", label: "Företagsinställningar", section: "Kund & system", icon: Settings },
+  { id: "settings", label: "Bynex Inställningar", section: "Kund & system", icon: Settings },
 ];
 
 function NavigationItems({
@@ -95,14 +95,14 @@ function NavigationItems({
         return (
           <div key={item.id}>
             {showSection && (
-              <p className="mb-2 mt-6 px-4 text-[10px] font-bold uppercase tracking-[0.18em] text-[#7e858f] first:mt-0">
+              <p className="mb-1.5 mt-5 px-4 text-[10px] font-bold uppercase tracking-[0.18em] text-[#7e858f] first:mt-0">
                 {item.section}
               </p>
             )}
             <button
               type="button"
               onClick={() => onSelect(item.id)}
-              className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${
+              className={`flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left text-sm font-semibold transition ${
                 selected
                   ? "bg-[#c9cdd3] text-[#090a0c] shadow-sm"
                   : "text-[#c9cdd3] hover:bg-white/10 hover:text-white"
@@ -188,7 +188,7 @@ export default function BynexDemo({
     <div className="min-h-screen bg-[#f7f5f0] text-[#090a0c]">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 overflow-y-auto border-r border-[#34373c] bg-[#202226] p-5 text-white lg:block">
         <Logo />
-        <nav className="mt-8 pb-6">
+        <nav className="mt-7 pb-6">
           <NavigationItems items={visibleModules} active={active} onSelect={setActive} />
           {company.platformRole && (
             <Link
@@ -215,7 +215,7 @@ export default function BynexDemo({
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav className="mt-8 pb-8">
+            <nav className="mt-7 pb-8">
               <NavigationItems
                 items={visibleModules}
                 active={active}
