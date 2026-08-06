@@ -50,20 +50,41 @@ create policy startup_offer_application_member_select
   for select to authenticated
   using ((select private.is_organization_member(organization_id)));
 
-create or replace function private.normalize_swedish_organization_number(value text)
+-- Keep the established parameter name so CREATE OR REPLACE remains compatible
+-- with staging databases where the normalizer already exists.
+create or replace function private.normalize_swedish_organization_number(requested_value text)
 returns text
-language sql
+language plpgsql
 immutable
 security invoker
 set search_path = ''
 as $$
-  select case
-    when char_length(digits) = 12 and left(digits, 2) = '16' then right(digits, 10)
-    else digits
-  end
-  from (
-    select regexp_replace(coalesce(value, ''), '[^0-9]', '', 'g') as digits
-  ) normalized
+declare
+  digits text;
+  checksum integer := 0;
+  position integer;
+  digit integer;
+  product integer;
+begin
+  digits := regexp_replace(coalesce(requested_value, ''), '[^0-9]', '', 'g');
+  if char_length(digits) = 12 then
+    digits := right(digits, 10);
+  end if;
+  if char_length(digits) <> 10 or digits = '0000000000' then
+    return null;
+  end if;
+
+  for position in 1..10 loop
+    digit := substring(digits from position for 1)::integer;
+    product := digit * case when position % 2 = 1 then 2 else 1 end;
+    checksum := checksum + case when product > 9 then product - 9 else product end;
+  end loop;
+
+  if checksum % 10 <> 0 then
+    return null;
+  end if;
+  return digits;
+end;
 $$;
 
 revoke all on function private.normalize_swedish_organization_number(text)
@@ -71,36 +92,14 @@ revoke all on function private.normalize_swedish_organization_number(text)
 grant execute on function private.normalize_swedish_organization_number(text)
   to authenticated;
 
-create or replace function private.is_valid_swedish_organization_number(value text)
+create or replace function private.is_valid_swedish_organization_number(requested_value text)
 returns boolean
-language plpgsql
+language sql
 immutable
 security invoker
 set search_path = ''
 as $$
-declare
-  digits text := private.normalize_swedish_organization_number(value);
-  position integer;
-  digit integer;
-  checksum integer := 0;
-begin
-  if digits !~ '^[0-9]{10}$' then
-    return false;
-  end if;
-
-  for position in 1..10 loop
-    digit := substring(digits from position for 1)::integer;
-    if position % 2 = 1 then
-      digit := digit * 2;
-      if digit > 9 then
-        digit := digit - 9;
-      end if;
-    end if;
-    checksum := checksum + digit;
-  end loop;
-
-  return checksum % 10 = 0;
-end;
+  select private.normalize_swedish_organization_number(requested_value) is not null
 $$;
 
 revoke all on function private.is_valid_swedish_organization_number(text)
@@ -173,7 +172,7 @@ begin
 
   normalized_organization_number :=
     private.normalize_swedish_organization_number(p_organization_number);
-  if not private.is_valid_swedish_organization_number(normalized_organization_number) then
+  if normalized_organization_number is null then
     raise exception 'Organisationsnumret är ogiltigt' using errcode = '22023';
   end if;
 
