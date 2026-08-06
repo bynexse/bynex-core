@@ -36,12 +36,6 @@ function stringValue(value: unknown, maximum: number) {
   return typeof value === "string" ? value.trim().slice(0, maximum) : "";
 }
 
-function objectValue(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
 async function requirePlatformContext() {
   const auth = await requireSupabaseUser();
   if ("response" in auth) return auth;
@@ -78,16 +72,10 @@ export async function GET(request: Request) {
     );
   }
 
-  const [assistanceResult, laborPricingResult] = await Promise.all([
-    auth.supabase.rpc("get_platform_customer_assistance", {
-      p_organization_id: organizationId,
-    }),
-    auth.supabase.rpc("get_platform_customer_labor_profitability", {
-      p_organization_id: organizationId,
-    }),
-  ]);
-
-  const error = assistanceResult.error ?? laborPricingResult.error;
+  const { data, error } = await auth.supabase.rpc(
+    "get_platform_customer_assistance",
+    { p_organization_id: organizationId },
+  );
   if (error) {
     return Response.json(
       { error: error.message || "Kundkortet kunde inte hämtas." },
@@ -95,21 +83,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const laborPricing = objectValue(laborPricingResult.data);
-  const laborPricingPermissions = objectValue(laborPricing.permissions);
-
-  return Response.json({
-    data: {
-      ...objectValue(assistanceResult.data),
-      labor_pricing: {
-        ...laborPricing,
-        permissions: {
-          ...laborPricingPermissions,
-          can_manage_settings: false,
-        },
-      },
-    },
-  });
+  return Response.json({ data });
 }
 
 export async function POST(request: Request) {
@@ -188,7 +162,7 @@ export async function PATCH(request: Request) {
     return Response.json(
       {
         error:
-          "Kundföretaget ändrar sitt debiteringspris på medarbetarens anställningskort. HQ är endast ett supportunderlag.",
+          "Kundföretaget ändrar sitt debiteringspris på medarbetarens anställningskort. HQ hanterar inte kundens personalkostnader eller timpris.",
       },
       { status: 403 },
     );
