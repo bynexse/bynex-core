@@ -13,6 +13,7 @@ import {
   UserRoundPlus,
   UsersRound,
 } from "lucide-react";
+import HqCustomerWorkforceWorkspace from "./HqCustomerWorkforceWorkspace";
 import type { HqData } from "./types";
 import {
   Definition,
@@ -567,6 +568,13 @@ export default function HqCustomerWorkspace({
           )}
         </Panel>
       </div>
+
+      <HqCustomerWorkforceWorkspace
+        organizationId={selectedOrganizationId}
+        organizationName={asText(organization.name)}
+        runAction={runAction}
+        busy={busy}
+      />
 
       <div className="grid gap-5 xl:grid-cols-2">
         <Panel title="Abonnemang och användare" eyebrow="Bynex Billing">

@@ -101,9 +101,8 @@ const navigation: NavigationItem[] = [
   {
     id: "pricing",
     label: "Smart Price",
-    description: "Prisförslag i exakta kronor",
+    description: "Fristående pris- och marginalverktyg",
     icon: Sparkles,
-    customerRequired: true,
     roles: ["platform_owner", "platform_admin", "sales", "finance", "support"],
   },
   {

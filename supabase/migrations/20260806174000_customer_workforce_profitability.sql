@@ -218,7 +218,7 @@ begin
           else jsonb_build_object(
             'fullHourlyCost', compensation.hourly_cost,
             'targetMarginPercent', compensation.target_margin_percent,
-            'recommendedMinimumRateExVat', case
+            'recommendedRateExVat', case
               when compensation.hourly_cost > 0 and compensation.target_margin_percent < 95
                 then round(
                   compensation.hourly_cost /
@@ -693,7 +693,7 @@ begin
   return jsonb_build_object(
     'workerId', p_worker_id,
     'fullHourlyCost', calculated_hourly_cost,
-    'recommendedMinimumRateExVat', recommended_rate,
+    'recommendedRateExVat', recommended_rate,
     'individualHourlyRateExVat', saved.hourly_bill_rate,
     'targetMarginPercent', p_target_margin_percent
   );

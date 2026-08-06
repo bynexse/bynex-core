@@ -249,9 +249,6 @@ export default function HqPricingContractsWorkspace({
   }
 
   if (mode === "pricing") {
-    if (!selectedOrganizationId) {
-      return <Empty>Välj en kund innan ett företagspris skapas.</Empty>;
-    }
     return (
       <div className="space-y-5">
         <section className="rounded-[2rem] bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950 p-6 text-white shadow-xl sm:p-8">
@@ -261,7 +258,9 @@ export default function HqPricingContractsWorkspace({
                 <Sparkles className="h-4 w-4" /> Bynex Smart Price
               </div>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight">
-                Företagspris för {asText(organization.name)}
+                {selectedOrganizationId
+                  ? `Företagspris för ${asText(organization.name)}`
+                  : "Fristående intern priskalkyl"}
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-300">
                 Kalkylen visar företagets totala månadspris i hela kronor. Volympris
@@ -271,7 +270,11 @@ export default function HqPricingContractsWorkspace({
             </div>
             <div className="rounded-2xl bg-white/10 px-5 py-4">
               <p className="text-xs text-zinc-400">Nuvarande plan</p>
-              <p className="mt-1 font-semibold">{asText(subscription.plan_name, "Ej vald")}</p>
+              <p className="mt-1 font-semibold">
+                {selectedOrganizationId
+                  ? asText(subscription.plan_name, "Ej vald")
+                  : selectedPlan?.name ?? "Ej vald"}
+              </p>
             </div>
           </div>
         </section>
@@ -494,7 +497,7 @@ export default function HqPricingContractsWorkspace({
                     ))}
                   </div>
                 )}
-                {canPrice && (
+                {canPrice && selectedOrganizationId && (
                   <button
                     type="button"
                     onClick={() => void saveProposal()}
@@ -513,6 +516,12 @@ export default function HqPricingContractsWorkspace({
 
         <Panel title="Sparade prisförslag" eyebrow="Affärshistorik">
           <div className="grid gap-3 lg:grid-cols-2">
+            {!selectedOrganizationId && (
+              <Empty>
+                Smart Price fungerar utan vald kund. Välj ett företag först när
+                kalkylen ska sparas som ett verkligt kundförslag eller användas i avtal.
+              </Empty>
+            )}
             {selected?.proposals.map((proposal) => {
               const listPrice = asNumber(proposal.list_monthly_price_ex_vat);
               const recommendedPrice = asNumber(
