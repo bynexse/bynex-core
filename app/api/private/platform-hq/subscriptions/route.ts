@@ -17,6 +17,11 @@ function nullableText(body: Body, key: string) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function boolean(body: Body, key: string, fallback = false) {
+  const value = body[key];
+  return typeof value === "boolean" ? value : fallback;
+}
+
 async function requireStaff() {
   const auth = await requireSupabaseUser();
   if ("response" in auth) return auth;
@@ -58,16 +63,57 @@ export async function POST(request: Request) {
             p_trial_ends_at: nullableText(body, "trialEndsAt"),
           },
         }
-      : action === "activate_signed_contract"
+      : action === "activate_standard_subscription"
         ? {
-            name: "platform_activate_signed_enterprise_contract",
+            name: "platform_activate_standard_subscription",
             args: {
-              p_contract_id: text(body, "contractId"),
+              p_organization_id: text(body, "organizationId"),
+              p_plan_id: text(body, "planId"),
+              p_seat_count: integer(body, "seatCount", 1),
+              p_term_months: integer(body, "termMonths", 12),
               p_starts_on: text(body, "startsOn"),
               p_renewal_mode: text(body, "renewalMode", "manual"),
+              p_activation_reference: text(body, "activationReference"),
             },
           }
-        : null;
+        : action === "upsert_billing_profile"
+          ? {
+              name: "platform_upsert_billing_profile",
+              args: {
+                p_organization_id: text(body, "organizationId"),
+                p_legal_name: text(body, "legalName"),
+                p_organization_number: text(body, "organizationNumber"),
+                p_billing_email: text(body, "billingEmail"),
+                p_address_line1: text(body, "addressLine1"),
+                p_address_line2: nullableText(body, "addressLine2"),
+                p_postal_code: text(body, "postalCode"),
+                p_city: text(body, "city"),
+                p_country_code: text(body, "countryCode", "SE"),
+                p_delivery_channel: text(body, "deliveryChannel", "email"),
+                p_peppol_id: nullableText(body, "peppolId"),
+                p_buyer_reference: nullableText(body, "buyerReference"),
+                p_purchase_order_reference: nullableText(
+                  body,
+                  "purchaseOrderReference",
+                ),
+                p_payment_terms_days: integer(body, "paymentTermsDays", 30),
+                p_auto_invoice_enabled: boolean(
+                  body,
+                  "autoInvoiceEnabled",
+                  true,
+                ),
+              },
+            }
+          : action === "activate_signed_contract"
+            ? {
+                name: "platform_activate_signed_enterprise_contract",
+                args: {
+                  p_contract_id: text(body, "contractId"),
+                  p_starts_on: text(body, "startsOn"),
+                  p_renewal_mode: text(body, "renewalMode", "manual"),
+                },
+              }
+            : null;
   if (!rpc) {
     return Response.json({ error: "Okänd abonnemangsåtgärd." }, { status: 400 });
   }
