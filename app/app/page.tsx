@@ -1,9 +1,8 @@
-import Link from "next/link";
-import { UsersRound } from "lucide-react";
-import BynexWorkspaceV2 from "@/components/BynexWorkspaceV2";
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+
+import BynexWorkspaceV2 from "@/components/BynexWorkspaceV2";
 import type { CompanyContext } from "@/lib/company-context";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -157,19 +156,9 @@ export default async function BynexAppPage() {
   };
 
   return (
-    <>
-      <BynexWorkspaceV2
-        enabledProductModules={enabledProductModules}
-        company={company}
-      />
-      {["owner", "admin"].includes(membership.role) && (
-        <Link
-          href="/app/medarbetare"
-          className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-emerald-700"
-        >
-          <UsersRound className="h-4 w-4" /> Lägg till medarbetare
-        </Link>
-      )}
-    </>
+    <BynexWorkspaceV2
+      enabledProductModules={enabledProductModules}
+      company={company}
+    />
   );
 }
