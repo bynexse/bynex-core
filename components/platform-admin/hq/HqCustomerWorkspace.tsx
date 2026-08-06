@@ -37,6 +37,8 @@ import {
   type RunHqAction,
 } from "./utils";
 
+const today = new Date().toISOString().slice(0, 10);
+
 export default function HqCustomerWorkspace({
   data,
   selectedOrganizationId,
@@ -153,6 +155,29 @@ export default function HqCustomerWorkspace({
   async function saveSubscription(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const status = formText(form, "status", "trialing");
+
+    if (status === "active") {
+      await runAction(
+        "activate_standard_subscription",
+        {
+          organizationId: selectedOrganizationId,
+          planId: formText(form, "planId"),
+          seatCount: formNumber(form, "seatCount", 1),
+          termMonths: formNumber(form, "termMonths", 12),
+          startsOn: formText(form, "startsOn", today),
+          renewalMode: formText(form, "renewalMode", "manual"),
+          activationReference: formText(form, "activationReference"),
+        },
+        "Kunden är aktiv och fakturaschemat har skapats.",
+        {
+          endpoint: "/api/private/platform-hq/subscriptions",
+          organizationId: selectedOrganizationId,
+        },
+      );
+      return;
+    }
+
     const trialEndsAt = formText(form, "trialEndsAt");
     await runAction(
       "save_subscription",
@@ -160,7 +185,7 @@ export default function HqCustomerWorkspace({
         organizationId: selectedOrganizationId,
         planId: formText(form, "planId"),
         seatCount: formNumber(form, "seatCount", 1),
-        status: formText(form, "status", "trialing"),
+        status,
         trialEndsAt: trialEndsAt ? new Date(trialEndsAt).toISOString() : null,
       },
       "Abonnemangsunderlaget har sparats.",
@@ -175,18 +200,30 @@ export default function HqCustomerWorkspace({
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     await runAction(
-      "update_billing_profile",
+      "upsert_billing_profile",
       {
         organizationId: selectedOrganizationId,
+        legalName: formText(form, "legalName"),
+        organizationNumber: formText(form, "organizationNumber"),
         billingEmail: formText(form, "billingEmail"),
+        addressLine1: formText(form, "addressLine1"),
+        addressLine2: formText(form, "addressLine2") || null,
+        postalCode: formText(form, "postalCode"),
+        city: formText(form, "city"),
+        countryCode: formText(form, "countryCode", "SE"),
         deliveryChannel: formText(form, "deliveryChannel", "email"),
-        peppolId: formText(form, "peppolId"),
-        buyerReference: formText(form, "buyerReference"),
-        purchaseOrderReference: formText(form, "purchaseOrderReference"),
+        peppolId: formText(form, "peppolId") || null,
+        buyerReference: formText(form, "buyerReference") || null,
+        purchaseOrderReference:
+          formText(form, "purchaseOrderReference") || null,
         paymentTermsDays: formNumber(form, "paymentTermsDays", 30),
         autoInvoiceEnabled: formBoolean(form, "autoInvoiceEnabled"),
       },
-      "Fakturainställningarna har uppdaterats.",
+      "Fakturaprofilen har sparats.",
+      {
+        endpoint: "/api/private/platform-hq/subscriptions",
+        organizationId: selectedOrganizationId,
+      },
     );
   }
 
@@ -544,8 +581,9 @@ export default function HqCustomerWorkspace({
             <form key={`subscription-${selectedOrganizationId}`} onSubmit={saveSubscription} className="rounded-2xl border border-zinc-200 p-4">
               <p className="font-semibold">Tilldela eller uppdatera abonnemang</p>
               <p className="mt-1 text-xs leading-5 text-zinc-500">
-                Ett aktivt företagsavtal låser planbyten. Användarantalet kan fortfarande
-                uppdateras.
+                Välj Aktiv – betalande kund för att skapa ett bindande fakturaunderlag
+                och månatligt fakturaschema. Komplett fakturaprofil måste vara sparad
+                först.
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <Field label="Plan">
@@ -579,6 +617,7 @@ export default function HqCustomerWorkspace({
                     className={inputClass}
                   >
                     <option value="trialing">Provperiod</option>
+                    <option value="active">Aktiv – betalande kund</option>
                     <option value="paused">Pausad</option>
                     <option value="cancelled">Avslutad</option>
                   </select>
@@ -591,9 +630,54 @@ export default function HqCustomerWorkspace({
                     className={inputClass}
                   />
                 </Field>
+                <Field label="Fakturering startar">
+                  <input
+                    name="startsOn"
+                    type="date"
+                    min={today}
+                    defaultValue={today}
+                    className={inputClass}
+                  />
+                </Field>
+                <Field label="Bindningstid">
+                  <select name="termMonths" defaultValue="12" className={inputClass}>
+                    {data.catalog.terms.length > 0 ? (
+                      data.catalog.terms.map((term) => (
+                        <option key={term.term_months} value={term.term_months}>
+                          {term.term_months} månader · {term.label}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="12">12 månader</option>
+                        <option value="24">24 månader</option>
+                        <option value="36">36 månader</option>
+                        <option value="48">48 månader</option>
+                      </>
+                    )}
+                  </select>
+                </Field>
+                <Field label="Efter bindningstiden">
+                  <select name="renewalMode" defaultValue="manual" className={inputClass}>
+                    <option value="manual">Manuell förnyelse</option>
+                    <option value="rolling_monthly">Löpande månadsvis</option>
+                  </select>
+                </Field>
+                <Field
+                  label="Godkännandereferens"
+                  hint="Obligatorisk vid Aktiv: exempelvis signerat avtal, accepterad offert eller ordernummer."
+                >
+                  <input
+                    name="activationReference"
+                    minLength={5}
+                    maxLength={500}
+                    placeholder="Exempel: Offert 1042 accepterad 2026-08-06"
+                    className={inputClass}
+                  />
+                </Field>
               </div>
               <button type="submit" className={`${buttonClass} mt-4`} disabled={busy}>
-                <Save className="h-4 w-4" /> Spara abonnemangsunderlag
+                <Save className="h-4 w-4" /> Spara abonnemang
               </button>
             </form>
           )}
@@ -602,6 +686,29 @@ export default function HqCustomerWorkspace({
         <Panel title="Fakturaprofil" eyebrow="Ekonomi">
           <form key={`billing-${selectedOrganizationId}`} onSubmit={saveBilling} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Juridiskt namn">
+                <input
+                  name="legalName"
+                  required
+                  minLength={2}
+                  defaultValue={asText(billing.legal_name, asText(organization.name, ""))}
+                  className={inputClass}
+                  disabled={!canWriteBilling}
+                />
+              </Field>
+              <Field label="Organisationsnummer">
+                <input
+                  name="organizationNumber"
+                  required
+                  minLength={6}
+                  defaultValue={asText(
+                    billing.organization_number,
+                    asText(organization.organization_number, ""),
+                  )}
+                  className={inputClass}
+                  disabled={!canWriteBilling}
+                />
+              </Field>
               <Field label="Faktura-e-post">
                 <input
                   name="billingEmail"
@@ -622,6 +729,52 @@ export default function HqCustomerWorkspace({
                   <option value="email">E-post</option>
                   <option value="peppol">Peppol</option>
                 </select>
+              </Field>
+              <Field label="Adress">
+                <input
+                  name="addressLine1"
+                  required
+                  defaultValue={asText(billing.address_line1, "")}
+                  className={inputClass}
+                  disabled={!canWriteBilling}
+                />
+              </Field>
+              <Field label="Adressrad 2">
+                <input
+                  name="addressLine2"
+                  defaultValue={asText(billing.address_line2, "")}
+                  className={inputClass}
+                  disabled={!canWriteBilling}
+                />
+              </Field>
+              <Field label="Postnummer">
+                <input
+                  name="postalCode"
+                  required
+                  defaultValue={asText(billing.postal_code, "")}
+                  className={inputClass}
+                  disabled={!canWriteBilling}
+                />
+              </Field>
+              <Field label="Ort">
+                <input
+                  name="city"
+                  required
+                  defaultValue={asText(billing.city, "")}
+                  className={inputClass}
+                  disabled={!canWriteBilling}
+                />
+              </Field>
+              <Field label="Landkod">
+                <input
+                  name="countryCode"
+                  required
+                  minLength={2}
+                  maxLength={2}
+                  defaultValue={asText(billing.country_code, "SE")}
+                  className={inputClass}
+                  disabled={!canWriteBilling}
+                />
               </Field>
               <Field label="Peppol-id">
                 <input
@@ -663,7 +816,10 @@ export default function HqCustomerWorkspace({
               <input
                 name="autoInvoiceEnabled"
                 type="checkbox"
-                defaultChecked={asBoolean(billing.auto_invoice_enabled)}
+                defaultChecked={
+                  billing.auto_invoice_enabled === undefined ||
+                  asBoolean(billing.auto_invoice_enabled)
+                }
                 disabled={!canWriteBilling}
                 className="mt-1"
               />

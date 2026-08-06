@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { UsersRound } from "lucide-react";
 import BynexDemo from "@/components/BynexDemo";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -126,5 +128,17 @@ export default async function BynexAppPage() {
     platformRole: platformStaff?.role ?? null,
   };
 
-  return <BynexDemo enabledProductModules={enabledProductModules} company={company} />;
+  return (
+    <>
+      <BynexDemo enabledProductModules={enabledProductModules} company={company} />
+      {["owner", "admin"].includes(membership.role) && (
+        <Link
+          href="/app/medarbetare"
+          className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-emerald-700"
+        >
+          <UsersRound className="h-4 w-4" /> Lägg till medarbetare
+        </Link>
+      )}
+    </>
+  );
 }

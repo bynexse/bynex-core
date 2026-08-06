@@ -1,18 +1,17 @@
 import { cookies } from "next/headers";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import PlatformHqWorkspaceV2 from "@/components/platform-admin/PlatformHqWorkspaceV2";
+import PlatformHqCostsPage from "@/components/platform-admin/PlatformHqCostsPage";
 import { getHqConfig, HQ_COOKIE_NAME, verifyHqSession } from "@/lib/hq-auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function PlatformAdminPage() {
+export default async function PlatformAdminCostsPage() {
   const supabase = await createServerSupabaseClient();
   if (!supabase) redirect("/login");
   const { data: claimsData } = await supabase.auth.getClaims();
   const userId = claimsData?.claims?.sub;
-  if (!userId) redirect("/login?next=/admin");
+  if (!userId) redirect("/login?next=/admin/kostnader");
 
   const { data: staff } = await supabase
     .from("platform_staff")
@@ -34,15 +33,5 @@ export default async function PlatformAdminPage() {
   );
   if (!validHqSession) redirect("/admin/login");
 
-  return (
-    <>
-      <PlatformHqWorkspaceV2 />
-      <Link
-        href="/admin/kostnader"
-        className="fixed bottom-5 right-5 z-50 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-emerald-700"
-      >
-        Produktionskostnader
-      </Link>
-    </>
-  );
+  return <PlatformHqCostsPage role={staff.role} />;
 }
