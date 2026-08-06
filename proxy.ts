@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
+  getHqConfig,
+  HQ_COOKIE_NAME,
+  verifyHqSession,
+} from "@/lib/hq-auth";
+import {
   getPilotConfig,
   isPilotGateEnabled,
   PILOT_COOKIE_NAME,
@@ -10,23 +15,25 @@ import { updateSupabaseSession } from "@/lib/supabase/proxy";
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // The billing worker authenticates every request with its own timing-safe
-  // bearer secret. It must remain callable by the scheduler while the human
-  // pilot gate is enabled.
+  // Internal billing workers authenticate with their own timing-safe bearer
+  // secrets and must remain callable by the scheduler.
   if (
     path === "/api/internal/bynex-smart/digital-binder-billing" ||
-    path === "/api/internal/bynex-smart/customer-invoice-delivery"
+    path === "/api/internal/bynex-smart/customer-invoice-delivery" ||
+    path === "/api/internal/bynex-smart/subscription-invoice-delivery"
   ) {
     return NextResponse.next();
   }
 
-  // These customer endpoints are protected by 256-bit, one-time, hashed
-  // invitation/approval tokens and must remain reachable by the recipient.
+  // Customer endpoints are protected by high-entropy, hashed, one-time tokens.
   if (
     path.startsWith("/offert/") ||
     path.startsWith("/ata/") ||
+    path.startsWith("/avtal/signera") ||
     path === "/api/public/quotes/approval" ||
-    path === "/api/public/change-orders/decision"
+    path === "/api/public/change-orders/decision" ||
+    path === "/api/public/platform-contracts/view" ||
+    path === "/api/public/platform-contracts/sign"
   ) {
     return NextResponse.next();
   }
@@ -63,6 +70,47 @@ export async function proxy(request: NextRequest) {
       const loginUrl = new URL("/pilot-login", request.url);
       loginUrl.searchParams.set("next", `${path}${request.nextUrl.search}`);
       return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  const isHqLogin = path === "/admin/login" || path === "/api/hq/session";
+  const isHqProtected =
+    (path.startsWith("/admin") && path !== "/admin/login") ||
+    path.startsWith("/api/private/platform-hq") ||
+    path.startsWith("/api/private/platform-admin") ||
+    path.startsWith("/api/private/platform-operations");
+
+  if (isHqLogin || isHqProtected) {
+    const hqConfig = getHqConfig();
+    if (!hqConfig) {
+      return path.startsWith("/api/")
+        ? NextResponse.json(
+            { error: "HQ-låset är inte konfigurerat. Åtkomst är spärrad." },
+            { status: 503 },
+          )
+        : new NextResponse("Bynex HQ är spärrat tills säkerhetslåset är konfigurerat.", {
+            status: 503,
+            headers: { "content-type": "text/plain; charset=utf-8" },
+          });
+    }
+
+    const hasHqSession = await verifyHqSession(
+      request.cookies.get(HQ_COOKIE_NAME)?.value,
+      hqConfig.sessionSecret,
+    );
+
+    if (isHqLogin) {
+      if (path === "/admin/login" && hasHqSession) {
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
+      return updateSupabaseSession(request);
+    }
+
+    if (!hasHqSession) {
+      if (path.startsWith("/api/")) {
+        return NextResponse.json({ error: "HQ-kod krävs." }, { status: 401 });
+      }
+      return NextResponse.redirect(new URL("/admin/login", request.url));
     }
   }
 
