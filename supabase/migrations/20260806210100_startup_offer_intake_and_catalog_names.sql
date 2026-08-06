@@ -51,12 +51,17 @@ create policy startup_offer_application_member_select
   for select to authenticated
   using ((select private.is_organization_member(organization_id)));
 
--- New onboarding uses this wrapper. The existing four-argument provisioning
--- function remains available during deployment so there is no downtime.
-create or replace function public.provision_bynex_organization(
+-- Keep the existing four-argument provisioning function available during
+-- deployment. New onboarding uses a uniquely named v2 RPC, which avoids
+-- ambiguous PostgREST overload resolution.
+drop function if exists public.provision_bynex_organization(
+  text, text, text, text, boolean
+);
+
+create or replace function public.provision_bynex_organization_v2(
   p_organization_name text,
   p_organization_number text,
-  p_business_form text default 'unknown',
+  p_business_form text,
   p_beta_scope text default 'complete',
   p_startup_offer_requested boolean default false
 )
@@ -133,16 +138,16 @@ begin
 end;
 $$;
 
-revoke all on function public.provision_bynex_organization(
+revoke all on function public.provision_bynex_organization_v2(
   text, text, text, text, boolean
 ) from public, anon;
-grant execute on function public.provision_bynex_organization(
+grant execute on function public.provision_bynex_organization_v2(
   text, text, text, text, boolean
 ) to authenticated, service_role;
 
 comment on table public.startup_offer_applications is
   'Applications for six free months of Bynex Företag. No benefit is activated until organization number and registration date have been reviewed separately.';
-comment on function public.provision_bynex_organization(
+comment on function public.provision_bynex_organization_v2(
   text, text, text, text, boolean
 ) is
   'Creates a 14-day Bynex trial and optionally records a pending six-month Bynex Företag startup application.';
