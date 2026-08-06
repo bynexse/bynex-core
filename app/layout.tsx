@@ -13,9 +13,6 @@ export const metadata: Metadata = {
     template: "%s | Bynex",
   },
   description: siteDescription,
-  alternates: {
-    canonical: "/",
-  },
   authors: [{ name: "Bynex" }],
   creator: "Bynex",
   publisher: "Bynex",
