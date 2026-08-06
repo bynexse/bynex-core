@@ -62,10 +62,10 @@ export default function SignupPage() {
           <ArrowLeft className="h-4 w-4" /> Tillbaka
         </Link>
         <div className="mt-8"><Logo priority /></div>
-        <p className="mt-4 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.2em] text-[#454950]"><span className="h-2 w-2 rounded-full bg-[#2f7d4d]" />Öppen beta</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Skapa testkonto</h1>
+        <p className="mt-4 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.2em] text-[#454950]"><span className="h-2 w-2 rounded-full bg-[#2f7d4d]" />14 dagar kostnadsfritt</p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Skapa ert Bynex-konto</h1>
         <p className="mt-3 text-sm leading-6 text-zinc-600">
-          Prova Bynex kostnadsfritt i 30 dagar. Ditt företag och din data hålls helt åtskilda från andra testare.
+          Prova Bynex med företagets egna projekt och arbetsflöden i 14 dagar. Organisationsnummer anges i nästa steg och företagets data hålls helt åtskild från andra kunder.
         </p>
 
         {status === "sent" ? (
@@ -93,11 +93,15 @@ export default function SignupPage() {
               <input required minLength={10} type="password" autoComplete="new-password" value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} className="input" />
             </label>
             <button disabled={status === "sending"} className="w-full rounded-2xl bg-[#b8bdc5] px-5 py-4 text-sm font-semibold text-[#090a0c] transition hover:bg-[#d5d8dc] disabled:opacity-60">
-              {status === "sending" ? "Skickar…" : "Skapa konto"}
+              {status === "sending" ? "Skickar…" : "Starta 14 dagars provperiod"}
             </button>
             {status === "error" && <p className="text-sm text-red-700">{message || "Kontot kunde inte skapas just nu."}</p>}
           </form>
         )}
+
+        <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs leading-5 text-emerald-950">
+          Nystartade företag kan i nästa steg ansöka om 6 månader Bynex Företag utan kostnad. Förmånen kräver separat kontroll av organisationsnummer och registreringsdatum.
+        </div>
 
         <p className="mt-7 text-center text-sm text-zinc-500">
           Har du redan konto? <Link href="/login" className="font-semibold text-zinc-950 underline">Logga in</Link>
