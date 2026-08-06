@@ -99,6 +99,10 @@ export default function SignupPage() {
           </form>
         )}
 
+        <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs leading-5 text-emerald-950">
+          Nystartade företag kan i nästa steg ansöka om 6 månader Bynex Företag utan kostnad. Erbjudandet aktiveras först efter separat kontroll av organisationsnummer och registreringsdatum. Andra paket och tillval följer ordinarie pris.
+        </div>
+
         <p className="mt-7 text-center text-sm text-zinc-500">
           Har du redan konto? <Link href="/login" className="font-semibold text-zinc-950 underline">Logga in</Link>
         </p>
