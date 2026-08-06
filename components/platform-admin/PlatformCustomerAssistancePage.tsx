@@ -41,7 +41,6 @@ import {
   secondaryButtonClass,
 } from "./hq/ui";
 import {
-  asBoolean,
   asNumber,
   asText,
   displayDate,
@@ -354,7 +353,8 @@ export default function PlatformCustomerAssistancePage() {
   const activeWorkers = workers.filter((worker) => worker.active).length;
   const appMembers = assistance?.app_members ?? [];
   const pendingInvites = assistance?.pending_invites ?? [];
-  const subscription = assistance?.subscription ?? {};
+  const subscription: AssistanceData["subscription"] =
+    assistance?.subscription ?? {};
   const includedUsers = asNumber(subscription.included_users);
   const seatCount = asNumber(subscription.seat_count);
 
