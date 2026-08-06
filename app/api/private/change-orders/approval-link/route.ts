@@ -266,9 +266,9 @@ export async function POST(request: Request) {
   const ctx = await context();
   if (!ctx.ok) return ctx.response;
 
-  const body = await readJsonObject(request);
-  const action = body?.action;
-  const changeOrderId = body?.changeOrderId;
+  const body = (await readJsonObject(request)) ?? {};
+  const action = body.action;
+  const changeOrderId = body.changeOrderId;
   if (!isUuid(changeOrderId)) {
     return Response.json({ error: "ÄTA:n är ogiltig." }, { status: 400 });
   }
@@ -283,7 +283,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "ÄTA:n finns inte i företaget." }, { status: 404 });
   }
 
-  let versionId = body?.versionId;
+  let versionId = body.versionId;
 
   if (action === "prepare_and_link") {
     if (changeOrder.status !== "draft") {
@@ -293,16 +293,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const priceType = optionalText(body?.priceType, 30);
-    const customerDescription = optionalText(body?.customerDescription, 4000)
+    const priceType = optionalText(body.priceType, 30);
+    const customerDescription = optionalText(body.customerDescription, 4000)
       ?? changeOrder.description;
-    const laborHours = amount(body?.laborHours);
-    const laborSell = amount(body?.laborSell);
-    const materialSell = amount(body?.materialSell);
-    const equipmentSell = amount(body?.equipmentSell);
-    const subcontractorSell = amount(body?.subcontractorSell);
-    const otherSell = amount(body?.otherSell);
-    const vatPercent = amount(body?.vatPercent ?? 25);
+    const laborHours = amount(body.laborHours);
+    const laborSell = amount(body.laborSell);
+    const materialSell = amount(body.materialSell);
+    const equipmentSell = amount(body.equipmentSell);
+    const subcontractorSell = amount(body.subcontractorSell);
+    const otherSell = amount(body.otherSell);
+    const vatPercent = amount(body.vatPercent ?? 25);
 
     if (
       !priceType
@@ -396,7 +396,7 @@ export async function POST(request: Request) {
     versionId = version.id;
     const disclaimer = priceType === "fixed"
       ? null
-      : optionalText(body?.priceDisclaimer, 1000);
+      : optionalText(body.priceDisclaimer, 1000);
     const reviewed = await ctx.supabase.rpc("review_change_order_version", {
       p_organization_id: ctx.organizationId,
       p_version_id: versionId,
@@ -477,7 +477,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Åtgärden stöds inte." }, { status: 400 });
   }
 
-  const validDays = Math.trunc(Number(body?.validDays ?? 14));
+  const validDays = Math.trunc(Number(body.validDays ?? 14));
   if (!Number.isInteger(validDays) || validDays < 1 || validDays > 30) {
     return Response.json(
       { error: "Giltighetstiden måste vara 1–30 dagar." },
