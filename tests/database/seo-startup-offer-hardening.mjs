@@ -61,8 +61,10 @@ test("startup application is pending until separately verified", () => {
   assert.match(startupMigration, /benefit_plan_slug text not null default 'time-payroll'/);
   assert.match(startupMigration, /benefit_months smallint not null default 6/);
   assert.match(startupMigration, /No benefit is activated until/i);
-  assert.match(startupMigration, /provision_bynex_organization/);
+  assert.match(startupMigration, /provision_bynex_organization_v2/);
+  assert.match(startupMigration, /drop function if exists public\.provision_bynex_organization/);
   assert.match(startupMigration, /p_startup_offer_requested boolean default false/);
+  assert.match(onboarding, /supabase\.rpc\("provision_bynex_organization_v2"/);
   assert.match(onboarding, /p_startup_offer_requested: startupOfferRequested/);
   assert.match(onboarding, /ansök om 6 månader Bynex Företag/i);
   assert.match(signup, /6 månader Bynex Företag/i);
