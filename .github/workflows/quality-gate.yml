@@ -124,6 +124,9 @@ jobs:
       - name: Validate migration history
         run: npm run test:migrations
 
+      - name: Validate homepage SEO and trial policy
+        run: npm run test:seo
+
       - name: Typecheck
         run: npm run typecheck
 
