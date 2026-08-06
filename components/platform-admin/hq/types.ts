@@ -64,6 +64,22 @@ export type SelectedCustomer = {
   support_cases: JsonRecord[];
 };
 
+export type HqCosts = {
+  restricted: boolean;
+  summary: {
+    current_month_inc_vat: number | string;
+    current_year_inc_vat: number | string;
+    active_monthly_commitment_ex_vat: number | string;
+    projected_12_months_ex_vat: number | string;
+    upcoming_30_days_inc_vat: number | string;
+    unpaid_inc_vat: number | string;
+    active_commitments: number;
+  };
+  by_category: JsonRecord[];
+  commitments: JsonRecord[];
+  entries: JsonRecord[];
+};
+
 export type HqData = {
   role: string;
   summary: {
@@ -99,6 +115,7 @@ export type HqData = {
     delivery_jobs: JsonRecord[];
     organization_balances: JsonRecord[];
   };
+  costs: HqCosts;
   management: {
     staff: JsonRecord[];
     candidate_users: JsonRecord[];
@@ -115,6 +132,7 @@ export type HqTab =
   | "pricing"
   | "contracts"
   | "billing"
+  | "costs"
   | "support"
   | "catalog"
   | "staff"
