@@ -1,0 +1,126 @@
+name: Integrate customer workforce workspace
+
+on:
+  push:
+    branches:
+      - agent/customer-workforce-profitability-v1
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/customer-workforce-profitability-v1
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Integrate the workspace into HQ
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          customer_path = Path("components/platform-admin/hq/HqCustomerWorkspace.tsx")
+          customer = customer_path.read_text()
+          workforce_import = 'import HqCustomerWorkforceWorkspace from "./HqCustomerWorkforceWorkspace";\n'
+          import_marker = 'import type { HqData } from "./types";\n'
+          if workforce_import not in customer:
+              if import_marker not in customer:
+                  raise SystemExit("HqCustomerWorkspace import marker not found")
+              customer = customer.replace(import_marker, workforce_import + import_marker, 1)
+
+          workforce_panel = '''\n      <HqCustomerWorkforceWorkspace\n        organizationId={selectedOrganizationId}\n        organizationName={asText(organization.name)}\n        runAction={runAction}\n        busy={busy}\n      />\n'''
+          workforce_marker = '''\n      <div className="grid gap-5 xl:grid-cols-2">\n        <Panel title="Abonnemang och användare" eyebrow="Bynex Billing">'''
+          if workforce_panel.strip() not in customer:
+              if workforce_marker not in customer:
+                  raise SystemExit("HqCustomerWorkspace insertion marker not found")
+              customer = customer.replace(
+                  workforce_marker,
+                  workforce_panel + workforce_marker,
+                  1,
+              )
+          customer_path.write_text(customer)
+
+          hq_path = Path("components/platform-admin/PlatformHqWorkspaceV3.tsx")
+          hq = hq_path.read_text()
+          smart_price_old = '''  {\n    id: "pricing",\n    label: "Smart Price",\n    description: "Prisförslag i exakta kronor",\n    icon: Sparkles,\n    customerRequired: true,\n    roles: ["platform_owner", "platform_admin", "sales", "finance", "support"],\n  },'''
+          smart_price_new = '''  {\n    id: "pricing",\n    label: "Smart Price",\n    description: "Fristående pris- och marginalverktyg",\n    icon: Sparkles,\n    roles: ["platform_owner", "platform_admin", "sales", "finance", "support"],\n  },'''
+          if smart_price_old in hq:
+              hq = hq.replace(smart_price_old, smart_price_new, 1)
+          elif smart_price_new not in hq:
+              raise SystemExit("Smart Price navigation marker not found")
+          hq_path.write_text(hq)
+
+          pricing_path = Path("components/platform-admin/hq/HqPricingContractsWorkspace.tsx")
+          pricing = pricing_path.read_text()
+          blocking = '''    if (!selectedOrganizationId) {\n      return <Empty>Välj en kund innan ett företagspris skapas.</Empty>;\n    }\n'''
+          pricing = pricing.replace(blocking, "", 1)
+
+          title_old = '''                Företagspris för {asText(organization.name)}'''
+          title_new = '''                {selectedOrganizationId\n                  ? `Företagspris för ${asText(organization.name)}`\n                  : "Fristående intern priskalkyl"}'''
+          if title_old in pricing:
+              pricing = pricing.replace(title_old, title_new, 1)
+          elif title_new not in pricing:
+              raise SystemExit("Smart Price title marker not found")
+
+          plan_old = '''              <p className="mt-1 font-semibold">{asText(subscription.plan_name, "Ej vald")}</p>'''
+          plan_new = '''              <p className="mt-1 font-semibold">\n                {selectedOrganizationId\n                  ? asText(subscription.plan_name, "Ej vald")\n                  : selectedPlan?.name ?? "Ej vald"}\n              </p>'''
+          if plan_old in pricing:
+              pricing = pricing.replace(plan_old, plan_new, 1)
+          elif plan_new not in pricing:
+              raise SystemExit("Smart Price plan marker not found")
+
+          pricing = pricing.replace(
+              '{canPrice && (\n                  <button',
+              '{canPrice && selectedOrganizationId && (\n                  <button',
+              1,
+          )
+
+          proposals_marker = '''        <Panel title="Sparade prisförslag" eyebrow="Affärshistorik">\n          <div className="grid gap-3 lg:grid-cols-2">'''
+          proposals_new = '''        <Panel title="Sparade prisförslag" eyebrow="Affärshistorik">\n          <div className="grid gap-3 lg:grid-cols-2">\n            {!selectedOrganizationId && (\n              <Empty>\n                Smart Price fungerar utan vald kund. Välj ett företag först när\n                kalkylen ska sparas som ett verkligt kundförslag eller användas i avtal.\n              </Empty>\n            )}'''
+          if proposals_marker in pricing:
+              pricing = pricing.replace(proposals_marker, proposals_new, 1)
+          elif proposals_new not in pricing:
+              raise SystemExit("Smart Price proposal marker not found")
+          pricing_path.write_text(pricing)
+
+          migration_path = Path(
+              "supabase/migrations/20260806174000_customer_workforce_profitability.sql"
+          )
+          migration = migration_path.read_text().replace(
+              "'recommendedMinimumRateExVat'",
+              "'recommendedRateExVat'",
+          )
+          migration_path.write_text(migration)
+
+          workflow_path = Path(".github/workflows/patch-customer-workforce-v1.yml")
+          workflow_path.unlink()
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Validate migrations
+        run: npm run test:migrations
+
+      - name: Build
+        run: npm run build
+
+      - name: Commit integrated release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: integrate customer workforce profitability into Kund 360 [hq-workforce-patch]"
+          git push origin HEAD:agent/customer-workforce-profitability-v1
