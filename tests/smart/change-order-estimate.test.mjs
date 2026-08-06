@@ -37,13 +37,13 @@ function wallAnswers(overrides = {}) {
   };
 }
 
-function learningSample(index = 0) {
+function learningSample() {
   return {
     category: "wall",
     measuredUnits: 12,
-    actualLaborHours: 8 + index * 0.1,
+    actualLaborHours: 6,
     actualMaterialSellExVat: 0,
-    finalPriceExVat: 8_500 + index * 50,
+    finalPriceExVat: 12_000,
   };
 }
 
@@ -147,7 +147,7 @@ test("raises company-history influence throughout the first eight outcomes", () 
   const withEight = buildChangeOrderEstimate(
     base({
       answers,
-      history: Array.from({ length: 8 }, (_, index) => learningSample(index)),
+      history: Array.from({ length: 8 }, () => learningSample()),
     }),
   );
 
@@ -156,7 +156,7 @@ test("raises company-history influence throughout the first eight outcomes", () 
   assert.ok(withOne.confidence > withoutHistory.confidence);
   assert.ok(withEight.explanation.includes("fullt kalibrerad"));
   assert.ok(
-    Math.abs(withEight.estimatedPriceExVat - withoutHistory.estimatedPriceExVat) >=
+    Math.abs(withEight.estimatedPriceExVat - withoutHistory.estimatedPriceExVat) >
       Math.abs(withOne.estimatedPriceExVat - withoutHistory.estimatedPriceExVat),
   );
 });
