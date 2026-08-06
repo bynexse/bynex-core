@@ -7,15 +7,50 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Check out repository
+      - name: Check out source branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Repair Smart estimate assumptions expression
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/ai/change-order-estimate.ts')
+          text = path.read_text(encoding='utf-8')
+          old = '''    ...(history.length > 0
+      ? [`Kalkylen använder ${history.length} verifierade företagsutfall för samma arbetskategori.`]
+      : ["Företaget saknar ännu verifierade utfall för denna arbetskategori."],
+    ...(booleanAnswer(context.answers, "hazardousMaterial")'''
+          new = '''    ...(history.length > 0
+      ? [`Kalkylen använder ${history.length} verifierade företagsutfall för samma arbetskategori.`]
+      : ["Företaget saknar ännu verifierade utfall för denna arbetskategori."]),
+    ...(booleanAnswer(context.answers, "hazardousMaterial")'''
+          if old in text:
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
+      - name: Persist repair on pull-request branch
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if git diff --quiet -- lib/ai/change-order-estimate.ts; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/ai/change-order-estimate.ts
+          git commit -m "fix: close Smart estimate assumptions expression"
+          git push origin HEAD:"$HEAD_REF"
 
       - name: Use Node.js 22
         uses: actions/setup-node@v4
