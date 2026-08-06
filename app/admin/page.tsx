@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import PlatformHqWorkspaceV2 from "@/components/platform-admin/PlatformHqWorkspaceV2";
 import { getHqConfig, HQ_COOKIE_NAME, verifyHqSession } from "@/lib/hq-auth";
@@ -33,5 +34,15 @@ export default async function PlatformAdminPage() {
   );
   if (!validHqSession) redirect("/admin/login");
 
-  return <PlatformHqWorkspaceV2 />;
+  return (
+    <>
+      <PlatformHqWorkspaceV2 />
+      <Link
+        href="/admin/kostnader"
+        className="fixed bottom-5 right-5 z-50 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-emerald-700"
+      >
+        Produktionskostnader
+      </Link>
+    </>
+  );
 }
