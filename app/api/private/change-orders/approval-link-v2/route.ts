@@ -219,6 +219,10 @@ export async function POST(request: Request) {
   }
 
   const normalizedDisclaimer = priceType === "fixed" ? null : priceDisclaimer;
+  const versionAssumptions =
+    priceType === "fixed" && priceDisclaimer
+      ? Array.from(new Set([...assumptions, priceDisclaimer]))
+      : assumptions;
   const { data: version, error: versionError } = await ctx.supabase
     .from("change_order_versions")
     .insert({
@@ -241,7 +245,7 @@ export async function POST(request: Request) {
       estimated_working_days: estimatedWorkingDays,
       proposed_start_date: proposedStartDate,
       proposed_end_date: proposedEndDate,
-      assumptions,
+      assumptions: versionAssumptions,
       exclusions,
       price_type: priceType,
       price_disclaimer: normalizedDisclaimer,
