@@ -18,6 +18,9 @@ export async function POST(request: Request) {
   const targetMarginPercent = numeric(body?.targetMarginPercent, 15);
   const overheadPerBillableHour = numeric(body?.overheadPerBillableHour, 0);
   const rateRoundingIncrement = numeric(body?.rateRoundingIncrement, 5);
+  const billingRateMode =
+    body?.billingRateMode === "individual_rates" ? "individual_rates" : "flat_rate";
+  const defaultBillRateExVat = numeric(body?.defaultBillRateExVat, 0);
 
   if (
     !isUuid(organizationId) ||
@@ -25,21 +28,24 @@ export async function POST(request: Request) {
     targetMarginPercent > 80 ||
     overheadPerBillableHour < 0 ||
     rateRoundingIncrement < 1 ||
-    rateRoundingIncrement > 1000
+    rateRoundingIncrement > 1000 ||
+    defaultBillRateExVat < 0
   ) {
     return Response.json(
-      { error: "Kontrollera företag, marginal, timomkostnad och avrundning." },
+      { error: "Kontrollera företag, marginal, timomkostnad, prisupplägg och avrundning." },
       { status: 400 },
     );
   }
 
   const { data, error } = await auth.supabase.rpc(
-    "platform_set_customer_labor_profitability",
+    "platform_set_customer_labor_profitability_v2",
     {
       p_organization_id: organizationId,
       p_target_margin_percent: targetMarginPercent,
       p_overhead_per_billable_hour: overheadPerBillableHour,
       p_rate_rounding_increment: rateRoundingIncrement,
+      p_billing_rate_mode: billingRateMode,
+      p_default_bill_rate_ex_vat: defaultBillRateExVat,
     },
   );
 
