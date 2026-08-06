@@ -143,6 +143,7 @@ export default function ChangeOrderTemplateFields({
       template.contentSchema.customer_context === "business"
       && !template.contentSchema.reference_only,
     ) ?? matchingTemplates[0];
+    if (!preferred) return;
     onChange(selectionFromTemplate(preferred));
   }, [loading, matchingTemplates, onChange, value.documentTemplateKey]);
 
