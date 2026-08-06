@@ -1,0 +1,77 @@
+name: Clarify company-selected hourly rate copy
+
+on:
+  push:
+    branches:
+      - agent/hq-team-customer-staff-smartprice-v1
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/hq-team-customer-staff-smartprice-v1
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Clarify advisory and selected rates
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("components/platform-admin/hq/HqCustomerMembersPanel.tsx")
+          text = path.read_text()
+          replacements = {
+              'if (selectedRate <= 0) return { label: "Företagets pris saknas", tone: "warning" as const };':
+                  'if (selectedRate <= 0) return { label: "Företaget har inte valt pris", tone: "warning" as const };',
+              'if (selectedRate < recommendedRate) return { label: "Under Bynex riktvärde", tone: "warning" as const };':
+                  'if (selectedRate < recommendedRate) return { label: "Valt pris ger lägre marginal än målet", tone: "warning" as const };',
+              'return { label: "Över Bynex riktvärde", tone: "good" as const };':
+                  'return { label: "Valt pris når målmarginalen", tone: "good" as const };',
+              'Bynex rekommenderar minst': 'Bynex riktpris för vald marginal',
+              '<p className="text-xs text-zinc-500">Företagets val</p>':
+                  '<p className="text-xs text-zinc-500">Företaget tar</p>',
+              'Direkt kostnad: {sek.format(asNumber(member.direct_cost_per_hour))}/h':
+                  'Kostar företaget: {sek.format(asNumber(member.direct_cost_per_hour))}/h',
+          }
+          for old, new in replacements.items():
+              if old not in text and new not in text:
+                  raise SystemExit(f"Marker not found: {old}")
+              text = text.replace(old, new)
+          path.write_text(text)
+
+          workflow = Path(".github/workflows/patch-hourly-rate-copy-once.yml")
+          workflow.unlink()
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Validate migrations
+        run: npm run test:migrations
+
+      - name: Build
+        run: npm run build
+
+      - name: Commit wording correction
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: clarify company-selected hourly pricing is advisory"
+          git push origin HEAD:agent/hq-team-customer-staff-smartprice-v1
