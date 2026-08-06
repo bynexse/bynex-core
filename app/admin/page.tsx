@@ -1,5 +1,8 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { UsersRound } from "lucide-react";
+
 import PlatformHqWorkspaceV3 from "@/components/platform-admin/PlatformHqWorkspaceV3";
 import { getHqConfig, HQ_COOKIE_NAME, verifyHqSession } from "@/lib/hq-auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -33,5 +36,15 @@ export default async function PlatformAdminPage() {
   );
   if (!validHqSession) redirect("/admin/login");
 
-  return <PlatformHqWorkspaceV3 />;
+  return (
+    <>
+      <PlatformHqWorkspaceV3 />
+      <Link
+        href="/admin/kundservice"
+        className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-emerald-800"
+      >
+        <UsersRound className="h-4 w-4" /> Kundservice
+      </Link>
+    </>
+  );
 }
