@@ -19,6 +19,7 @@ export default function OnboardingPage() {
   const [organizationNumber, setOrganizationNumber] = useState("");
   const [businessForm, setBusinessForm] = useState("");
   const [scope, setScope] = useState<BetaScope>("complete");
+  const [startupOfferRequested, setStartupOfferRequested] = useState(false);
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
   const [message, setMessage] = useState("");
 
@@ -45,11 +46,12 @@ export default function OnboardingPage() {
 
     setMessage("");
     setStatus("saving");
-    const { error } = await supabase.rpc("provision_beta_organization", {
+    const { error } = await supabase.rpc("provision_bynex_organization", {
       p_organization_name: organizationName.trim(),
       p_organization_number: normalizeSwedishOrganizationNumber(organizationNumber),
       p_business_form: businessForm,
       p_beta_scope: scope,
+      p_startup_offer_requested: startupOfferRequested,
     });
 
     if (error) {
@@ -163,6 +165,21 @@ export default function OnboardingPage() {
               </label>
             </div>
           </fieldset>
+
+          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm leading-6 text-emerald-950">
+            <input
+              type="checkbox"
+              checked={startupOfferRequested}
+              onChange={(event) => setStartupOfferRequested(event.target.checked)}
+              className="mt-1"
+            />
+            <span>
+              <strong className="block">Företaget är nystartat – ansök om 6 månader Bynex Företag</strong>
+              <span className="mt-1 block text-emerald-900/80">
+                Ansökan registreras nu men erbjudandet aktiveras först efter separat kontroll av organisationsnummer och registreringsdatum. Andra paket och tillvalsmoduler följer ordinarie pris.
+              </span>
+            </span>
+          </label>
 
           <div className="flex items-start gap-3 rounded-2xl border border-[#d8d8d5] bg-[#e8e8e6] p-4 text-sm leading-6 text-[#454950]">
             <Check className="mt-0.5 h-5 w-5 shrink-0 text-[#2f7d4d]" />
