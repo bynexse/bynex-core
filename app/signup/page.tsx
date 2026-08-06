@@ -62,10 +62,10 @@ export default function SignupPage() {
           <ArrowLeft className="h-4 w-4" /> Tillbaka
         </Link>
         <div className="mt-8"><Logo priority /></div>
-        <p className="mt-4 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.2em] text-[#454950]"><span className="h-2 w-2 rounded-full bg-[#2f7d4d]" />Öppen beta</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Skapa testkonto</h1>
+        <p className="mt-4 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.2em] text-[#454950]"><span className="h-2 w-2 rounded-full bg-[#2f7d4d]" />14 dagar kostnadsfritt</p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Skapa Bynex-konto</h1>
         <p className="mt-3 text-sm leading-6 text-zinc-600">
-          Prova Bynex kostnadsfritt i 30 dagar. Ditt företag och din data hålls helt åtskilda från andra testare.
+          Prova Bynex kostnadsfritt i 14 dagar. Efter e-postverifieringen anger du företagsnamn, organisationsnummer och företagsform.
         </p>
 
         {status === "sent" ? (
