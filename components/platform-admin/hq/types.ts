@@ -23,6 +23,9 @@ export type OrganizationRow = {
   plan_name: string | null;
   customer_number: string | null;
   billing_email: string | null;
+  primary_contact_name?: string | null;
+  primary_email?: string | null;
+  primary_phone?: string | null;
   auto_invoice_enabled: boolean | null;
   member_count: number;
   outstanding_inc_vat: number | string;
@@ -37,6 +40,7 @@ export type Plan = SmartPricePlan & {
   highlighted: boolean;
   active: boolean;
   sort_order: number;
+  module_names?: string[];
 };
 
 export type ProductModule = {
@@ -97,6 +101,7 @@ export type HqData = {
     open_support_cases?: number;
   };
   organizations: OrganizationRow[];
+  support_queue?: JsonRecord[];
   selected: SelectedCustomer | null;
   catalog: {
     plans: Plan[];
@@ -108,6 +113,7 @@ export type HqData = {
     }>;
   };
   billing: {
+    restricted?: boolean;
     discounts: JsonRecord[];
     manual_charges: JsonRecord[];
     payments: JsonRecord[];
