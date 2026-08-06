@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   buildChangeOrderEstimate,
   classifyEstimateCategory,
-} from "../../lib/ai/change-order-estimate.ts";
+} from "../../lib/ai/change-order-estimate-v2.ts";
 
 function base(overrides = {}) {
   return {
@@ -34,6 +34,16 @@ function wallAnswers(overrides = {}) {
     equipmentAllowanceExVat: 0,
     otherAllowanceExVat: 1_000,
     ...overrides,
+  };
+}
+
+function learningSample(index = 0) {
+  return {
+    category: "wall",
+    measuredUnits: 12,
+    actualLaborHours: 8 + index * 0.1,
+    actualMaterialSellExVat: 0,
+    finalPriceExVat: 8_500 + index * 50,
   };
 }
 
@@ -98,7 +108,7 @@ test("creates an explainable estimated price after required answers", () => {
   assert.ok(result.breakdown.some((line) => line.category === "material"));
 });
 
-test("uses only supplied company history and improves confidence", () => {
+test("uses company history from the first verified ÄTA outcome", () => {
   const answers = wallAnswers({
     wallBuild: "single",
     openings: 0,
@@ -107,28 +117,47 @@ test("uses only supplied company history and improves confidence", () => {
     otherAllowanceExVat: 0,
   });
   const withoutHistory = buildChangeOrderEstimate(base({ answers }));
-  const withHistory = buildChangeOrderEstimate(
+  const withFirstOutcome = buildChangeOrderEstimate(
+    base({ answers, history: [learningSample()] }),
+  );
+
+  assert.equal(withFirstOutcome.historySampleCount, 1);
+  assert.notEqual(
+    withFirstOutcome.estimatedPriceExVat,
+    withoutHistory.estimatedPriceExVat,
+  );
+  assert.ok(withFirstOutcome.explanation.includes("1 av 8"));
+  assert.ok(
+    withFirstOutcome.breakdown.some((line) => line.source === "company_history"),
+  );
+});
+
+test("raises company-history influence throughout the first eight outcomes", () => {
+  const answers = wallAnswers({
+    wallBuild: "single",
+    openings: 0,
+    materialIncluded: false,
+    materialAllowanceExVat: undefined,
+    otherAllowanceExVat: 0,
+  });
+  const withoutHistory = buildChangeOrderEstimate(base({ answers }));
+  const withOne = buildChangeOrderEstimate(
+    base({ answers, history: [learningSample()] }),
+  );
+  const withEight = buildChangeOrderEstimate(
     base({
       answers,
-      history: Array.from({ length: 8 }, (_, index) => ({
-        category: "wall",
-        measuredUnits: 12,
-        actualLaborHours: 8 + index * 0.1,
-        actualMaterialSellExVat: 0,
-        finalPriceExVat: 8_500 + index * 50,
-      })),
+      history: Array.from({ length: 8 }, (_, index) => learningSample(index)),
     }),
   );
 
-  assert.equal(withHistory.historySampleCount, 8);
-  assert.ok(withHistory.confidence > withoutHistory.confidence);
-  assert.notEqual(
-    withHistory.estimatedPriceExVat,
-    withoutHistory.estimatedPriceExVat,
-  );
-  assert.ok(withHistory.explanation.includes("verifierade utfall"));
+  assert.equal(withEight.historySampleCount, 8);
+  assert.ok(withEight.confidence > withOne.confidence);
+  assert.ok(withOne.confidence > withoutHistory.confidence);
+  assert.ok(withEight.explanation.includes("fullt kalibrerad"));
   assert.ok(
-    withHistory.breakdown.some((line) => line.source === "company_history"),
+    Math.abs(withEight.estimatedPriceExVat - withoutHistory.estimatedPriceExVat) >=
+      Math.abs(withOne.estimatedPriceExVat - withoutHistory.estimatedPriceExVat),
   );
 });
 
