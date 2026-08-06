@@ -50,7 +50,7 @@ revoke all on function private.normalize_swedish_organization_number(text)
 
 drop function if exists public.provision_beta_organization(text, text, text);
 
-create function public.provision_beta_organization(
+create or replace function public.provision_beta_organization(
   p_organization_name text,
   p_organization_number text,
   p_business_form text,
