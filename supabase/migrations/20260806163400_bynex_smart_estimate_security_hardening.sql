@@ -52,6 +52,10 @@ alter table public.smart_estimate_sessions
 
 drop policy if exists smart_estimate_sessions_update
   on public.smart_estimate_sessions;
+drop policy if exists smart_estimate_sessions_management_update
+  on public.smart_estimate_sessions;
+drop policy if exists smart_estimate_sessions_supervisor_update
+  on public.smart_estimate_sessions;
 
 create policy smart_estimate_sessions_management_update
 on public.smart_estimate_sessions
