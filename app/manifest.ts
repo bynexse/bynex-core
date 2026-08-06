@@ -19,7 +19,7 @@ export default function manifest(): MetadataRoute.Manifest {
         src: "/brand/bynex-mark.png",
         sizes: "1254x1254",
         type: "image/png",
-        purpose: "any maskable",
+        purpose: "any",
       },
     ],
   };
