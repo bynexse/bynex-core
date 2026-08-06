@@ -1,18 +1,66 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const siteTitle = "Bynex – byggprogram för tid, projekt, ÄTA och fakturering";
+const siteDescription =
+  "Bynex är ett svenskt byggprogram för tidrapportering, projektstyrning, byggdagbok, ÄTA, offert, fakturering, löneunderlag, material och bokföring i ett system.";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.bynex.se"),
-  title: "Bynex | Hela företaget i ett system",
-  description: "Bynex samlar tid, personal, projekt, offert, ÄTA, material, fakturering, bokföring och fastighet i ett sammanhängande arbetsflöde.",
+  applicationName: "Bynex",
+  title: {
+    default: siteTitle,
+    template: "%s | Bynex",
+  },
+  description: siteDescription,
+  alternates: {
+    canonical: "/",
+  },
+  authors: [{ name: "Bynex" }],
+  creator: "Bynex",
+  publisher: "Bynex",
+  category: "Affärssystem för byggföretag",
   icons: {
     icon: "/brand/bynex-mark.png",
     apple: "/brand/bynex-mark.png",
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
-    title: "Bynex | Hela företaget i ett system",
-    description: "Mindre administration, bättre kontroll och snabbare väg från utfört arbete till betald faktura.",
+    type: "website",
+    locale: "sv_SE",
+    url: "/",
+    siteName: "Bynex",
+    title: siteTitle,
+    description: siteDescription,
+    images: [
+      {
+        url: "/brand/bynex-wordmark.png",
+        width: 2172,
+        height: 724,
+        alt: "Bynex – byggprogram för svenska byggföretag",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
     images: ["/brand/bynex-wordmark.png"],
+  },
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
   },
 };
 
