@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/smart-menu-business-form-v1
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -29,7 +32,7 @@ jobs:
 import LiveAccountingIntegrationsModule from "@/components/modules/accounting/LiveAccountingIntegrationsModule";
 import LiveYearEndModule from "@/components/modules/bookkeeping/LiveYearEndModule";
 import LiveSoleTraderModule from "@/components/modules/sole-trader/LiveSoleTraderModule";'''
-          new_import = '''import BynexBookkeepingWorkspace from "@/components/modules/bookkeeping/BynexBookkeepingWorkspace";'''
+          new_import = 'import BynexBookkeepingWorkspace from "@/components/modules/bookkeeping/BynexBookkeepingWorkspace";'
           if old_imports not in text:
               raise SystemExit('Bookkeeping import block not found')
           text = text.replace(old_imports, new_import, 1)
