@@ -1,37 +1,11 @@
 "use client";
 
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-import { BriefcaseBusiness, CalendarDays, LockKeyhole, Pencil, X } from "lucide-react";
-import { Badge } from "@/components/ui/core";
+import { BriefcaseBusiness, Pencil, X } from "lucide-react";
 
-type Employment = {
-  employment_number: string | null;
-  employment_form: "permanent" | "probation" | "special_fixed" | "temporary_substitute" | "seasonal";
-  employment_starts_on: string | null;
-  employment_ends_on: string | null;
-  employment_percentage: number | string;
-  weekly_hours: number | string;
-  vacation_days_per_year: number | string;
-  collective_agreement: string | null;
-  role_description: string | null;
-  notice_period_days: number | null;
-  employment_terms_reference: string | null;
-  pay_frequency: "monthly" | "hourly" | "biweekly" | "weekly";
-  benefits_summary: string | null;
-  overtime_terms_reference: string | null;
-  cost_center: string | null;
-  workplace: string | null;
-  updated_at: string;
-};
-
-type EmploymentData = {
-  worker: { id: string; full_name: string; email: string | null; phone: string | null; job_title: string | null };
-  employment: Employment | null;
-  taxSettings: { tax_form: string; tax_table: number | null; tax_column: number | null; main_employer: boolean; valid_from: string } | null;
-  leaveBalance: { remaining_days: number | string; used_days: number | string; planned_days: number | string; balance_year: number } | null;
-  sensitiveSetup: { statusAvailable: boolean; personalIdentityConfigured: boolean | null; paymentAccountConfigured: boolean | null };
-  capabilities: { employmentWritable: boolean; taxSettingsWritable: boolean; leaveBalanceWritable: boolean; secureIdentityWriterAvailable: boolean; securePaymentWriterAvailable: boolean };
-};
+import SensitivePayrollPanel from "@/components/modules/people/SensitivePayrollPanel";
+import TaxVacationPanel from "@/components/modules/people/TaxVacationPanel";
+import type { Employment, EmploymentData } from "@/components/modules/people/employment-types";
 
 const employmentFormLabels: Record<Employment["employment_form"], string> = {
   permanent: "Tillsvidare",
@@ -47,11 +21,6 @@ const payFrequencyLabels: Record<Employment["pay_frequency"], string> = {
   biweekly: "Varannan vecka",
   weekly: "Veckolön",
 };
-
-function statusBadge(configured: boolean | null, available: boolean) {
-  if (!available) return <Badge tone="warning">Säker tjänst saknas</Badge>;
-  return <Badge tone={configured ? "success" : "neutral"}>{configured ? "Konfigurerat" : "Inte konfigurerat"}</Badge>;
-}
 
 export default function EmploymentPanel({
   workerId,
@@ -93,6 +62,7 @@ export default function EmploymentPanel({
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
+    setError(null);
     const response = await fetch("/api/private/people/employment", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -118,46 +88,67 @@ export default function EmploymentPanel({
     <>
       <div className="rounded-2xl bg-white p-4">
         <div className="flex items-center justify-between gap-3">
-          <p className="flex items-center gap-2 text-sm font-semibold"><BriefcaseBusiness className="h-4 w-4" /> Anställningsvillkor</p>
-          {data.capabilities.employmentWritable && <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1 text-xs font-semibold"><Pencil className="h-3.5 w-3.5" /> Redigera</button>}
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            <BriefcaseBusiness className="h-4 w-4" /> Anställningsvillkor
+          </p>
+          {data.capabilities.employmentWritable && (
+            <button
+              type="button"
+              onClick={() => { setError(null); setEditing(true); }}
+              className="inline-flex items-center gap-1 text-xs font-semibold"
+            >
+              <Pencil className="h-3.5 w-3.5" /> Redigera
+            </button>
+          )}
         </div>
         {!data.capabilities.employmentWritable ? (
-          <p className="mt-3 rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-800">Anställningsregistret behöver installeras innan villkor kan sparas.</p>
+          <p className="mt-3 rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-800">
+            Anställningsregistret behöver installeras innan villkor kan sparas.
+          </p>
         ) : employment ? (
           <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
             <div><dt className="text-zinc-500">Form</dt><dd className="font-semibold">{employmentFormLabels[employment.employment_form]}</dd></div>
             <div><dt className="text-zinc-500">Omfattning</dt><dd className="font-semibold">{Number(employment.employment_percentage)} %</dd></div>
             <div><dt className="text-zinc-500">Veckoarbetstid</dt><dd className="font-semibold">{Number(employment.weekly_hours)} timmar</dd></div>
             <div><dt className="text-zinc-500">Semester</dt><dd className="font-semibold">{Number(employment.vacation_days_per_year)} dagar/år</dd></div>
+            <div><dt className="text-zinc-500">Löneform</dt><dd className="font-semibold">{payFrequencyLabels[employment.pay_frequency]}</dd></div>
+            <div><dt className="text-zinc-500">Anställningsnummer</dt><dd className="font-semibold">{employment.employment_number ?? "Saknas"}</dd></div>
             <div className="col-span-2"><dt className="text-zinc-500">Arbetsplats</dt><dd className="font-semibold">{employment.workplace ?? "Inte registrerad"}</dd></div>
           </dl>
-        ) : <p className="mt-3 text-sm text-zinc-500">Inga anställningsvillkor är registrerade.</p>}
+        ) : (
+          <p className="mt-3 text-sm text-zinc-500">Inga anställningsvillkor är registrerade.</p>
+        )}
       </div>
 
-      <div className="rounded-2xl bg-white p-4">
-        <p className="flex items-center gap-2 text-sm font-semibold"><CalendarDays className="h-4 w-4" /> Lön, skatt och semester</p>
-        <div className="mt-3 space-y-2 text-sm">
-          <div className="flex justify-between gap-3"><span className="text-zinc-500">Skatteinställning</span><span className="font-semibold">{data.taxSettings ? `${data.taxSettings.tax_form}${data.taxSettings.tax_table ? ` · tabell ${data.taxSettings.tax_table}` : ""}` : "Saknas"}</span></div>
-          <div className="flex justify-between gap-3"><span className="text-zinc-500">Kvarvarande semester</span><span className="font-semibold">{data.leaveBalance ? `${Number(data.leaveBalance.remaining_days)} dagar` : "Ej beräknad"}</span></div>
-        </div>
-        <p className="mt-3 text-xs leading-5 text-zinc-500">Skatt och semestersaldo visas från löneunderlaget. Säker skrivfunktion är ännu inte ansluten här.</p>
-      </div>
+      <TaxVacationPanel
+        workerId={workerId}
+        employment={employment}
+        taxSettings={data.taxSettings}
+        leaveBalance={data.leaveBalance}
+        capabilities={data.capabilities}
+        notify={notify}
+        onSaved={load}
+      />
 
-      <div className="rounded-2xl bg-white p-4">
-        <p className="flex items-center gap-2 text-sm font-semibold"><LockKeyhole className="h-4 w-4" /> Känsliga löneuppgifter</p>
-        <div className="mt-3 space-y-3 text-sm">
-          <div className="flex items-center justify-between gap-3"><span>Personnummer</span>{statusBadge(data.sensitiveSetup.personalIdentityConfigured, data.sensitiveSetup.statusAvailable)}</div>
-          <div className="flex items-center justify-between gap-3"><span>Utbetalningskonto</span>{statusBadge(data.sensitiveSetup.paymentAccountConfigured, data.sensitiveSetup.statusAvailable)}</div>
-        </div>
-        <p className="mt-3 text-xs leading-5 text-zinc-500">Bynex visar bara konfigurationsstatus. Personnummer och bankkonto får endast skrivas via en kommande krypterad tjänst.</p>
-      </div>
+      <SensitivePayrollPanel
+        workerId={workerId}
+        setup={data.sensitiveSetup}
+        capabilities={data.capabilities}
+        notify={notify}
+        onSaved={load}
+      />
 
       {editing && (
         <div className="fixed inset-0 z-[80] flex justify-end bg-black/35">
           <div className="h-full w-full max-w-2xl overflow-y-auto bg-white p-6 shadow-2xl sm:p-8">
             <div className="flex items-center justify-between">
-              <div><p className="text-sm font-semibold text-emerald-700">Personal</p><h2 className="mt-1 text-3xl font-semibold">Anställningsuppgifter</h2></div>
-              <button onClick={() => setEditing(false)} className="rounded-xl p-2 hover:bg-zinc-100" aria-label="Stäng"><X className="h-5 w-5" /></button>
+              <div>
+                <p className="text-sm font-semibold text-emerald-700">Personal & UE</p>
+                <h2 className="mt-1 text-3xl font-semibold">Anställningsuppgifter</h2>
+              </div>
+              <button type="button" onClick={() => setEditing(false)} className="rounded-xl p-2 hover:bg-zinc-100" aria-label="Stäng">
+                <X className="h-5 w-5" />
+              </button>
             </div>
             {error && <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
             <form key={`${workerId}-${employment?.updated_at ?? "new"}`} onSubmit={save} className="mt-8 space-y-5">

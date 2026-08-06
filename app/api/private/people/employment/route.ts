@@ -3,10 +3,14 @@ import { requireSupabaseUser } from "@/lib/supabase/require-user";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const employmentRoles = new Set(["owner", "admin", "office", "hr", "payroll"]);
+const sensitivePayrollRoles = new Set(["owner", "admin", "hr", "payroll"]);
 const employmentForms = new Set(["permanent", "probation", "special_fixed", "temporary_substitute", "seasonal"]);
 const payFrequencies = new Set(["monthly", "hourly", "biweekly", "weekly"]);
+const taxForms = new Set(["A", "F", "FA", "SINK", "unknown"]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+type DatabaseError = { code?: string; message?: string };
 
 async function employmentContext() {
   const auth = await requireSupabaseUser("time_payroll");
@@ -34,7 +38,12 @@ async function employmentContext() {
     return { ok: false as const, response: Response.json({ error: "Behörighet till anställningsvillkor saknas." }, { status: 403 }) };
   }
 
-  return { ok: true as const, supabase: auth.supabase, organizationId: profile.current_organization_id };
+  return {
+    ok: true as const,
+    supabase: auth.supabase,
+    organizationId: profile.current_organization_id,
+    role: membership.role,
+  };
 }
 
 function databaseFeatureMissing(code: string | undefined) {
@@ -42,11 +51,17 @@ function databaseFeatureMissing(code: string | undefined) {
 }
 
 function optionalText(value: unknown, maxLength: number) {
-  if (value === null || value === undefined || value === "") return null;
+  if (value === null || value === undefined) return null;
   if (typeof value !== "string") return undefined;
   const normalized = value.trim();
-  if (!normalized || normalized.length > maxLength) return undefined;
-  return normalized;
+  if (!normalized) return null;
+  return normalized.length <= maxLength ? normalized : undefined;
+}
+
+function requiredText(value: unknown, minimum: number, maximum: number) {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  return normalized.length >= minimum && normalized.length <= maximum ? normalized : undefined;
 }
 
 function optionalDate(value: unknown) {
@@ -54,9 +69,29 @@ function optionalDate(value: unknown) {
   return typeof value === "string" && datePattern.test(value) ? value : undefined;
 }
 
+function requiredDate(value: unknown) {
+  return typeof value === "string" && datePattern.test(value) ? value : undefined;
+}
+
 function numberInRange(value: unknown, minimum: number, maximum: number) {
   const parsed = typeof value === "number" ? value : typeof value === "string" && value.trim() ? Number(value) : Number.NaN;
   return Number.isFinite(parsed) && parsed >= minimum && parsed <= maximum ? parsed : undefined;
+}
+
+function optionalNumberInRange(value: unknown, minimum: number, maximum: number) {
+  if (value === null || value === undefined || value === "") return null;
+  return numberInRange(value, minimum, maximum);
+}
+
+function databaseErrorResponse(error: DatabaseError, fallback: string) {
+  if (databaseFeatureMissing(error.code)) {
+    return Response.json({ error: "Funktionen behöver installeras innan uppgifterna kan sparas.", setupRequired: true }, { status: 503 });
+  }
+  if (error.code === "42501") return Response.json({ error: "Behörighet saknas." }, { status: 403 });
+  if (error.code === "P0002") return Response.json({ error: error.message ?? "Medarbetaren hittades inte." }, { status: 404 });
+  if (error.code === "22023") return Response.json({ error: error.message ?? "Kontrollera uppgifterna och försök igen." }, { status: 400 });
+  if (error.code === "23505") return Response.json({ error: error.message ?? "Uppgiften används redan." }, { status: 409 });
+  return Response.json({ error: fallback }, { status: 409 });
 }
 
 async function requireWorker(
@@ -94,24 +129,28 @@ export async function GET(request: Request) {
       .select("balance_year,leave_type,opening_days,earned_days,used_days,planned_days,remaining_days,calculated_at,calculation_version")
       .eq("organization_id", context.organizationId).eq("worker_id", workerId)
       .eq("balance_year", currentYear).eq("leave_type", "vacation").maybeSingle(),
-    context.supabase.rpc("get_worker_employment_setup", { requested_organization_id: context.organizationId }),
+    context.supabase.rpc("get_worker_sensitive_payroll_status", { requested_worker_id: workerId }),
   ]);
 
   const employmentAvailable = !databaseFeatureMissing(employmentResult.error?.code);
+  const taxAvailable = !databaseFeatureMissing(taxResult.error?.code);
+  const leaveAvailable = !databaseFeatureMissing(leaveResult.error?.code);
+  const sensitiveAvailable = !databaseFeatureMissing(sensitiveResult.error?.code) && !sensitiveResult.error;
+
   if (employmentResult.error && employmentAvailable) {
     return Response.json({ error: "Anställningsvillkoren kunde inte hämtas." }, { status: 500 });
   }
-  if (taxResult.error && taxResult.error.code !== "42501") {
+  if (taxResult.error && taxAvailable && taxResult.error.code !== "42501") {
     return Response.json({ error: "Skatteinställningarna kunde inte hämtas." }, { status: 500 });
   }
-  if (leaveResult.error && leaveResult.error.code !== "42501") {
+  if (leaveResult.error && leaveAvailable && leaveResult.error.code !== "42501") {
     return Response.json({ error: "Semestersaldot kunde inte hämtas." }, { status: 500 });
   }
 
-  const sensitiveAvailable = !databaseFeatureMissing(sensitiveResult.error?.code) && !sensitiveResult.error;
-  const sensitive = sensitiveAvailable
-    ? (sensitiveResult.data ?? []).find((row: { worker_id: string }) => row.worker_id === workerId) ?? null
+  const sensitive = sensitiveAvailable && sensitiveResult.data && typeof sensitiveResult.data === "object"
+    ? sensitiveResult.data as Record<string, unknown>
     : null;
+  const canManageSensitive = sensitivePayrollRoles.has(context.role);
 
   return Response.json({
     worker: workerResult.data,
@@ -120,15 +159,21 @@ export async function GET(request: Request) {
     leaveBalance: leaveResult.error ? null : leaveResult.data,
     sensitiveSetup: {
       statusAvailable: sensitiveAvailable,
-      personalIdentityConfigured: sensitive?.personal_identity_configured ?? null,
-      paymentAccountConfigured: sensitive?.payment_account_configured ?? null,
+      personalIdentityConfigured: sensitive?.personalIdentityConfigured ?? null,
+      personalIdentityLastFour: sensitive?.personalIdentityLastFour ?? null,
+      personalIdentityCountryCode: sensitive?.personalIdentityCountryCode ?? null,
+      paymentAccountConfigured: sensitive?.paymentAccountConfigured ?? null,
+      paymentAccountLastFour: sensitive?.paymentAccountLastFour ?? null,
+      paymentAccountCountryCode: sensitive?.paymentAccountCountryCode ?? null,
+      paymentAccountBic: sensitive?.paymentAccountBic ?? null,
     },
     capabilities: {
       employmentWritable: employmentAvailable,
-      taxSettingsWritable: false,
-      leaveBalanceWritable: false,
-      secureIdentityWriterAvailable: false,
-      securePaymentWriterAvailable: false,
+      taxSettingsWritable: taxAvailable,
+      leaveBalanceWritable: leaveAvailable,
+      secureIdentityWriterAvailable: sensitiveAvailable && canManageSensitive,
+      securePaymentWriterAvailable: sensitiveAvailable && canManageSensitive,
+      sensitiveRevealAvailable: sensitiveAvailable && canManageSensitive,
     },
   });
 }
@@ -138,7 +183,7 @@ export async function PATCH(request: Request) {
   if (!context.ok) return context.response;
   const body = await readJsonObject(request);
   const workerId = typeof body?.workerId === "string" ? body.workerId : "";
-  const fullName = typeof body?.fullName === "string" ? body.fullName.trim() : "";
+  const fullName = requiredText(body?.fullName, 2, 160);
   const email = optionalText(body?.email, 254);
   const phone = optionalText(body?.phone, 40);
   const jobTitle = optionalText(body?.jobTitle, 120);
@@ -151,8 +196,7 @@ export async function PATCH(request: Request) {
   const vacationDays = numberInRange(body?.vacationDaysPerYear, 0, 366);
   const collectiveAgreement = optionalText(body?.collectiveAgreement, 160);
   const roleDescription = optionalText(body?.roleDescription, 2000);
-  const noticePeriodDays = body?.noticePeriodDays === "" || body?.noticePeriodDays === null || body?.noticePeriodDays === undefined
-    ? null : numberInRange(body.noticePeriodDays, 0, 730);
+  const noticePeriodDays = optionalNumberInRange(body?.noticePeriodDays, 0, 730);
   const termsReference = optionalText(body?.employmentTermsReference, 240);
   const payFrequency = typeof body?.payFrequency === "string" ? body.payFrequency : "";
   const benefitsSummary = optionalText(body?.benefitsSummary, 1000);
@@ -160,7 +204,7 @@ export async function PATCH(request: Request) {
   const costCenter = optionalText(body?.costCenter, 120);
   const workplace = optionalText(body?.workplace, 160);
 
-  if (!uuidPattern.test(workerId) || fullName.length < 2 || fullName.length > 160
+  if (!uuidPattern.test(workerId) || fullName === undefined
     || email === undefined || phone === undefined || jobTitle === undefined || employmentNumber === undefined
     || startsOn === undefined || endsOn === undefined || percentage === undefined || weeklyHours === undefined
     || vacationDays === undefined || collectiveAgreement === undefined || roleDescription === undefined
@@ -198,12 +242,138 @@ export async function PATCH(request: Request) {
     requested_workplace: workplace,
   });
 
-  if (error) {
-    if (databaseFeatureMissing(error.code)) {
-      return Response.json({ error: "Anställningsregistret behöver installeras innan uppgifterna kan sparas.", setupRequired: true }, { status: 503 });
-    }
-    return Response.json({ error: error.code === "42501" ? "Behörighet saknas." : "Anställningsuppgifterna kunde inte sparas." }, { status: error.code === "42501" ? 403 : 409 });
+  if (error) return databaseErrorResponse(error, "Anställningsuppgifterna kunde inte sparas.");
+  return Response.json({ success: true });
+}
+
+export async function POST(request: Request) {
+  const context = await employmentContext();
+  if (!context.ok) return context.response;
+  const body = await readJsonObject(request);
+  const action = typeof body?.action === "string" ? body.action : "";
+  const workerId = typeof body?.workerId === "string" ? body.workerId : "";
+
+  if (!uuidPattern.test(workerId)) {
+    return Response.json({ error: "Ogiltig medarbetare." }, { status: 400 });
   }
 
-  return Response.json({ success: true });
+  const workerResult = await requireWorker(context.supabase, context.organizationId, workerId);
+  if (workerResult.error || !workerResult.data) return Response.json({ error: "Medarbetaren hittades inte." }, { status: 404 });
+
+  if (action === "save_tax_settings") {
+    const taxForm = typeof body?.taxForm === "string" ? body.taxForm : "";
+    const taxTable = optionalNumberInRange(body?.taxTable, 1, 99);
+    const taxColumn = optionalNumberInRange(body?.taxColumn, 1, 6);
+    const adjustmentPercent = optionalNumberInRange(body?.adjustmentPercent, 0, 100);
+    const validFrom = requiredDate(body?.validFrom);
+    const validUntil = optionalDate(body?.validUntil);
+    const mainEmployer = body?.mainEmployer !== false;
+
+    if (!taxForms.has(taxForm) || taxTable === undefined || taxColumn === undefined
+      || adjustmentPercent === undefined || validFrom === undefined || validUntil === undefined
+      || (validUntil && validUntil < validFrom)) {
+      return Response.json({ error: "Kontrollera skatteinställningarna." }, { status: 400 });
+    }
+
+    const { data, error } = await context.supabase.rpc("save_worker_tax_settings", {
+      requested_worker_id: workerId,
+      requested_tax_form: taxForm,
+      requested_tax_table: taxTable,
+      requested_tax_column: taxColumn,
+      requested_adjustment_percent: adjustmentPercent,
+      requested_main_employer: mainEmployer,
+      requested_valid_from: validFrom,
+      requested_valid_until: validUntil,
+    });
+
+    if (error) return databaseErrorResponse(error, "Skatteinställningarna kunde inte sparas.");
+    return Response.json({ success: true, id: data });
+  }
+
+  if (action === "save_vacation_settings") {
+    const balanceYear = numberInRange(body?.balanceYear, 2000, 2200);
+    const vacationDaysPerYear = numberInRange(body?.vacationDaysPerYear, 0, 366);
+    const openingDays = numberInRange(body?.openingDays, 0, 10000);
+    const earnedDays = numberInRange(body?.earnedDays, 0, 10000);
+    const usedDays = numberInRange(body?.usedDays, 0, 10000);
+    const plannedDays = numberInRange(body?.plannedDays, 0, 10000);
+
+    if (balanceYear === undefined || vacationDaysPerYear === undefined
+      || openingDays === undefined || earnedDays === undefined
+      || usedDays === undefined || plannedDays === undefined) {
+      return Response.json({ error: "Kontrollera semesterinställningarna." }, { status: 400 });
+    }
+
+    const { data, error } = await context.supabase.rpc("save_worker_vacation_settings", {
+      requested_worker_id: workerId,
+      requested_balance_year: Math.trunc(balanceYear),
+      requested_vacation_days_per_year: vacationDaysPerYear,
+      requested_opening_days: openingDays,
+      requested_earned_days: earnedDays,
+      requested_used_days: usedDays,
+      requested_planned_days: plannedDays,
+    });
+
+    if (error) return databaseErrorResponse(error, "Semesterinställningarna kunde inte sparas.");
+    return Response.json({ success: true, data });
+  }
+
+  if (action === "save_sensitive_payroll") {
+    if (!sensitivePayrollRoles.has(context.role)) {
+      return Response.json({ error: "Endast ägare, administratör, HR eller lön får ändra uppgifterna." }, { status: 403 });
+    }
+
+    const purpose = requiredText(body?.purpose, 5, 500);
+    const updateIdentity = body?.updateIdentity === true;
+    const updatePayment = body?.updatePayment === true;
+    const personalIdentity = optionalText(body?.personalIdentity, 64);
+    const paymentAccount = optionalText(body?.paymentAccount, 80);
+    const identityCountryCode = requiredText(body?.identityCountryCode ?? "SE", 2, 2);
+    const bankCountryCode = requiredText(body?.bankCountryCode ?? "SE", 2, 2);
+    const bic = optionalText(body?.bic, 11);
+
+    if (purpose === undefined || identityCountryCode === undefined || bankCountryCode === undefined
+      || personalIdentity === undefined || paymentAccount === undefined || bic === undefined
+      || (!updateIdentity && !updatePayment)
+      || (updateIdentity && !personalIdentity)
+      || (updatePayment && !paymentAccount)) {
+      return Response.json({ error: "Kontrollera de känsliga löneuppgifterna och ange ett syfte." }, { status: 400 });
+    }
+
+    const { data, error } = await context.supabase.rpc("save_worker_sensitive_payroll_setup", {
+      requested_worker_id: workerId,
+      requested_update_identity: updateIdentity,
+      requested_personal_identity: personalIdentity,
+      requested_identity_country_code: identityCountryCode.toUpperCase(),
+      requested_update_payment: updatePayment,
+      requested_payment_account: paymentAccount,
+      requested_bank_country_code: bankCountryCode.toUpperCase(),
+      requested_bic: bic?.toUpperCase() ?? null,
+      requested_purpose: purpose,
+    });
+
+    if (error) return databaseErrorResponse(error, "De känsliga löneuppgifterna kunde inte sparas.");
+    return Response.json({ success: true, data });
+  }
+
+  if (action === "reveal_sensitive_payroll") {
+    if (!sensitivePayrollRoles.has(context.role)) {
+      return Response.json({ error: "Endast ägare, administratör, HR eller lön får visa uppgifterna." }, { status: 403 });
+    }
+
+    const purpose = requiredText(body?.purpose, 5, 500);
+    if (purpose === undefined) {
+      return Response.json({ error: "Ange varför uppgifterna behöver visas." }, { status: 400 });
+    }
+
+    const { data, error } = await context.supabase.rpc("reveal_worker_sensitive_payroll_setup", {
+      requested_worker_id: workerId,
+      requested_purpose: purpose,
+    });
+
+    if (error) return databaseErrorResponse(error, "De känsliga löneuppgifterna kunde inte visas.");
+    return Response.json({ success: true, data });
+  }
+
+  return Response.json({ error: "Ogiltig åtgärd." }, { status: 400 });
 }
