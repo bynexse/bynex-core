@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { UsersRound } from "lucide-react";
-import BynexDemo from "@/components/BynexDemo";
+import BynexWorkspaceV2 from "@/components/BynexWorkspaceV2";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { CompanyContext } from "@/lib/company-context";
@@ -26,7 +26,15 @@ export default async function BynexAppPage() {
   if (!profile?.current_organization_id) redirect("/onboarding");
 
   const organizationId = profile.current_organization_id;
-  const [organizationResult, membershipResult, subscriptionResult, entitlementsResult, moduleCatalogResult, modulePreferencesResult, platformStaffResult] = await Promise.all([
+  const [
+    organizationResult,
+    membershipResult,
+    subscriptionResult,
+    entitlementsResult,
+    moduleCatalogResult,
+    modulePreferencesResult,
+    platformStaffResult,
+  ] = await Promise.all([
     supabase
       .from("organizations")
       .select("id,name,organization_number,business_form,timezone,default_language")
@@ -68,8 +76,15 @@ export default async function BynexAppPage() {
       .maybeSingle(),
   ]);
 
-  const queryError = [organizationResult, membershipResult, subscriptionResult, entitlementsResult, moduleCatalogResult, modulePreferencesResult, platformStaffResult]
-    .find((result) => result.error)?.error;
+  const queryError = [
+    organizationResult,
+    membershipResult,
+    subscriptionResult,
+    entitlementsResult,
+    moduleCatalogResult,
+    modulePreferencesResult,
+    platformStaffResult,
+  ].find((result) => result.error)?.error;
   if (queryError) throw new Error("Företagets arbetsyta kunde inte läsas in.");
 
   const organization = organizationResult.data;
@@ -84,20 +99,32 @@ export default async function BynexAppPage() {
   if (!membership) redirect("/onboarding?error=membership");
 
   const { data: plan, error: planError } = subscription?.plan_id
-    ? await supabase.from("plans").select("name").eq("id", subscription.plan_id).maybeSingle()
+    ? await supabase
+        .from("plans")
+        .select("name")
+        .eq("id", subscription.plan_id)
+        .maybeSingle()
     : { data: null, error: null };
   if (planError) throw new Error("Abonnemanget kunde inte läsas in.");
 
   const visibilityBySlug = new Map(
-    (modulePreferences ?? []).map((preference) => [preference.module_slug, preference.visible]),
+    (modulePreferences ?? []).map((preference) => [
+      preference.module_slug,
+      preference.visible,
+    ]),
   );
 
   const enabledProductModules = (entitlements ?? [])
-    .filter((entitlement) => visibilityBySlug.get(entitlement.module_slug) !== false)
+    .filter(
+      (entitlement) => visibilityBySlug.get(entitlement.module_slug) !== false,
+    )
     .map((entitlement) => entitlement.module_slug);
 
   const entitlementBySlug = new Map(
-    (entitlements ?? []).map((entitlement) => [entitlement.module_slug, entitlement]),
+    (entitlements ?? []).map((entitlement) => [
+      entitlement.module_slug,
+      entitlement,
+    ]),
   );
 
   const company: CompanyContext = {
@@ -111,7 +138,8 @@ export default async function BynexAppPage() {
     userFullName: profile.full_name,
     planName: plan?.name ?? "Ingen aktiv plan",
     subscriptionStatus: subscription?.status ?? "inactive",
-    trialEndsAt: subscription?.trial_ends_at ?? subscription?.current_period_ends_at ?? null,
+    trialEndsAt:
+      subscription?.trial_ends_at ?? subscription?.current_period_ends_at ?? null,
     modules: (moduleCatalog ?? [])
       .filter((module) => entitlementBySlug.has(module.slug))
       .map((module) => {
@@ -130,7 +158,10 @@ export default async function BynexAppPage() {
 
   return (
     <>
-      <BynexDemo enabledProductModules={enabledProductModules} company={company} />
+      <BynexWorkspaceV2
+        enabledProductModules={enabledProductModules}
+        company={company}
+      />
       {["owner", "admin"].includes(membership.role) && (
         <Link
           href="/app/medarbetare"
