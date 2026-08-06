@@ -20,6 +20,7 @@
     "test:change-order-decision": "node --test tests/auth/change-order-decision-routes.test.mjs",
     "test:invoice-delivery": "node --experimental-strip-types --test tests/invoices/customer-invoice-pdf.test.mjs tests/auth/customer-invoice-delivery.test.mjs",
     "test:hq": "node --experimental-strip-types --test tests/platform/smart-price.test.mjs",
+    "test:smart-estimate": "node --experimental-strip-types --test tests/smart/change-order-estimate.test.mjs",
     "test:migrations": "node tests/database/migration-history.mjs"
   },
   "dependencies": {
