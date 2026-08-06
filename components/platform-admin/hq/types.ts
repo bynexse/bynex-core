@@ -115,7 +115,7 @@ export type HqData = {
     delivery_jobs: JsonRecord[];
     organization_balances: JsonRecord[];
   };
-  costs: HqCosts;
+  costs?: HqCosts;
   management: {
     staff: JsonRecord[];
     candidate_users: JsonRecord[];
