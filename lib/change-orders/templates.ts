@@ -9,6 +9,8 @@ export type ChangeOrderTemplate = {
   exclusions: string[];
 };
 
+export type ChangeOrderPriceType = "fixed" | "estimated" | "running_account";
+
 const commonAssumptions = [
   "Arbetsområdet är åtkomligt under avtalad arbetstid.",
   "Kalkylen bygger på de mått och förutsättningar som är kända när underlaget skapas.",
@@ -141,14 +143,14 @@ export const changeOrderTemplates: ChangeOrderTemplate[] = [
 export const defaultChangeOrderAssumptions = commonAssumptions;
 export const defaultChangeOrderExclusions = commonExclusions;
 
-export const priceDisclaimerByType = {
+export const priceDisclaimerByType: Record<ChangeOrderPriceType, string> = {
   fixed:
     "Det fasta priset gäller den omfattning, de förutsättningar och de undantag som anges i detta underlag. Ändras förutsättningarna tas ett nytt ÄTA-underlag fram innan ytterligare arbete utförs.",
   estimated:
     "Priset är en uppskattning baserad på kända förutsättningar. Företaget kontaktar kunden om ny information innebär att pris eller omfattning behöver ändras innan merarbete fortsätter.",
   running_account:
     "Arbetet debiteras efter faktiskt utförd tid och faktiskt material enligt företagets avtalade priser. Angivet belopp är en prognos och inte ett fast pris.",
-} as const;
+};
 
 export const standardLegalNotice =
   "Standardtexten i Bynex är ett dokumentationsstöd. Företaget ansvarar för att underlaget stämmer med huvudavtal, beställning och tillämpliga regler innan det skickas till kunden.";
