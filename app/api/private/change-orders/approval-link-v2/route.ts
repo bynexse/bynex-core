@@ -1,13 +1,36 @@
 import { isUuid, readJsonObject } from "@/lib/http/validation";
 import { requireSupabaseUser } from "@/lib/supabase/require-user";
 
+type PriceType = "fixed" | "estimated" | "running_account";
+type LineCategory = "labor" | "material" | "equipment" | "subcontractor" | "other";
+type ChangeOrderLineInsert = {
+  organization_id: string;
+  change_order_version_id: string;
+  category: LineCategory;
+  description: string;
+  quantity: number;
+  unit: string;
+  unit_cost: number;
+  markup_percent: number;
+  source: "manual";
+  source_reference: string;
+  sort_order: number;
+};
+
 const roles = new Set(["owner", "admin", "office", "manager"]);
-const priceTypes = new Set(["fixed", "estimated", "running_account"]);
+const priceTypes = new Set<PriceType>(["fixed", "estimated", "running_account"]);
 
 function text(value: unknown, maximum: number) {
   if (typeof value !== "string") return null;
   const normalized = value.trim();
   return normalized ? normalized.slice(0, maximum) : null;
+}
+
+function priceTypeValue(value: unknown): PriceType | null {
+  const normalized = text(value, 30);
+  return normalized && priceTypes.has(normalized as PriceType)
+    ? (normalized as PriceType)
+    : null;
 }
 
 function amount(value: unknown) {
@@ -117,7 +140,7 @@ export async function POST(request: Request) {
   }
 
   const customerDescription = text(body?.customerDescription, 4000) ?? changeOrder.description;
-  const priceType = text(body?.priceType, 30);
+  const priceType = priceTypeValue(body?.priceType);
   const laborHours = amount(body?.laborHours);
   const laborSell = amount(body?.laborSell);
   const materialSell = amount(body?.materialSell);
@@ -142,14 +165,20 @@ export async function POST(request: Request) {
     otherSell,
     vatPercent,
   ];
+  const invalidWorkingDays =
+    estimatedWorkingDays === null
+    && typeof body?.estimatedWorkingDays === "string"
+    && Boolean(body.estimatedWorkingDays.trim());
+  const excessiveWorkingDays =
+    estimatedWorkingDays !== null && estimatedWorkingDays > 10_000;
+
   if (
     !customerDescription
     || !priceType
-    || !priceTypes.has(priceType)
     || requiredNumbers.some((value) => value === null)
     || Number(vatPercent) > 100
-    || estimatedWorkingDays === null && typeof body?.estimatedWorkingDays === "string" && Boolean(body.estimatedWorkingDays.trim())
-    || estimatedWorkingDays !== null && estimatedWorkingDays > 10_000
+    || invalidWorkingDays
+    || excessiveWorkingDays
     || proposedStartDate === undefined
     || proposedEndDate === undefined
   ) {
@@ -170,8 +199,11 @@ export async function POST(request: Request) {
   if (proposedStartDate && proposedEndDate && proposedEndDate < proposedStartDate) {
     return Response.json({ error: "Föreslaget slutdatum kan inte ligga före startdatum." }, { status: 400 });
   }
-  if (priceType !== "fixed" && !priceDisclaimer) {
-    return Response.json({ error: "Uppskattat pris och löpande räkning måste ha en tydlig prisinformation." }, { status: 400 });
+  if (priceType !== "fixed" && (!priceDisclaimer || priceDisclaimer.length < 20)) {
+    return Response.json(
+      { error: "Uppskattat pris och löpande räkning måste ha tydlig prisinformation." },
+      { status: 400 },
+    );
   }
 
   const { data: latest, error: latestError } = await ctx.supabase
@@ -186,6 +218,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Senaste ÄTA-versionen kunde inte kontrolleras." }, { status: 500 });
   }
 
+  const normalizedDisclaimer = priceType === "fixed" ? null : priceDisclaimer;
   const { data: version, error: versionError } = await ctx.supabase
     .from("change_order_versions")
     .insert({
@@ -195,6 +228,8 @@ export async function POST(request: Request) {
       status: "draft",
       title: changeOrder.title,
       customer_description: customerDescription,
+      internal_notes:
+        "Manuellt kundpris. Kalkylrader utan separat kostnadsunderlag behandlas konservativt utan påslag.",
       currency: "SEK",
       vat_percent: vatPercent,
       labor_hours: laborHours,
@@ -209,6 +244,7 @@ export async function POST(request: Request) {
       assumptions,
       exclusions,
       price_type: priceType,
+      price_disclaimer: normalizedDisclaimer,
       requires_human_review: true,
       created_by_user_id: ctx.userId,
     })
@@ -221,10 +257,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const lines: Array<Record<string, unknown>> = [];
+  const removeVersion = async () => {
+    await ctx.supabase
+      .from("change_order_versions")
+      .delete()
+      .eq("organization_id", ctx.organizationId)
+      .eq("id", version.id)
+      .is("frozen_at", null);
+  };
+
+  const lines: ChangeOrderLineInsert[] = [];
   let sortOrder = 10;
   const addLine = (
-    category: "labor" | "material" | "equipment" | "subcontractor" | "other",
+    category: LineCategory,
     description: string,
     sellAmount: number,
     quantity = 1,
@@ -242,7 +287,8 @@ export async function POST(request: Request) {
       unit_cost: Math.round((sellAmount / safeQuantity) * 100) / 100,
       markup_percent: 0,
       source: "manual",
-      source_reference: "Mänskligt granskad kalkyl i Bynex ÄTA",
+      source_reference:
+        "Mänskligt granskat försäljningspris; separat kostnadsunderlag saknas i detta manuella flöde.",
       sort_order: sortOrder,
     });
     sortOrder += 10;
@@ -261,13 +307,11 @@ export async function POST(request: Request) {
   addLine("other", "Övrigt", Number(otherSell));
 
   if (lines.length > 0) {
-    const { error: lineError } = await ctx.supabase.from("change_order_line_items").insert(lines);
+    const { error: lineError } = await ctx.supabase
+      .from("change_order_line_items")
+      .insert(lines);
     if (lineError) {
-      await ctx.supabase
-        .from("change_order_versions")
-        .delete()
-        .eq("organization_id", ctx.organizationId)
-        .eq("id", version.id);
+      await removeVersion();
       return Response.json({ error: "Kalkylraderna kunde inte sparas." }, { status: 409 });
     }
   }
@@ -276,14 +320,10 @@ export async function POST(request: Request) {
     p_organization_id: ctx.organizationId,
     p_version_id: version.id,
     p_price_type: priceType,
-    p_price_disclaimer: priceType === "fixed" ? priceDisclaimer : priceDisclaimer,
+    p_price_disclaimer: normalizedDisclaimer,
   });
   if (reviewed.error) {
-    await ctx.supabase
-      .from("change_order_versions")
-      .delete()
-      .eq("organization_id", ctx.organizationId)
-      .eq("id", version.id);
+    await removeVersion();
     return Response.json(
       { error: "Prisversionen kunde inte markeras som mänskligt granskad." },
       { status: reviewed.error.code === "42501" ? 403 : 409 },
@@ -298,11 +338,9 @@ export async function POST(request: Request) {
   });
   const row = Array.isArray(data) ? data[0] : data;
   if (error || !row?.approval_url) {
+    await removeVersion();
     return Response.json(
-      {
-        error: "Underlaget är granskat men kundlänken kunde inte skapas. Försök igen från ÄTA:n.",
-        versionId: version.id,
-      },
+      { error: "Kundlänken kunde inte skapas. Underlaget är inte skickat och kan försökas igen." },
       { status: error?.code === "42501" ? 403 : 409 },
     );
   }
