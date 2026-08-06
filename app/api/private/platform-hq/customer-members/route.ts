@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   }
 
   const { data, error } = await auth.supabase.rpc(
-    "platform_get_customer_member_workspace_v2",
+    "platform_get_customer_member_workspace_v3",
     { p_organization_id: organizationId },
   );
   if (error) {
