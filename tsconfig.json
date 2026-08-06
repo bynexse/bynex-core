@@ -23,6 +23,12 @@
       }
     ],
     "paths": {
+      "@/lib/ai/change-order-estimate": [
+        "./lib/ai/change-order-estimate-v2.ts"
+      ],
+      "@/lib/smart/quote-outcome-analysis": [
+        "./lib/smart/quote-outcome-analysis-v2.ts"
+      ],
       "@/*": [
         "./*"
       ]
