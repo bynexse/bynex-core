@@ -23,6 +23,9 @@
       }
     ],
     "paths": {
+      "@/components/modules/people/EmploymentPanel": [
+        "./components/modules/people/EmploymentPanelLive.tsx"
+      ],
       "@/lib/ai/change-order-estimate": [
         "./lib/ai/change-order-estimate-v2.ts"
       ],
