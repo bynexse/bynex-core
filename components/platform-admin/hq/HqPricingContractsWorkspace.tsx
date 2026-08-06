@@ -81,13 +81,19 @@ export default function HqPricingContractsWorkspace({
   const [sendContractId, setSendContractId] = useState("");
 
   useEffect(() => {
-    setPlanId((current) => current || data.catalog.plans[0]?.id || "");
-  }, [data.catalog.plans]);
-
-  useEffect(() => {
-    if (subscription.plan_id) setPlanId(asText(subscription.plan_id, ""));
-    if (subscription.seat_count) setSeatCount(asNumber(subscription.seat_count));
-  }, [selectedOrganizationId, subscription.plan_id, subscription.seat_count]);
+    const nextPlanId =
+      asText(subscription.plan_id, "") || data.catalog.plans[0]?.id || "";
+    const nextPlan =
+      data.catalog.plans.find((plan) => plan.id === nextPlanId) ?? null;
+    setPlanId(nextPlanId);
+    setSelectedModules(nextPlan?.module_slugs ?? []);
+    setSeatCount(Math.max(1, asNumber(subscription.seat_count) || 25));
+  }, [
+    data.catalog.plans,
+    selectedOrganizationId,
+    subscription.plan_id,
+    subscription.seat_count,
+  ]);
 
   const selectedPlan = useMemo(
     () => data.catalog.plans.find((plan) => plan.id === planId) ?? null,
@@ -164,7 +170,10 @@ export default function HqPricingContractsWorkspace({
           integrations,
           onboardingHours,
           selectedModules,
-          generatedBy: "bynex-smart-price-v1",
+          volumeDiscountExVat: smartResult.volumeDiscountExVat,
+          termDiscountExVat: smartResult.termDiscountExVat,
+          recommendedDiscountExVat: recommended.discountAmountExVat,
+          generatedBy: "bynex-smart-price-v2",
         },
         validUntil: plusDays(30),
       },
@@ -255,8 +264,9 @@ export default function HqPricingContractsWorkspace({
                 Företagspris för {asText(organization.name)}
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-300">
-                Kalkylen kombinerar plan, användare, moduler, bindningstid, stöd och
-                onboarding. Administratören fattar alltid det slutliga prisbeslutet.
+                Kalkylen visar företagets totala månadspris i hela kronor. Volympris
+                räknas marginalt, så totalpriset kan aldrig sjunka när en användare
+                läggs till. Administratören fattar alltid det slutliga prisbeslutet.
               </p>
             </div>
             <div className="rounded-2xl bg-white/10 px-5 py-4">
@@ -277,7 +287,7 @@ export default function HqPricingContractsWorkspace({
                       (plan) => plan.id === event.target.value,
                     );
                     setPlanId(event.target.value);
-                    if (nextPlan?.module_slugs) setSelectedModules(nextPlan.module_slugs);
+                    setSelectedModules(nextPlan?.module_slugs ?? []);
                   }}
                   className={inputClass}
                 >
@@ -422,11 +432,21 @@ export default function HqPricingContractsWorkspace({
                       <p className="mt-5 text-3xl font-semibold tracking-tight">
                         {sek.format(option.monthlyPriceExVat)}
                       </p>
-                      <p className="mt-1 text-xs text-zinc-500">per månad exkl. moms</p>
+                      <p className="mt-1 text-xs text-zinc-500">
+                        totalt per månad exkl. moms
+                      </p>
                       <dl className="mt-5 space-y-2 text-sm">
                         <div className="flex justify-between gap-4">
-                          <dt className="text-zinc-500">Rabatt</dt>
-                          <dd className="font-semibold">{option.discountPercent}%</dd>
+                          <dt className="text-zinc-500">Rabatt per månad</dt>
+                          <dd className="font-semibold">
+                            {sek.format(option.discountAmountExVat)}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                          <dt className="text-zinc-500">Snitt per användare</dt>
+                          <dd className="font-semibold">
+                            {sek.format(option.monthlyPricePerUserExVat)}
+                          </dd>
                         </div>
                         <div className="flex justify-between gap-4">
                           <dt className="text-zinc-500">Avtalsvärde</dt>
@@ -435,8 +455,10 @@ export default function HqPricingContractsWorkspace({
                           </dd>
                         </div>
                         <div className="flex justify-between gap-4">
-                          <dt className="text-zinc-500">Beräknad marginal</dt>
-                          <dd className="font-semibold">{option.estimatedMarginPercent}%</dd>
+                          <dt className="text-zinc-500">Kvar efter intern kostnad</dt>
+                          <dd className="font-semibold">
+                            {sek.format(option.estimatedMonthlyContributionExVat)}
+                          </dd>
                         </div>
                       </dl>
                     </article>
@@ -444,10 +466,10 @@ export default function HqPricingContractsWorkspace({
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {[
-                    ["Listpris", sek.format(smartResult.listMonthlyPriceExVat)],
-                    ["Intern kostnad", sek.format(smartResult.estimatedMonthlyCost)],
-                    ["Volymrabatt", `${smartResult.volumeDiscountPercent}%`],
-                    ["Bindningsrabatt", `${smartResult.termDiscountPercent}%`],
+                    ["Ordinarie månadspris", sek.format(smartResult.listMonthlyPriceExVat)],
+                    ["Intern månadskostnad", sek.format(smartResult.estimatedMonthlyCost)],
+                    ["Volymrabatt per månad", sek.format(smartResult.volumeDiscountExVat)],
+                    ["Bindningsrabatt per månad", sek.format(smartResult.termDiscountExVat)],
                   ].map(([label, value]) => (
                     <div key={label} className="rounded-2xl bg-zinc-50 p-4">
                       <p className="text-xs text-zinc-500">{label}</p>
@@ -455,6 +477,11 @@ export default function HqPricingContractsWorkspace({
                     </div>
                   ))}
                 </div>
+                <p className="mt-4 text-xs leading-5 text-zinc-500">
+                  Snitt per användare är företagets totala månadspris delat med antal
+                  användare. Det är inte samma sak som grundpaketets pris för en ensam
+                  användare.
+                </p>
                 {smartResult.warnings.length > 0 && (
                   <div className="mt-5 space-y-2">
                     {smartResult.warnings.map((warning) => (
@@ -486,36 +513,42 @@ export default function HqPricingContractsWorkspace({
 
         <Panel title="Sparade prisförslag" eyebrow="Affärshistorik">
           <div className="grid gap-3 lg:grid-cols-2">
-            {selected?.proposals.map((proposal) => (
-              <article
-                key={asText(proposal.id)}
-                className="rounded-2xl border border-zinc-200 p-4"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold">{asText(proposal.title)}</p>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      {asNumber(proposal.seat_count)} användare · {asNumber(proposal.term_months)} månader
-                    </p>
+            {selected?.proposals.map((proposal) => {
+              const listPrice = asNumber(proposal.list_monthly_price_ex_vat);
+              const recommendedPrice = asNumber(
+                proposal.recommended_monthly_price_ex_vat,
+              );
+              return (
+                <article
+                  key={asText(proposal.id)}
+                  className="rounded-2xl border border-zinc-200 p-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">{asText(proposal.title)}</p>
+                      <p className="mt-1 text-xs text-zinc-500">
+                        {asNumber(proposal.seat_count)} användare · {asNumber(proposal.term_months)} månader
+                      </p>
+                    </div>
+                    <Pill tone={toneForStatus(proposal.status)}>{asText(proposal.status)}</Pill>
                   </div>
-                  <Pill tone={toneForStatus(proposal.status)}>{asText(proposal.status)}</Pill>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-xl bg-zinc-50 p-3">
-                    <p className="text-xs text-zinc-500">Rekommenderat</p>
-                    <p className="mt-1 font-semibold">
-                      {sek.format(asNumber(proposal.recommended_monthly_price_ex_vat))}
-                    </p>
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-xl bg-zinc-50 p-3">
+                      <p className="text-xs text-zinc-500">Månadspris</p>
+                      <p className="mt-1 font-semibold">
+                        {sek.format(recommendedPrice)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-zinc-50 p-3">
+                      <p className="text-xs text-zinc-500">Rabatt per månad</p>
+                      <p className="mt-1 font-semibold">
+                        {sek.format(Math.max(0, listPrice - recommendedPrice))}
+                      </p>
+                    </div>
                   </div>
-                  <div className="rounded-xl bg-zinc-50 p-3">
-                    <p className="text-xs text-zinc-500">Marginal</p>
-                    <p className="mt-1 font-semibold">
-                      {asNumber(proposal.estimated_margin_percent)}%
-                    </p>
-                  </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
             {selected?.proposals.length === 0 && <Empty>Inga prisförslag är sparade.</Empty>}
           </div>
         </Panel>
@@ -757,34 +790,38 @@ export default function HqPricingContractsWorkspace({
 
       <Panel title="Aktiva abonnemangsavtal" eyebrow="Fakturaunderlag">
         <div className="grid gap-3 lg:grid-cols-2">
-          {selected.agreements.map((agreement) => (
-            <article
-              key={asText(agreement.id)}
-              className="rounded-2xl border border-zinc-200 p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold">{asText(agreement.plan_name)}</p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {displayDate(agreement.starts_on)} – {displayDate(agreement.initial_ends_on)}
-                  </p>
+          {selected.agreements.map((agreement) => {
+            const listPrice = asNumber(agreement.list_monthly_price_ex_vat);
+            const netPrice = asNumber(agreement.net_monthly_price_ex_vat);
+            return (
+              <article
+                key={asText(agreement.id)}
+                className="rounded-2xl border border-zinc-200 p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{asText(agreement.plan_name)}</p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {displayDate(agreement.starts_on)} – {displayDate(agreement.initial_ends_on)}
+                    </p>
+                  </div>
+                  <Pill tone={toneForStatus(agreement.status)}>{asText(agreement.status)}</Pill>
                 </div>
-                <Pill tone={toneForStatus(agreement.status)}>{asText(agreement.status)}</Pill>
-              </div>
-              <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-xl bg-zinc-50 p-3">
-                  <dt className="text-xs text-zinc-500">Månadspris</dt>
-                  <dd className="mt-1 font-semibold">
-                    {sek.format(asNumber(agreement.net_monthly_price_ex_vat))}
-                  </dd>
-                </div>
-                <div className="rounded-xl bg-zinc-50 p-3">
-                  <dt className="text-xs text-zinc-500">Rabatt</dt>
-                  <dd className="mt-1 font-semibold">{asNumber(agreement.discount_percent)}%</dd>
-                </div>
-              </dl>
-            </article>
-          ))}
+                <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-xl bg-zinc-50 p-3">
+                    <dt className="text-xs text-zinc-500">Månadspris</dt>
+                    <dd className="mt-1 font-semibold">{sek.format(netPrice)}</dd>
+                  </div>
+                  <div className="rounded-xl bg-zinc-50 p-3">
+                    <dt className="text-xs text-zinc-500">Rabatt per månad</dt>
+                    <dd className="mt-1 font-semibold">
+                      {sek.format(Math.max(0, listPrice - netPrice))}
+                    </dd>
+                  </div>
+                </dl>
+              </article>
+            );
+          })}
           {selected.agreements.length === 0 && (
             <Empty>Ett signerat avtal kan aktiveras för att skapa abonnemangsavtal och fakturaschema.</Empty>
           )}
