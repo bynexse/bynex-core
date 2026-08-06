@@ -36,7 +36,7 @@ import LiveConnectModule from "@/components/modules/connect/LiveConnectModule";
 import LiveChangeOrdersModule from "@/components/modules/commercial/LiveChangeOrdersModule";
 import LiveQuotesModule from "@/components/modules/commercial/LiveQuotesModule";
 import LiveInvoicesModule from "@/components/modules/invoices/LiveInvoicesModule";
-import LiveBookkeepingModule from "@/components/modules/bookkeeping/LiveBookkeepingModule";
+import LiveBookkeepingWorkspace from "@/components/modules/bookkeeping/LiveBookkeepingWorkspace";
 import LiveAccountingIntegrationsModule from "@/components/modules/accounting/LiveAccountingIntegrationsModule";
 import LiveYearEndModule from "@/components/modules/bookkeeping/LiveYearEndModule";
 import LivePropertyPortalModule from "@/components/modules/property/LivePropertyPortalModule";
@@ -324,7 +324,9 @@ export default function BynexDemo({
           {active === "change-orders" && <LiveChangeOrdersModule notify={notify} />}
           {active === "quotes" && <LiveQuotesModule notify={notify} role={company.role} />}
           {active === "invoices" && <LiveInvoicesModule notify={notify} />}
-          {active === "bookkeeping" && <LiveBookkeepingModule notify={notify} />}
+          {active === "bookkeeping" && (
+            <LiveBookkeepingWorkspace notify={notify} businessForm={company.businessForm} />
+          )}
           {active === "accounting-integrations" && <LiveAccountingIntegrationsModule notify={notify} />}
           {active === "year-end" && <LiveYearEndModule />}
           {active === "property-portal" && <LivePropertyPortalModule notify={notify} />}
