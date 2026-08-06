@@ -12,6 +12,10 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import ChangeOrderTemplateFields, {
+  emptyChangeOrderTemplateSelection,
+  type ChangeOrderTemplateSelection,
+} from "@/components/modules/commercial/ChangeOrderTemplateFields";
 import type {
   EstimateQuestion,
   EstimateResult,
@@ -120,6 +124,9 @@ export default function SmartChangeOrderEstimatePanel({
   const [result, setResult] = useState<EstimateResult | null>(null);
   const [versionId, setVersionId] = useState<string | null>(null);
   const [approvalUrl, setApprovalUrl] = useState<string | null>(null);
+  const [templateSelection, setTemplateSelection] = useState<ChangeOrderTemplateSelection>(
+    emptyChangeOrderTemplateSelection,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -130,6 +137,7 @@ export default function SmartChangeOrderEstimatePanel({
     setResult(null);
     setVersionId(null);
     setApprovalUrl(null);
+    setTemplateSelection(emptyChangeOrderTemplateSelection);
     setError(null);
     setNotice(null);
   }, [changeOrderId]);
@@ -173,7 +181,7 @@ export default function SmartChangeOrderEstimatePanel({
     setSessionId(payload.sessionId);
     setResult(payload.result);
     if (payload.result.status === "ready") {
-      setNotice("Prisförslaget är klart för mänsklig granskning.");
+      setNotice("Prisförslaget är klart. Välj nu mall och kontrollera avtalsvillkoren innan kundunderlaget låses.");
     }
   }
 
@@ -186,6 +194,7 @@ export default function SmartChangeOrderEstimatePanel({
         changeOrderId,
         versionId: selectedVersionId,
         validDays,
+        ...templateSelection,
       }),
     });
     const payload = (await response.json().catch(() => null)) as LinkResponse | null;
@@ -198,6 +207,11 @@ export default function SmartChangeOrderEstimatePanel({
   async function approveAndCreateLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!sessionId || !result || result.status !== "ready") return;
+    if (!templateSelection.documentTemplateKey) {
+      setError("Vänta tills ÄTA-mallen har laddats och kontrollera villkoren.");
+      return;
+    }
+
     const form = new FormData(event.currentTarget);
     const validDays = Math.trunc(Number(form.get("validDays") ?? 14));
     if (!Number.isInteger(validDays) || validDays < 1 || validDays > 30) {
@@ -227,11 +241,15 @@ export default function SmartChangeOrderEstimatePanel({
 
       const nextApprovalUrl = await createCustomerLink(selectedVersionId, validDays);
       setApprovalUrl(nextApprovalUrl);
-      setNotice("Smart-priset är granskat, låst och klart för kundens beslut.");
-      notify("Bynex Smart skapade ett låst ÄTA-underlag och kundlänk");
+      setNotice("Smart-pris, mall, juridik och garanti är granskade och låsta för kundens beslut.");
+      notify("Bynex Smart skapade ett komplett och låst ÄTA-underlag");
       onApplied?.();
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "ÄTA-underlaget kunde inte färdigställas.");
+      setError(
+        actionError instanceof Error
+          ? actionError.message
+          : "ÄTA-underlaget kunde inte färdigställas.",
+      );
     } finally {
       setBusy(false);
     }
@@ -240,8 +258,17 @@ export default function SmartChangeOrderEstimatePanel({
   async function retryLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!versionId) return;
+    if (!templateSelection.documentTemplateKey) {
+      setError("Välj och kontrollera ÄTA-mallen innan länken skapas.");
+      return;
+    }
     const form = new FormData(event.currentTarget);
     const validDays = Math.trunc(Number(form.get("validDays") ?? 14));
+    if (!Number.isInteger(validDays) || validDays < 1 || validDays > 30) {
+      setError("Kundlänken måste gälla mellan 1 och 30 dagar.");
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
@@ -251,7 +278,11 @@ export default function SmartChangeOrderEstimatePanel({
       notify("Kundlänken är skapad");
       onApplied?.();
     } catch (linkError) {
-      setError(linkError instanceof Error ? linkError.message : "Kundlänken kunde inte skapas.");
+      setError(
+        linkError instanceof Error
+          ? linkError.message
+          : "Kundlänken kunde inte skapas.",
+      );
     } finally {
       setBusy(false);
     }
@@ -284,7 +315,7 @@ export default function SmartChangeOrderEstimatePanel({
         <div className="flex items-start gap-3 rounded-2xl bg-white/70 p-4 text-sm text-emerald-950">
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
           <p>
-            Smart skapar ett rådgivande prisförslag. En behörig person godkänner alltid pris och kundunderlag innan något skickas.
+            Smart skapar ett rådgivande prisförslag. En behörig person godkänner alltid pris, mall och villkor innan något skickas.
           </p>
         </div>
 
@@ -332,7 +363,9 @@ export default function SmartChangeOrderEstimatePanel({
         {result?.status === "ready" && (
           <div className="space-y-5">
             <div className="rounded-3xl bg-white p-5 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Uppskattat pris</p>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">
+                Uppskattat pris
+              </p>
               <p className="mt-2 text-4xl font-semibold text-emerald-950">
                 {money.format(result.estimatedPriceExVat ?? 0)}
               </p>
@@ -354,10 +387,20 @@ export default function SmartChangeOrderEstimatePanel({
                 ))}
               </div>
               <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">Kundtext</p>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">
+                  Kundtext
+                </p>
                 <p className="mt-2 text-sm leading-6 text-emerald-950">{result.customerText}</p>
               </div>
             </div>
+
+            {!approvalUrl && (
+              <ChangeOrderTemplateFields
+                value={templateSelection}
+                onChange={setTemplateSelection}
+                priceType="estimated"
+              />
+            )}
 
             {approvalUrl ? (
               <div className="rounded-2xl bg-white p-4">
@@ -365,6 +408,9 @@ export default function SmartChangeOrderEstimatePanel({
                   <CheckCircle2 className="h-5 w-5" />
                   <p className="font-semibold">Kundunderlaget är låst och klart</p>
                 </div>
+                <p className="mt-2 text-xs text-zinc-500">
+                  {templateSelection.documentTemplateName}
+                </p>
                 <input readOnly value={approvalUrl} className="input mt-3" />
                 <button
                   type="button"
@@ -375,13 +421,23 @@ export default function SmartChangeOrderEstimatePanel({
                 </button>
               </div>
             ) : (
-              <form onSubmit={versionId ? retryLink : approveAndCreateLink} className="rounded-2xl bg-white p-4">
+              <form
+                onSubmit={versionId ? retryLink : approveAndCreateLink}
+                className="rounded-2xl bg-white p-4"
+              >
                 <label className="block text-sm font-semibold">
                   Kundlänken gäller dagar
-                  <input name="validDays" type="number" min="1" max="30" defaultValue="14" className="input mt-2" />
+                  <input
+                    name="validDays"
+                    type="number"
+                    min="1"
+                    max="30"
+                    defaultValue="14"
+                    className="input mt-2"
+                  />
                 </label>
                 <button
-                  disabled={busy}
+                  disabled={busy || !templateSelection.documentTemplateKey}
                   className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-5 py-4 font-semibold text-white disabled:opacity-50"
                 >
                   {busy ? (
@@ -391,7 +447,9 @@ export default function SmartChangeOrderEstimatePanel({
                   ) : (
                     <CheckCircle2 className="h-5 w-5" />
                   )}
-                  {versionId ? "Skapa kundlänk igen" : "Godkänn pris och skapa kundlänk"}
+                  {versionId
+                    ? "Spara mall och skapa kundlänk igen"
+                    : "Godkänn pris, mall och villkor"}
                 </button>
               </form>
             )}
