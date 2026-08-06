@@ -11,7 +11,26 @@ const files = (await readdir(migrationDirectory))
   .sort();
 
 assert(files.length > 0, "Migrationer saknas");
-assert.equal(new Set(files.map((file) => file.slice(0, 14))).size, files.length, "Migrationstämplar måste vara unika");
+const migrationFilesByStamp = new Map();
+for (const file of files) {
+  const stamp = file.slice(0, 14);
+  migrationFilesByStamp.set(stamp, [
+    ...(migrationFilesByStamp.get(stamp) ?? []),
+    file,
+  ]);
+}
+const duplicateMigrationStamps = [...migrationFilesByStamp.entries()]
+  .filter(([, stampedFiles]) => stampedFiles.length > 1)
+  .map(([stamp, stampedFiles]) => `${stamp}: ${stampedFiles.join(", ")}`);
+assert.equal(
+  duplicateMigrationStamps.length,
+  0,
+  `Migrationstämplar måste vara unika${
+    duplicateMigrationStamps.length
+      ? `: ${duplicateMigrationStamps.join(" | ")}`
+      : ""
+  }`,
+);
 
 for (const item of manifest.applied_migrations) {
   const file = `${item.version}_${item.name}.sql`;
@@ -20,8 +39,15 @@ for (const item of manifest.applied_migrations) {
   assert(sql.trim().length > 0, `Tom migration: ${file}`);
   const expectedRepositoryHash = item.canonical_sha256 ?? item.sha256;
   if (item.canonical_sha256) {
-    assert.equal(typeof item.canonicalization, "string", `Orsak till kanonisering saknas: ${file}`);
-    assert(item.canonicalization.trim().length > 0, `Tom orsak till kanonisering: ${file}`);
+    assert.equal(
+      typeof item.canonicalization,
+      "string",
+      `Orsak till kanonisering saknas: ${file}`,
+    );
+    assert(
+      item.canonicalization.trim().length > 0,
+      `Tom orsak till kanonisering: ${file}`,
+    );
   }
   assert.equal(
     createHash("sha256").update(sql).digest("hex"),
@@ -35,4 +61,6 @@ for (const file of files) {
   assert(sql.trim().length > 0, `Tom migration: ${file}`);
 }
 
-console.log(`Migrationshistorik: ${manifest.applied_migrations.length} produktionsmigrationer är spårade och oförändrade.`);
+console.log(
+  `Migrationshistorik: ${manifest.applied_migrations.length} produktionsmigrationer är spårade och oförändrade.`,
+);
