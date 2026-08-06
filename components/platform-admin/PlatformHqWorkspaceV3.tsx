@@ -30,8 +30,10 @@ import {
 
 import BynexLogo from "@/components/brand/BynexLogo";
 import HqBillingWorkspace from "./hq/HqBillingWorkspace";
-import HqCustomerWorkspace from "./hq/HqCustomerWorkspace";
+import HqCustomerWorkspace from "./hq/HqCustomerWorkspaceV2";
+import HqInternalTeamWorkspace from "./hq/HqInternalTeamWorkspace";
 import HqPricingContractsWorkspace from "./hq/HqPricingContractsWorkspace";
+import HqSmartPriceWorkspace from "./hq/HqSmartPriceWorkspace";
 import HqSupportWorkspace from "./hq/HqSupportWorkspace";
 import HqSystemWorkspace from "./hq/HqSystemWorkspace";
 import type { HqData, HqTab, OrganizationRow } from "./hq/types";
@@ -101,9 +103,8 @@ const navigation: NavigationItem[] = [
   {
     id: "pricing",
     label: "Smart Price",
-    description: "Prisförslag i exakta kronor",
+    description: "Internt pris- och marginalverktyg",
     icon: Sparkles,
-    customerRequired: true,
     roles: ["platform_owner", "platform_admin", "sales", "finance", "support"],
   },
   {
@@ -911,9 +912,17 @@ export default function PlatformHqWorkspaceV3() {
                 busy={busy}
               />
             )}
-            {(activeTab === "pricing" || activeTab === "contracts") && (
+            {activeTab === "pricing" && (
+              <HqSmartPriceWorkspace
+                data={data}
+                selectedOrganizationId={selectedOrganizationId}
+                runAction={runAction}
+                busy={busy}
+              />
+            )}
+            {activeTab === "contracts" && (
               <HqPricingContractsWorkspace
-                mode={activeTab}
+                mode="contracts"
                 data={data}
                 selectedOrganizationId={selectedOrganizationId}
                 runAction={runAction}
@@ -936,7 +945,8 @@ export default function PlatformHqWorkspaceV3() {
                 busy={busy}
               />
             )}
-            {(activeTab === "catalog" || activeTab === "staff" || activeTab === "audit") && (
+            {activeTab === "staff" && <HqInternalTeamWorkspace />}
+            {(activeTab === "catalog" || activeTab === "audit") && (
               <HqSystemWorkspace mode={activeTab} data={data} runAction={runAction} busy={busy} />
             )}
           </div>
