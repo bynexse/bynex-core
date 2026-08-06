@@ -1,12 +1,20 @@
 import type {
-  QuoteOutcomeRecommendation,
+  QuoteOutcomeRecommendation as BaseQuoteOutcomeRecommendation,
   QuoteOutcomeSource,
 } from "./quote-outcome-analysis";
 
-export type {
-  QuoteOutcomeRecommendation,
-  QuoteOutcomeSource,
-} from "./quote-outcome-analysis";
+export type { QuoteOutcomeSource } from "./quote-outcome-analysis";
+
+export type QuoteOutcomeRecommendation = BaseQuoteOutcomeRecommendation & {
+  calibrationTarget: number;
+  completedCalibrationTarget: number;
+  learningProgressPercent: number;
+  costLearningProgressPercent: number;
+  learningStage: "no_history" | "learning" | "cost_learning" | "calibrated";
+  medianChangeOrderSharePercent: number | null;
+  suggestedScopeReservePercent: number | null;
+  usesChangeOrderHistory: boolean;
+};
 
 const stopWords = new Set([
   "och", "att", "det", "den", "ett", "en", "med", "för", "från", "till",
@@ -48,11 +56,16 @@ function percent(value: number) {
   return Math.round(value * 10) / 10;
 }
 
+function progress(current: number, target: number) {
+  if (target <= 0) return 100;
+  return Math.min(100, Math.round((current / target) * 100));
+}
+
 /**
- * Uses the tenant's own quote and project outcomes from the first comparable
- * record. The first eight comparable offers are an explicit learning period;
- * confidence rises as verified outcomes accumulate, but history is never
- * blocked behind a minimum-count gate.
+ * Uses only the active tenant's own quote, project and approved ÄTA outcomes.
+ * The first eight comparable offers are an explicit learning period. Company
+ * signals are available from the first comparable outcome and confidence rises
+ * as verified project costs, invoicing and ÄTA history accumulate.
  */
 export function analyzeQuoteOutcomes(input: {
   targetQuoteId: string;
@@ -64,9 +77,14 @@ export function analyzeQuoteOutcomes(input: {
   minimumComparableQuotes?: number;
   minimumCompletedOutcomes?: number;
 }): QuoteOutcomeRecommendation {
-  const calibrationTarget = input.minimumComparableQuotes ?? 8;
-  const completedCalibrationTarget = input.minimumCompletedOutcomes ?? 5;
-  const targetTokens = tokens(`${input.targetTitle} ${input.targetDescription ?? ""}`);
+  const calibrationTarget = Math.max(1, input.minimumComparableQuotes ?? 8);
+  const completedCalibrationTarget = Math.max(
+    1,
+    input.minimumCompletedOutcomes ?? 5,
+  );
+  const targetTokens = tokens(
+    `${input.targetTitle} ${input.targetDescription ?? ""}`,
+  );
   const comparable = input.outcomes.filter(
     (outcome) =>
       outcome.quoteId !== input.targetQuoteId &&
@@ -86,6 +104,24 @@ export function analyzeQuoteOutcomes(input: {
       outcome.invoicedRevenue > 0,
   );
 
+  const hasCompanySignal = comparable.length > 0;
+  const learningProgressPercent = progress(
+    comparable.length,
+    calibrationTarget,
+  );
+  const costLearningProgressPercent = progress(
+    completed.length,
+    completedCalibrationTarget,
+  );
+  const learningStage: QuoteOutcomeRecommendation["learningStage"] =
+    !hasCompanySignal
+      ? "no_history"
+      : comparable.length < calibrationTarget
+        ? "learning"
+        : completed.length < completedCalibrationTarget
+          ? "cost_learning"
+          : "calibrated";
+
   const warnings: string[] = [];
   if (targetTokens.size === 0) {
     warnings.push(
@@ -93,13 +129,13 @@ export function analyzeQuoteOutcomes(input: {
     );
   }
 
-  if (comparable.length === 0) {
+  if (!hasCompanySignal) {
     warnings.push(
-      "Företaget har ännu inget jämförbart offertutfall. Bynex Smart använder offertens egen kalkyl tills ett verifierat utfall finns.",
+      "Företaget har ännu inget jämförbart offertutfall. Bynex Smart använder offertens egen kalkyl tills det första verifierade utfallet finns.",
     );
   } else if (comparable.length < calibrationTarget) {
     warnings.push(
-      `Inlärningsperiod: ${comparable.length} av ${calibrationTarget} jämförbara offertutfall. Företagets egen data används redan nu med låg eller medelhög säkerhet.`,
+      `Inlärningsperiod: ${comparable.length} av ${calibrationTarget} jämförbara offertutfall. Företagets egen data används redan nu med ${learningProgressPercent} % kalibreringsgrad.`,
     );
   } else {
     warnings.push(
@@ -109,7 +145,7 @@ export function analyzeQuoteOutcomes(input: {
 
   if (completed.length === 0) {
     warnings.push(
-      "Det saknas ännu ett slutfört projekt med godkänd kostnad och fakturerad intäkt. Prisrisk och marginal visas när första verifierade projektutfallet finns.",
+      "Bynex Smart kan redan använda vinst- och förlustutfall, men prisrisk och marginal blir skarpare när det första projektet har godkänd kostnad och fakturerad intäkt.",
     );
   } else if (completed.length < completedCalibrationTarget) {
     warnings.push(
@@ -117,7 +153,6 @@ export function analyzeQuoteOutcomes(input: {
     );
   }
 
-  const hasCompanySignal = comparable.length > 0;
   const winRate = hasCompanySignal
     ? percent((won.length / comparable.length) * 100)
     : null;
@@ -135,12 +170,34 @@ export function analyzeQuoteOutcomes(input: {
           outcome.quotedCost) *
         100,
     );
+  const changeOrderShares = completed
+    .filter(
+      (outcome) =>
+        outcome.approvedChangeOrderRevenue !== null &&
+        outcome.approvedChangeOrderRevenue >= 0 &&
+        outcome.invoicedRevenue !== null &&
+        outcome.invoicedRevenue > 0,
+    )
+    .map(
+      (outcome) =>
+        (outcome.approvedChangeOrderRevenue! / outcome.invoicedRevenue!) * 100,
+    );
+
   const medianMargin = median(margins);
   const medianOverrun = median(overruns);
-  const reserve =
+  const medianChangeOrderShare = median(changeOrderShares);
+  const costReserve =
     medianOverrun !== null
       ? Math.min(30, Math.max(0, percent(medianOverrun)))
       : null;
+  const scopeReserve =
+    medianChangeOrderShare !== null
+      ? Math.min(15, Math.max(0, percent(medianChangeOrderShare / 2)))
+      : null;
+  const reserve =
+    costReserve === null && scopeReserve === null
+      ? null
+      : Math.min(30, Math.max(costReserve ?? 0, scopeReserve ?? 0));
   const suggestedPrice =
     reserve !== null &&
     input.targetEstimatedCost > 0 &&
@@ -165,6 +222,11 @@ export function analyzeQuoteOutcomes(input: {
   ) {
     warnings.push(
       "Offertens beräknade marginal ligger under medianen för jämförbara, slutförda jobb i företaget.",
+    );
+  }
+  if (medianChangeOrderShare !== null && medianChangeOrderShare > 0) {
+    warnings.push(
+      `Godkänd ÄTA har motsvarat median ${percent(medianChangeOrderShare)} % av fakturerad intäkt i jämförbara slutförda projekt. Bynex använder detta som en försiktig signal om omfattningsrisk, inte som automatisk prishöjning.`,
     );
   }
   warnings.push(
@@ -198,7 +260,7 @@ export function analyzeQuoteOutcomes(input: {
       ? completed.length >= 12
         ? "high"
         : "medium"
-      : comparable.length >= 4 && completed.length >= 2
+      : comparable.length >= 4 || completed.length >= 2
         ? "medium"
         : "low";
 
@@ -219,5 +281,16 @@ export function analyzeQuoteOutcomes(input: {
     targetEstimatedMarginPercent: targetMargin,
     warnings,
     sourceReferences,
+    calibrationTarget,
+    completedCalibrationTarget,
+    learningProgressPercent,
+    costLearningProgressPercent,
+    learningStage,
+    medianChangeOrderSharePercent:
+      medianChangeOrderShare !== null
+        ? percent(medianChangeOrderShare)
+        : null,
+    suggestedScopeReservePercent: scopeReserve,
+    usesChangeOrderHistory: changeOrderShares.length > 0,
   };
 }
