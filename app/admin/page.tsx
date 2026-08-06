@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import PlatformAdminDashboard from "@/components/platform-admin/PlatformAdminDashboard";
+import PlatformHqWorkspace from "@/components/platform-admin/PlatformHqWorkspace";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -19,5 +19,5 @@ export default async function PlatformAdminPage() {
     .maybeSingle();
   if (!staff) notFound();
 
-  return <PlatformAdminDashboard />;
+  return <PlatformHqWorkspace />;
 }
