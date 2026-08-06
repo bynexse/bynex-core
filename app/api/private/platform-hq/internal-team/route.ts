@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { isUuid, readJsonObject } from "@/lib/http/validation";
 import { requireSupabaseUser } from "@/lib/supabase/require-user";
 
@@ -62,13 +63,17 @@ export async function POST(request: Request) {
       );
     }
 
+    const plainToken = randomBytes(32).toString("base64url");
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data, error } = await auth.supabase.rpc(
-      "platform_add_internal_team_member",
+      "platform_add_internal_team_member_v2",
       {
         p_full_name: fullName,
         p_email: email,
         p_department: department,
         p_role: role,
+        p_plain_token: plainToken,
+        p_expires_at: expiresAt,
       },
     );
     if (error) {
