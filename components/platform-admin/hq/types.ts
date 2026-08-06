@@ -1,6 +1,6 @@
 import type { SmartPricePlan } from "@/lib/platform/smart-price";
 
-export type JsonRecord = Record<string, unknown>;
+export type JsonRecord = Record<string, any>;
 
 export type OrganizationRow = {
   id: string;
