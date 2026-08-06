@@ -22,8 +22,6 @@ import LiveChangeOrdersModule from "@/components/modules/commercial/LiveChangeOr
 import LiveQuotesModule from "@/components/modules/commercial/LiveQuotesModule";
 import LiveInvoicesModule from "@/components/modules/invoices/LiveInvoicesModule";
 import BookkeepingWorkspace from "@/components/modules/bookkeeping/BookkeepingWorkspace";
-import LiveAccountingIntegrationsModule from "@/components/modules/accounting/LiveAccountingIntegrationsModule";
-import LiveYearEndModule from "@/components/modules/bookkeeping/LiveYearEndModule";
 import LivePropertyPortalModule from "@/components/modules/property/LivePropertyPortalModule";
 import CompanySettings from "@/components/modules/settings/CompanySettings";
 import SupportPanel from "@/components/modules/support/SupportPanel";
@@ -53,8 +51,6 @@ const modules: Array<{
   { id: "quotes", label: "Offerter", icon: ReceiptText, productModule: "quotes" },
   { id: "invoices", label: "Fakturering", icon: CircleDollarSign, productModule: "invoicing" },
   { id: "bookkeeping", label: "Bokföring", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
-  { id: "accounting-integrations", label: "Ekonomikopplingar", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
-  { id: "year-end", label: "Bokslut", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader", "limited_company"] },
   { id: "property-portal", label: "Kundportal & digital pärm", icon: Building2, productModule: "customer_portal", roles: ["owner", "admin", "office", "manager", "supervisor"] },
   { id: "settings", label: "Företagsinställningar", icon: Settings },
 ];
@@ -237,8 +233,6 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
           {active === "quotes" && <LiveQuotesModule notify={notify} role={company.role} />}
           {active === "invoices" && <LiveInvoicesModule notify={notify} />}
           {active === "bookkeeping" && <BookkeepingWorkspace businessForm={company.businessForm} notify={notify} />}
-          {active === "accounting-integrations" && <LiveAccountingIntegrationsModule notify={notify} />}
-          {active === "year-end" && <LiveYearEndModule />}
           {active === "property-portal" && <LivePropertyPortalModule notify={notify} />}
           {active === "settings" && <CompanySettings company={company} onSaved={setCompany} onBrandingSaved={loadCompanyBranding} notify={notify} />}
         </main>
