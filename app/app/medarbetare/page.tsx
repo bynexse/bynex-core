@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import OrganizationSeatManager from "@/components/company/OrganizationSeatManager";
+import OrganizationStaffWorkspace from "@/components/company/OrganizationStaffWorkspace";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +40,7 @@ export default async function OrganizationSeatPage() {
         >
           <ArrowLeft className="h-4 w-4" /> Till Bynex
         </Link>
-        <OrganizationSeatManager />
+        <OrganizationStaffWorkspace />
       </div>
     </main>
   );
