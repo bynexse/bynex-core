@@ -6,7 +6,7 @@ import Image from "next/image";
 import {
   Building2, CircleDollarSign, Clock3, FileSignature, FolderKanban,
   BookOpenCheck, HardHat, Headphones, Home, Menu, MessageCircle, PackageSearch,
-  ReceiptText, Settings, Sparkles, UsersRound, WalletCards, Wrench, X
+  ReceiptText, Settings, Sparkles, UsersRound, Wrench, X
 } from "lucide-react";
 
 import Logo from "@/components/layout/Logo";
@@ -21,10 +21,9 @@ import LiveConnectModule from "@/components/modules/connect/LiveConnectModule";
 import LiveChangeOrdersModule from "@/components/modules/commercial/LiveChangeOrdersModule";
 import LiveQuotesModule from "@/components/modules/commercial/LiveQuotesModule";
 import LiveInvoicesModule from "@/components/modules/invoices/LiveInvoicesModule";
-import LiveBookkeepingModule from "@/components/modules/bookkeeping/LiveBookkeepingModule";
+import BookkeepingWorkspace from "@/components/modules/bookkeeping/BookkeepingWorkspace";
 import LiveAccountingIntegrationsModule from "@/components/modules/accounting/LiveAccountingIntegrationsModule";
 import LiveYearEndModule from "@/components/modules/bookkeeping/LiveYearEndModule";
-import LiveSoleTraderModule from "@/components/modules/sole-trader/LiveSoleTraderModule";
 import LivePropertyPortalModule from "@/components/modules/property/LivePropertyPortalModule";
 import CompanySettings from "@/components/modules/settings/CompanySettings";
 import SupportPanel from "@/components/modules/support/SupportPanel";
@@ -56,7 +55,6 @@ const modules: Array<{
   { id: "bookkeeping", label: "Bokföring", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
   { id: "accounting-integrations", label: "Ekonomikopplingar", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
   { id: "year-end", label: "Bokslut", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader", "limited_company"] },
-  { id: "sole-trader", label: "Enskild ekonomi", icon: WalletCards, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader"] },
   { id: "property-portal", label: "Kundportal & digital pärm", icon: Building2, productModule: "customer_portal", roles: ["owner", "admin", "office", "manager", "supervisor"] },
   { id: "settings", label: "Företagsinställningar", icon: Settings },
 ];
@@ -136,7 +134,6 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
           })}
           {company.platformRole && <Link href="/admin" className="mt-3 flex w-full items-center justify-center rounded-2xl bg-[#b8bdc5] px-4 py-3 text-sm font-semibold text-[#090a0c] transition hover:bg-[#d5d8dc]">Bynex HQ</Link>}
         </nav>
-
       </aside>
 
       {mobileNav && (
@@ -239,10 +236,9 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
           {active === "change-orders" && <LiveChangeOrdersModule notify={notify} />}
           {active === "quotes" && <LiveQuotesModule notify={notify} role={company.role} />}
           {active === "invoices" && <LiveInvoicesModule notify={notify} />}
-          {active === "bookkeeping" && <LiveBookkeepingModule notify={notify} />}
+          {active === "bookkeeping" && <BookkeepingWorkspace businessForm={company.businessForm} notify={notify} />}
           {active === "accounting-integrations" && <LiveAccountingIntegrationsModule notify={notify} />}
           {active === "year-end" && <LiveYearEndModule />}
-          {active === "sole-trader" && <LiveSoleTraderModule />}
           {active === "property-portal" && <LivePropertyPortalModule notify={notify} />}
           {active === "settings" && <CompanySettings company={company} onSaved={setCompany} onBrandingSaved={loadCompanyBranding} notify={notify} />}
         </main>
