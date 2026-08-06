@@ -56,7 +56,7 @@ create policy startup_offer_application_member_select
 create or replace function public.provision_bynex_organization(
   p_organization_name text,
   p_organization_number text,
-  p_business_form text,
+  p_business_form text default 'unknown',
   p_beta_scope text default 'complete',
   p_startup_offer_requested boolean default false
 )
