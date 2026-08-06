@@ -1,5 +1,6 @@
 import type { SmartPricePlan } from "@/lib/platform/smart-price";
 
+// Shared HQ transport types. Kept centralized so Vercel and local builds validate the same data shape.
 export type JsonRecord = Record<string, any>;
 
 export type OrganizationRow = {
