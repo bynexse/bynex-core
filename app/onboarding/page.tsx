@@ -46,7 +46,7 @@ export default function OnboardingPage() {
 
     setMessage("");
     setStatus("saving");
-    const { error } = await supabase.rpc("provision_bynex_organization", {
+    const { error } = await supabase.rpc("provision_bynex_organization_v2", {
       p_organization_name: organizationName.trim(),
       p_organization_number: normalizeSwedishOrganizationNumber(organizationNumber),
       p_business_form: businessForm,
