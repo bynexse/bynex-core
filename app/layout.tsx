@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 const siteTitle = "Bynex – byggprogram för tid, projekt, ÄTA och fakturering";
@@ -13,12 +13,28 @@ export const metadata: Metadata = {
     template: "%s | Bynex",
   },
   description: siteDescription,
-  authors: [{ name: "Bynex" }],
+  keywords: [
+    "byggprogram",
+    "affärssystem byggföretag",
+    "byggsystem",
+    "byggapp",
+    "tidrapportering bygg",
+    "byggdagbok",
+    "ÄTA hantering",
+    "offertprogram bygg",
+    "fakturaprogram bygg",
+    "projektledning bygg",
+    "löneunderlag bygg",
+    "bokföring byggföretag",
+  ],
+  authors: [{ name: "Bynex", url: "https://www.bynex.se" }],
   creator: "Bynex",
   publisher: "Bynex",
   category: "Affärssystem för byggföretag",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/brand/bynex-mark.png",
+    shortcut: "/brand/bynex-mark.png",
     apple: "/brand/bynex-mark.png",
   },
   robots: {
@@ -41,9 +57,9 @@ export const metadata: Metadata = {
     description: siteDescription,
     images: [
       {
-        url: "/brand/bynex-wordmark.png",
-        width: 2172,
-        height: 724,
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
         alt: "Bynex – byggprogram för svenska byggföretag",
       },
     ],
@@ -52,13 +68,18 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
-    images: ["/brand/bynex-wordmark.png"],
+    images: ["/opengraph-image"],
   },
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1d1f22",
+  colorScheme: "light",
 };
 
 export default function RootLayout({
