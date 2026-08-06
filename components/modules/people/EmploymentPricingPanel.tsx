@@ -13,13 +13,35 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/core";
 
-type UnknownRecord = Record<string, unknown>;
+type PricingMode = "company_standard" | "per_worker";
+
+type PricingSettings = {
+  pricing_mode?: PricingMode;
+  company_hourly_rate_ex_vat?: number | null;
+  target_margin_percent?: number | null;
+  billable_utilization_percent?: number | null;
+  employer_cost_percent?: number | null;
+  vacation_supplement_percent?: number | null;
+  annual_overhead_per_worker?: number | null;
+  rounding_step?: number | null;
+  updated_at?: string | null;
+};
+
+type WorkerPricing = {
+  individual_hourly_rate_ex_vat?: number | null;
+  selected_hourly_rate_ex_vat?: number | null;
+  recommended_hourly_rate_ex_vat?: number | null;
+  break_even_hourly_rate?: number | null;
+  estimated_margin_percent?: number | null;
+  below_recommendation?: boolean | null;
+  calculation_complete?: boolean;
+  missing_information?: string[];
+};
 
 type LaborPricingData = {
-  worker?: UnknownRecord;
-  settings?: UnknownRecord;
-  worker_pricing?: UnknownRecord;
-  capabilities?: UnknownRecord;
+  settings?: PricingSettings;
+  worker_pricing?: WorkerPricing;
+  capabilities?: { pricing_writable?: boolean };
 };
 
 const money = new Intl.NumberFormat("sv-SE", {
@@ -28,47 +50,29 @@ const money = new Intl.NumberFormat("sv-SE", {
   maximumFractionDigits: 0,
 });
 
-function numeric(value: unknown) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
+const inputClass =
+  "mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100";
+
+function rate(value: number | null | undefined) {
+  return typeof value === "number" && value > 0
+    ? `${money.format(value)}/h`
+    : "Inte valt";
 }
 
-function nullableNumeric(value: unknown) {
-  if (value === null || value === undefined || value === "") return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+function percentage(value: number | null | undefined) {
+  return typeof value === "number"
+    ? `${value.toLocaleString("sv-SE")} %`
+    : "–";
 }
 
-function text(value: unknown, fallback = "") {
-  return typeof value === "string" && value.trim() ? value.trim() : fallback;
-}
-
-function boolean(value: unknown) {
-  return value === true;
-}
-
-function rate(value: unknown) {
-  const amount = nullableNumeric(value);
-  return amount !== null && amount > 0 ? `${money.format(amount)}/h` : "Inte valt";
-}
-
-function percentage(value: unknown) {
-  const amount = nullableNumeric(value);
-  return amount === null ? "–" : `${amount.toLocaleString("sv-SE")} %`;
-}
-
-function pricingStatus(
-  calculationComplete: boolean,
-  selectedRate: number,
-  belowRecommendation: boolean | null,
-) {
-  if (!calculationComplete) {
+function statusFor(pricing: WorkerPricing) {
+  if (!pricing.calculation_complete) {
     return { label: "Kostnadsunderlag saknas", tone: "warning" as const };
   }
-  if (selectedRate <= 0) {
+  if (!pricing.selected_hourly_rate_ex_vat) {
     return { label: "Företaget har inte valt pris", tone: "neutral" as const };
   }
-  if (belowRecommendation === true) {
+  if (pricing.below_recommendation) {
     return {
       label: "Valt pris ger lägre marginal än målet",
       tone: "warning" as const,
@@ -76,9 +80,6 @@ function pricingStatus(
   }
   return { label: "Valt pris når målmarginalen", tone: "success" as const };
 }
-
-const inputClass =
-  "mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100";
 
 export default function EmploymentPricingPanel({
   workerId,
@@ -95,8 +96,10 @@ export default function EmploymentPricingPanel({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const enabled = ["employee", "temporary"].includes(employmentType);
+
   const load = useCallback(async () => {
-    if (!workerId || !["employee", "temporary"].includes(employmentType)) return;
+    if (!enabled || !workerId) return;
     setLoading(true);
     const response = await fetch(
       `/api/private/people/employment-pricing?workerId=${encodeURIComponent(workerId)}`,
@@ -105,6 +108,8 @@ export default function EmploymentPricingPanel({
     const payload = (await response.json().catch(() => null)) as
       | { data?: LaborPricingData; error?: string }
       | null;
+    setLoading(false);
+
     if (!response.ok || !payload?.data) {
       setData(null);
       setError(
@@ -112,19 +117,19 @@ export default function EmploymentPricingPanel({
           ? null
           : payload?.error ?? "Pris- och lönsamhetsunderlaget kunde inte hämtas.",
       );
-    } else {
-      setData(payload.data);
-      setError(null);
+      return;
     }
-    setLoading(false);
-  }, [employmentType, workerId]);
+
+    setData(payload.data);
+    setError(null);
+  }, [enabled, workerId]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => void load());
     return () => window.cancelAnimationFrame(frame);
   }, [load]);
 
-  if (!["employee", "temporary"].includes(employmentType)) return null;
+  if (!enabled) return null;
   if (loading && !data) {
     return (
       <div className="rounded-2xl bg-white p-4 text-sm text-zinc-500">
@@ -145,30 +150,17 @@ export default function EmploymentPricingPanel({
 
   const settings = data.settings ?? {};
   const pricing = data.worker_pricing ?? {};
-  const selectedRate = numeric(pricing.selected_hourly_rate_ex_vat);
-  const belowRecommendation =
-    pricing.below_recommendation === null ||
-    pricing.below_recommendation === undefined
-      ? null
-      : boolean(pricing.below_recommendation);
-  const currentStatus = pricingStatus(
-    boolean(pricing.calculation_complete),
-    selectedRate,
-    belowRecommendation,
-  );
-  const pricingMode = text(settings.pricing_mode, "company_standard");
-  const missing = Array.isArray(pricing.missing_information)
-    ? pricing.missing_information.filter(
-        (item): item is string => typeof item === "string",
-      )
-    : [];
-  const canEdit = boolean(data.capabilities?.pricing_writable);
+  const currentStatus = statusFor(pricing);
+  const pricingMode = settings.pricing_mode ?? "company_standard";
+  const missing = pricing.missing_information ?? [];
+  const canEdit = data.capabilities?.pricing_writable === true;
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setSaving(true);
     setError(null);
+
     const response = await fetch("/api/private/people/employment-pricing", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -189,10 +181,12 @@ export default function EmploymentPricingPanel({
       | { data?: LaborPricingData; error?: string }
       | null;
     setSaving(false);
+
     if (!response.ok || !payload?.data) {
       setError(payload?.error ?? "Företagets timpris kunde inte sparas.");
       return;
     }
+
     setData(payload.data);
     setEditing(false);
     notify(
@@ -209,8 +203,8 @@ export default function EmploymentPricingPanel({
               <WalletCards className="h-4 w-4" /> Pris mot kund och lönsamhet
             </p>
             <p className="mt-1 text-xs leading-5 text-zinc-500">
-              Företaget väljer självt sitt debiteringspris. Bynex visar endast ett
-              rådgivande riktpris från registrerade anställnings- och kostnadsuppgifter.
+              Företaget väljer självt sitt debiteringspris. Bynex visar bara ett
+              rådgivande riktpris från anställnings- och kostnadsuppgifterna.
             </p>
           </div>
           {canEdit && (
@@ -302,8 +296,8 @@ export default function EmploymentPricingPanel({
               <Calculator className="mt-0.5 h-5 w-5 shrink-0" />
               <p>
                 Välj vad företaget fakturerar kunden för en arbetstimme. Ett gemensamt
-                pris gäller alla medarbetare. Individuellt pris gäller endast den här
-                medarbetaren. Beloppen anges exklusive moms.
+                pris gäller alla medarbetare och ett individuellt pris gäller bara den
+                här medarbetaren. Beloppen anges exklusive moms.
               </p>
             </div>
 
@@ -314,7 +308,7 @@ export default function EmploymentPricingPanel({
             )}
 
             <form
-              key={`${workerId}-${text(settings.updated_at, "new")}-${pricingMode}`}
+              key={`${workerId}-${settings.updated_at ?? "new"}-${pricingMode}`}
               onSubmit={save}
               className="mt-7 space-y-5"
             >
@@ -326,12 +320,8 @@ export default function EmploymentPricingPanel({
                     defaultValue={pricingMode}
                     className={inputClass}
                   >
-                    <option value="company_standard">
-                      Samma timpris för alla
-                    </option>
-                    <option value="per_worker">
-                      Individuellt pris per medarbetare
-                    </option>
+                    <option value="company_standard">Samma timpris för alla</option>
+                    <option value="per_worker">Individuellt pris per medarbetare</option>
                   </select>
                 </label>
                 <label className="text-sm font-semibold">
@@ -345,9 +335,6 @@ export default function EmploymentPricingPanel({
                     placeholder="Valfritt belopp"
                     className={inputClass}
                   />
-                  <span className="mt-1 block text-xs font-normal text-zinc-500">
-                    Används när samma pris gäller för alla.
-                  </span>
                 </label>
                 <label className="text-sm font-semibold">
                   Den här medarbetarens timpris
@@ -360,9 +347,6 @@ export default function EmploymentPricingPanel({
                     placeholder="Valfritt belopp"
                     className={inputClass}
                   />
-                  <span className="mt-1 block text-xs font-normal text-zinc-500">
-                    Används endast vid individuella priser.
-                  </span>
                 </label>
                 <label className="text-sm font-semibold">
                   Önskad marginal
@@ -375,9 +359,6 @@ export default function EmploymentPricingPanel({
                     defaultValue={settings.target_margin_percent ?? 12.5}
                     className={inputClass}
                   />
-                  <span className="mt-1 block text-xs font-normal text-zinc-500">
-                    procent
-                  </span>
                 </label>
                 <label className="text-sm font-semibold">
                   Debiterbar tid
@@ -390,9 +371,6 @@ export default function EmploymentPricingPanel({
                     defaultValue={settings.billable_utilization_percent ?? 75}
                     className={inputClass}
                   />
-                  <span className="mt-1 block text-xs font-normal text-zinc-500">
-                    Andel av tillgänglig arbetstid som normalt kan faktureras.
-                  </span>
                 </label>
                 <label className="text-sm font-semibold">
                   Arbetsgivaromkostnad
@@ -405,9 +383,6 @@ export default function EmploymentPricingPanel({
                     defaultValue={settings.employer_cost_percent ?? ""}
                     className={inputClass}
                   />
-                  <span className="mt-1 block text-xs font-normal text-zinc-500">
-                    procent; kan lämnas tomt om full timkostnad är registrerad.
-                  </span>
                 </label>
                 <label className="text-sm font-semibold">
                   Semestertillägg / semesterersättning
@@ -420,9 +395,6 @@ export default function EmploymentPricingPanel({
                     defaultValue={settings.vacation_supplement_percent ?? 0}
                     className={inputClass}
                   />
-                  <span className="mt-1 block text-xs font-normal text-zinc-500">
-                    procent
-                  </span>
                 </label>
                 <label className="text-sm font-semibold">
                   Årlig omkostnad per person
@@ -434,9 +406,6 @@ export default function EmploymentPricingPanel({
                     defaultValue={settings.annual_overhead_per_worker ?? 0}
                     className={inputClass}
                   />
-                  <span className="mt-1 block text-xs font-normal text-zinc-500">
-                    Bil, verktyg, kläder, försäkring och administration.
-                  </span>
                 </label>
                 <label className="text-sm font-semibold">
                   Avrunda riktpriset till
@@ -459,7 +428,7 @@ export default function EmploymentPricingPanel({
                   <BadgePercent className="mt-0.5 h-5 w-5 shrink-0" />
                   <p>
                     När du sparar räknar Bynex om riktpris och marginal. Företagets
-                    valda pris sparas som beslut – inte som en AI-rekommendation.
+                    valda pris sparas som beslut, inte som en AI-rekommendation.
                   </p>
                 </div>
               </div>
