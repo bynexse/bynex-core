@@ -97,5 +97,9 @@ export async function requireSupabaseUser(requiredModule?: ProductModuleSlug) {
     }
   }
 
-  return { supabase, userId } as const;
+  return {
+    supabase,
+    userId,
+    staff: { role: "" as string, active: false },
+  } as const;
 }
