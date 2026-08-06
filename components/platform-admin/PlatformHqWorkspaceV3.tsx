@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import {
   Activity,
   ArrowLeft,
@@ -29,10 +36,13 @@ import {
 } from "lucide-react";
 
 import BynexLogo from "@/components/brand/BynexLogo";
+import HqAuditWorkspace from "./hq/HqAuditWorkspace";
 import HqBillingWorkspace from "./hq/HqBillingWorkspace";
+import HqCostsWorkspace from "./hq/HqCostsWorkspace";
 import HqCustomerWorkspace from "./hq/HqCustomerWorkspace";
 import HqPricingContractsWorkspace from "./hq/HqPricingContractsWorkspace";
-import HqSupportWorkspace from "./hq/HqSupportWorkspace";
+import HqStaffAccessWorkspace from "./hq/HqStaffAccessWorkspace";
+import HqSupportQueueWorkspace from "./hq/HqSupportQueueWorkspace";
 import HqSystemWorkspace from "./hq/HqSystemWorkspace";
 import type { HqData, HqTab, OrganizationRow } from "./hq/types";
 import {
@@ -62,8 +72,7 @@ type NavigationItem = {
   description: string;
   icon: typeof LayoutDashboard;
   customerRequired?: boolean;
-  roles?: string[];
-  href?: string;
+  roles: string[];
 };
 
 const allPlatformRoles = [
@@ -128,15 +137,13 @@ const navigation: NavigationItem[] = [
     description: "Drift, löner och utgifter",
     icon: CircleDollarSign,
     roles: ["platform_owner", "platform_admin", "finance"],
-    href: "/admin/kostnader",
   },
   {
     id: "support",
     label: "Support",
-    description: "Ärenden, ansvarig och svar",
+    description: "Gemensam kö och kundärenden",
     icon: Headphones,
-    customerRequired: true,
-    roles: ["platform_owner", "platform_admin", "support", "finance"],
+    roles: ["platform_owner", "platform_admin", "support", "finance", "read_only"],
   },
   {
     id: "catalog",
@@ -157,7 +164,7 @@ const navigation: NavigationItem[] = [
     label: "Händelselogg",
     description: "Läsbar revisionshistorik",
     icon: ScrollText,
-    roles: ["platform_owner", "platform_admin", "read_only"],
+    roles: ["platform_owner", "platform_admin", "finance", "read_only"],
   },
 ];
 
@@ -170,12 +177,20 @@ const roleLabels: Record<string, string> = {
   read_only: "Läsbehörighet",
 };
 
-function organizationAttention(organization: OrganizationRow) {
+const hqTabs = new Set<HqTab>(navigation.map((item) => item.id));
+
+function isHqTab(value: string | null): value is HqTab {
+  return Boolean(value && hqTabs.has(value as HqTab));
+}
+
+function organizationAttention(organization: OrganizationRow, includeFinance: boolean) {
   const items: string[] = [];
-  if (!organization.billing_email) items.push("saknar faktura-e-post");
+  if (!organization.billing_email) items.push("saknar kontakt-/faktura-e-post");
   if (!organization.subscription_id) items.push("saknar abonnemang");
-  if (organization.subscription_status === "past_due") items.push("förfallen betalning");
-  if (Number(organization.outstanding_inc_vat) > 0) items.push("utestående saldo");
+  if (organization.subscription_status === "past_due") items.push("betalning behöver följas upp");
+  if (includeFinance && Number(organization.outstanding_inc_vat) > 0) {
+    items.push("utestående saldo");
+  }
   if (organization.account_status === "watch") items.push("bevakas");
   return items;
 }
@@ -188,6 +203,9 @@ function matchesOrganization(organization: OrganizationRow, rawQuery: string) {
     organization.organization_number,
     organization.customer_number,
     organization.billing_email,
+    organization.primary_contact_name,
+    organization.primary_email,
+    organization.primary_phone,
   ].some((value) => value?.toLocaleLowerCase("sv-SE").includes(query));
 }
 
@@ -195,7 +213,9 @@ export default function PlatformHqWorkspaceV3() {
   const [data, setData] = useState<HqData | null>(null);
   const [activeTab, setActiveTab] = useState<HqTab>("overview");
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
+  const [globalQuery, setGlobalQuery] = useState("");
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+  const [customerQuery, setCustomerQuery] = useState("");
   const [stage, setStage] = useState("all");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -226,8 +246,34 @@ export default function PlatformHqWorkspaceV3() {
   }, []);
 
   useEffect(() => {
-    void load(null);
+    const parameters = new URLSearchParams(window.location.search);
+    const requestedTab = parameters.get("tab");
+    const requestedOrganizationId = parameters.get("organizationId");
+    if (isHqTab(requestedTab)) setActiveTab(requestedTab);
+    void load(requestedOrganizationId);
   }, [load]);
+
+  useEffect(() => {
+    if (!data) return;
+    const item = navigation.find((candidate) => candidate.id === activeTab);
+    if (!item || !item.roles.includes(data.role)) {
+      setActiveTab("overview");
+      return;
+    }
+    if (item.customerRequired && !selectedOrganizationId) {
+      setActiveTab("customers");
+      setNotice(`Välj en kund innan ${item.label} öppnas.`);
+    }
+  }, [activeTab, data, selectedOrganizationId]);
+
+  useEffect(() => {
+    if (!data) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", activeTab);
+    if (selectedOrganizationId) url.searchParams.set("organizationId", selectedOrganizationId);
+    else url.searchParams.delete("organizationId");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [activeTab, data, selectedOrganizationId]);
 
   const runAction = useCallback<RunHqAction>(
     async (action, payload, successMessage, options) => {
@@ -290,22 +336,33 @@ export default function PlatformHqWorkspaceV3() {
   );
 
   const visibleNavigation = useMemo(
-    () => navigation.filter((item) => !item.roles || item.roles.includes(data?.role ?? "")),
+    () => navigation.filter((item) => item.roles.includes(data?.role ?? "")),
     [data?.role],
   );
+
+  const globalResults = useMemo(() => {
+    if (!data || globalQuery.trim().length < 2) return [];
+    return data.organizations
+      .filter((organization) => matchesOrganization(organization, globalQuery))
+      .slice(0, 8);
+  }, [data, globalQuery]);
 
   const filteredOrganizations = useMemo(() => {
     if (!data) return [];
     return data.organizations.filter((organization) => {
-      const matchesQuery = matchesOrganization(organization, query);
+      const matchesQuery = matchesOrganization(organization, customerQuery);
       const matchesStage =
         stage === "all" ||
-        (stage === "attention" && organizationAttention(organization).length > 0) ||
+        (stage === "attention" &&
+          organizationAttention(
+            organization,
+            ["platform_owner", "platform_admin", "finance"].includes(data.role),
+          ).length > 0) ||
         organization.lifecycle_stage === stage ||
         organization.subscription_status === stage;
       return matchesQuery && matchesStage;
     });
-  }, [data, query, stage]);
+  }, [customerQuery, data, stage]);
 
   const selectedOrganization = data?.organizations.find(
     (organization) => organization.id === selectedOrganizationId,
@@ -315,18 +372,18 @@ export default function PlatformHqWorkspaceV3() {
     setSelectedOrganizationId(organizationId);
     setActiveTab(tab);
     setMobileMenuOpen(false);
+    setGlobalSearchOpen(false);
     void load(organizationId);
   }
 
-  function closeOrganization() {
+  function clearOrganization(nextTab: HqTab = "customers") {
     setSelectedOrganizationId(null);
-    setActiveTab("customers");
+    setActiveTab(nextTab);
     setMobileMenuOpen(false);
     void load(null);
   }
 
   function openTab(item: NavigationItem) {
-    if (item.href) return;
     setMobileMenuOpen(false);
     if (item.customerRequired && !selectedOrganizationId) {
       setActiveTab("customers");
@@ -340,17 +397,20 @@ export default function PlatformHqWorkspaceV3() {
     event.preventDefault();
     if (!data) return;
     const results = data.organizations.filter((organization) =>
-      matchesOrganization(organization, query),
+      matchesOrganization(organization, globalQuery),
     );
     if (results.length === 1) {
       openOrganization(results[0].id);
       return;
     }
+    setCustomerQuery(globalQuery);
+    setStage("all");
+    setGlobalSearchOpen(false);
     setActiveTab("customers");
     setNotice(
       results.length > 1
         ? `${results.length} kunder matchar sökningen.`
-        : "Ingen kund matchar sökningen. Kontrollera namn, organisationsnummer, kundnummer eller e-post.",
+        : "Ingen kund matchar sökningen. Kontrollera namn, telefon, organisationsnummer, kundnummer eller e-post.",
     );
   }
 
@@ -399,7 +459,11 @@ export default function PlatformHqWorkspaceV3() {
           <ShieldCheck className="mx-auto h-10 w-10 text-red-600" />
           <h1 className="mt-4 text-2xl font-semibold">Bynex HQ kunde inte öppnas</h1>
           <p className="mt-3 text-sm leading-6 text-zinc-600">{error}</p>
-          <button type="button" onClick={() => void load(selectedOrganizationId)} className={`${buttonClass} mt-5`}>
+          <button
+            type="button"
+            onClick={() => void load(selectedOrganizationId)}
+            className={`${buttonClass} mt-5`}
+          >
             <RefreshCw className="h-4 w-4" /> Försök igen
           </button>
         </section>
@@ -407,6 +471,9 @@ export default function PlatformHqWorkspaceV3() {
     );
   }
 
+  const canViewFinancialOverview = ["platform_owner", "platform_admin", "finance"].includes(
+    data.role,
+  );
   const activeSubscriptions =
     data.summary.active_subscriptions ??
     data.organizations.filter((organization) => organization.subscription_status === "active")
@@ -422,71 +489,65 @@ export default function PlatformHqWorkspaceV3() {
       0,
     );
   const attentionOrganizations = data.organizations
-    .filter((organization) => organizationAttention(organization).length > 0)
+    .filter(
+      (organization) =>
+        organizationAttention(organization, canViewFinancialOverview).length > 0,
+    )
     .slice(0, 12);
   const canCreateCustomer = ["platform_owner", "platform_admin", "sales", "finance"].includes(
     data.role,
   );
   const busy = Boolean(busyAction);
-  const activeItem = navigation.find((item) => item.id === activeTab);
+  const activeItem = visibleNavigation.find((item) => item.id === activeTab);
 
   const sidebar = (
-    <div className="flex min-h-full flex-col">
-      <div className="px-3">
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="shrink-0 px-3">
         <BynexLogo className="h-8 w-auto text-white" />
         <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">
           Bynex intern arbetsyta
         </p>
-        <p className="mt-2 text-sm text-zinc-400">{roleLabels[data.role] ?? "Bynex medarbetare"}</p>
+        <p className="mt-2 text-sm text-zinc-400">
+          {roleLabels[data.role] ?? "Bynex medarbetare"}
+        </p>
       </div>
 
-      <nav className="mt-7 space-y-1" aria-label="Bynex HQ">
+      <nav className="mt-7 flex-1 space-y-1 overflow-y-auto pr-1" aria-label="Bynex HQ">
         {visibleNavigation.map((item) => {
           const Icon = item.icon;
           const selected = activeTab === item.id;
-          const content = (
-            <>
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => openTab(item)}
+              className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition ${
+                selected
+                  ? "bg-white text-zinc-950 shadow-sm"
+                  : "text-zinc-300 hover:bg-white/10 hover:text-white"
+              }`}
+            >
               <Icon className="h-5 w-5 shrink-0" />
               <span className="min-w-0">
                 <span className="block truncate text-sm font-semibold">{item.label}</span>
-                <span className={`block truncate text-xs ${selected ? "text-zinc-500" : "text-zinc-500"}`}>
-                  {item.description}
-                </span>
+                <span className="block truncate text-xs text-zinc-500">{item.description}</span>
               </span>
-            </>
-          );
-          const className = `flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition ${
-            selected
-              ? "bg-white text-zinc-950 shadow-sm"
-              : "text-zinc-300 hover:bg-white/10 hover:text-white"
-          }`;
-
-          if (item.href) {
-            return (
-              <Link key={item.id} href={item.href} className={className} onClick={() => setMobileMenuOpen(false)}>
-                {content}
-              </Link>
-            );
-          }
-          return (
-            <button key={item.id} type="button" onClick={() => openTab(item)} className={className}>
-              {content}
             </button>
           );
         })}
       </nav>
 
-      <div className="mt-auto space-y-3 px-3 pt-8">
+      <div className="shrink-0 space-y-3 border-t border-white/10 px-3 pt-4">
         {selectedOrganization && (
           <div className="rounded-2xl bg-white/10 p-4">
             <p className="text-xs text-zinc-500">Vald kund</p>
             <p className="mt-1 truncate text-sm font-semibold">{selectedOrganization.name}</p>
             <p className="mt-1 truncate text-xs text-zinc-400">
-              {selectedOrganization.customer_number ?? selectedOrganization.organization_number ?? "Kundnummer saknas"}
+              {selectedOrganization.customer_number ?? selectedOrganization.organization_number}
             </p>
             <button
               type="button"
-              onClick={closeOrganization}
+              onClick={() => clearOrganization(activeTab === "support" ? "support" : "customers")}
               className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-white"
             >
               <X className="h-3.5 w-3.5" /> Stäng kund
@@ -497,26 +558,39 @@ export default function PlatformHqWorkspaceV3() {
           href="/app"
           className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-medium text-zinc-400 hover:text-white"
         >
-          <ArrowLeft className="h-4 w-4" /> Till kundsystemet
+          <ArrowLeft className="h-4 w-4" /> Öppna kundsystemet
         </Link>
       </div>
     </div>
   );
 
+  const openCustomerFromKeyboard = (
+    event: KeyboardEvent<HTMLTableRowElement>,
+    organizationId: string,
+  ) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openOrganization(organizationId);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-zinc-100 text-zinc-950">
       <div className="mx-auto flex min-h-screen max-w-[1920px]">
-        <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-y-auto border-r border-zinc-800 bg-zinc-950 px-4 py-6 text-white xl:block">
+        <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-hidden border-r border-zinc-800 bg-zinc-950 px-4 py-6 text-white xl:block">
           {sidebar}
         </aside>
 
         {mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 bg-black/40 xl:hidden" onClick={() => setMobileMenuOpen(false)}>
+          <div
+            className="fixed inset-0 z-50 bg-black/40 xl:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          >
             <aside
-              className="h-full w-[88%] max-w-sm overflow-y-auto bg-zinc-950 px-4 py-6 text-white shadow-2xl"
+              className="h-full w-[88%] max-w-sm overflow-hidden bg-zinc-950 px-4 py-6 text-white shadow-2xl"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="mb-3 flex justify-end">
+              <div className="mb-3 flex shrink-0 justify-end">
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
@@ -526,7 +600,7 @@ export default function PlatformHqWorkspaceV3() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              {sidebar}
+              <div className="h-[calc(100%-3rem)]">{sidebar}</div>
             </aside>
           </div>
         )}
@@ -545,7 +619,7 @@ export default function PlatformHqWorkspaceV3() {
                 </button>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">
-                    <ShieldCheck className="h-4 w-4" /> Bynex HQ
+                    <ShieldCheck className="h-4 w-4" /> Bynex intern arbetsyta
                   </div>
                   <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight">
                     {activeItem?.label ?? "Bynex HQ"}
@@ -555,21 +629,63 @@ export default function PlatformHqWorkspaceV3() {
               </div>
 
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <form onSubmit={runGlobalSearch} className="relative min-w-0 sm:w-[25rem]">
-                  <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-zinc-400" />
-                  <input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Sök företag, org.nr, kundnummer eller e-post"
-                    className={`${inputClass} pl-10 pr-24`}
-                  />
-                  <button
-                    type="submit"
-                    className="absolute right-1.5 top-1.5 rounded-xl bg-zinc-950 px-3 py-2 text-xs font-semibold text-white"
-                  >
-                    Sök
-                  </button>
-                </form>
+                <div
+                  className="relative min-w-0 sm:w-[28rem]"
+                  onBlur={(event) => {
+                    const next = event.relatedTarget;
+                    if (!(next instanceof Node) || !event.currentTarget.contains(next)) {
+                      setGlobalSearchOpen(false);
+                    }
+                  }}
+                >
+                  <form onSubmit={runGlobalSearch}>
+                    <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-zinc-400" />
+                    <input
+                      value={globalQuery}
+                      onChange={(event) => {
+                        setGlobalQuery(event.target.value);
+                        setGlobalSearchOpen(true);
+                      }}
+                      onFocus={() => setGlobalSearchOpen(true)}
+                      placeholder="Sök företag, telefon, e-post, org.nr eller kundnummer"
+                      className={`${inputClass} pl-10 pr-24`}
+                    />
+                    <button
+                      type="submit"
+                      className="absolute right-1.5 top-1.5 rounded-xl bg-zinc-950 px-3 py-2 text-xs font-semibold text-white"
+                    >
+                      Sök
+                    </button>
+                  </form>
+
+                  {globalSearchOpen && globalQuery.trim().length >= 2 && (
+                    <div className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-50 max-h-96 overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-2 shadow-2xl">
+                      {globalResults.map((organization) => (
+                        <button
+                          key={organization.id}
+                          type="button"
+                          onClick={() => openOrganization(organization.id)}
+                          className="flex w-full items-start justify-between gap-3 rounded-xl p-3 text-left hover:bg-zinc-50"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold">{organization.name}</p>
+                            <p className="mt-1 truncate text-xs text-zinc-500">
+                              {organization.customer_number}
+                              {organization.primary_phone ? ` · ${organization.primary_phone}` : ""}
+                            </p>
+                          </div>
+                          <Pill tone={toneForStatus(organization.subscription_status)}>
+                            {organization.subscription_status ?? "utan abonnemang"}
+                          </Pill>
+                        </button>
+                      ))}
+                      {globalResults.length === 0 && (
+                        <p className="p-4 text-sm text-zinc-500">Ingen kund matchar sökningen.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center gap-2">
                   {loading && (
                     <span className="inline-flex items-center gap-2 text-xs text-zinc-500">
@@ -585,7 +701,11 @@ export default function PlatformHqWorkspaceV3() {
                     <RefreshCw className="h-4 w-4" /> Uppdatera
                   </button>
                   {canCreateCustomer && (
-                    <button type="button" onClick={() => setActiveTab("customers")} className={buttonClass}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("customers")}
+                      className={buttonClass}
+                    >
                       <Plus className="h-4 w-4" /> Ny kund
                     </button>
                   )}
@@ -632,7 +752,9 @@ export default function PlatformHqWorkspaceV3() {
                         Hitta kunden, förstå läget och lös nästa uppgift
                       </h2>
                       <p className="mt-4 max-w-3xl text-sm leading-7 text-zinc-300">
-                        HQ arbetar endast med Bynex plattform, kunder, avtal, support och fakturering. Ett kundföretag väljs först när du behöver arbeta i dess kundkort.
+                        HQ arbetar med Bynex plattform, kunder, avtal och support. Ett
+                        kundföretag öppnas först när du väljer det i registret eller söker
+                        fram det i den gemensamma sökrutan.
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-center">
@@ -659,18 +781,37 @@ export default function PlatformHqWorkspaceV3() {
                     value={String(data.summary.customers)}
                     helper={`${data.summary.leads} leads i aktiv pipeline`}
                   />
-                  <Metric
-                    icon={CircleDollarSign}
-                    label="Abonnemangsintäkt per månad"
-                    value={sek.format(asNumber(data.summary.monthly_recurring_revenue_ex_vat))}
-                    helper={`${activeSubscriptions} aktiva abonnemang · exkl. moms`}
-                  />
-                  <Metric
-                    icon={ReceiptText}
-                    label="Utestående"
-                    value={sek.format(outstanding)}
-                    helper={`${data.summary.past_due_subscriptions ?? 0} abonnemang med förfallen betalning`}
-                  />
+                  {canViewFinancialOverview ? (
+                    <>
+                      <Metric
+                        icon={CircleDollarSign}
+                        label="Abonnemangsintäkt per månad"
+                        value={sek.format(asNumber(data.summary.monthly_recurring_revenue_ex_vat))}
+                        helper={`${activeSubscriptions} aktiva abonnemang · exkl. moms`}
+                      />
+                      <Metric
+                        icon={ReceiptText}
+                        label="Utestående"
+                        value={sek.format(outstanding)}
+                        helper={`${data.summary.past_due_subscriptions ?? 0} abonnemang behöver följas upp`}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Metric
+                        icon={CheckCircle2}
+                        label="Aktiva abonnemang"
+                        value={String(activeSubscriptions)}
+                        helper="Betalande kunder"
+                      />
+                      <Metric
+                        icon={Headphones}
+                        label="Öppna supportärenden"
+                        value={String(data.summary.open_support_cases ?? 0)}
+                        helper="Alla prioriteringar"
+                      />
+                    </>
+                  )}
                   <Metric
                     icon={Activity}
                     label="Provperioder"
@@ -707,15 +848,19 @@ export default function PlatformHqWorkspaceV3() {
                           <div>
                             <p className="font-semibold">{organization.name}</p>
                             <p className="mt-1 text-xs text-zinc-500">
-                              {organizationAttention(organization).join(" · ")}
+                              {organizationAttention(
+                                organization,
+                                canViewFinancialOverview,
+                              ).join(" · ")}
                             </p>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
-                            {asNumber(organization.outstanding_inc_vat) > 0 && (
-                              <Pill tone="warning">
-                                {sek.format(asNumber(organization.outstanding_inc_vat))}
-                              </Pill>
-                            )}
+                            {canViewFinancialOverview &&
+                              asNumber(organization.outstanding_inc_vat) > 0 && (
+                                <Pill tone="warning">
+                                  {sek.format(asNumber(organization.outstanding_inc_vat))}
+                                </Pill>
+                              )}
                             <Pill tone={toneForStatus(organization.subscription_status)}>
                               {organization.subscription_status ?? "utan abonnemang"}
                             </Pill>
@@ -756,7 +901,8 @@ export default function PlatformHqWorkspaceV3() {
                       <div className="flex gap-3">
                         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" />
                         <span>
-                          Du arbetar i <strong>Bynex interna HQ</strong>. Kundföretagets data öppnas först när du väljer kunden i registret.
+                          Du arbetar i <strong>Bynex interna HQ</strong>. Kundföretagets
+                          uppgifter öppnas först när en kund väljs.
                         </span>
                       </div>
                     </div>
@@ -767,7 +913,11 @@ export default function PlatformHqWorkspaceV3() {
 
             {activeTab === "customers" && (
               <div className="space-y-5">
-                <div className={`grid gap-5 ${canCreateCustomer ? "2xl:grid-cols-[0.72fr_1.28fr]" : ""}`}>
+                <div
+                  className={`grid gap-5 ${
+                    canCreateCustomer ? "2xl:grid-cols-[0.72fr_1.28fr]" : ""
+                  }`}
+                >
                   {canCreateCustomer && (
                     <Panel title="Lägg till kund" eyebrow="CRM">
                       <form onSubmit={createCustomer} className="space-y-4">
@@ -776,22 +926,42 @@ export default function PlatformHqWorkspaceV3() {
                             <input name="name" required minLength={2} className={inputClass} />
                           </Field>
                           <Field label="Juridiskt namn">
-                            <input name="legalName" required minLength={2} className={inputClass} />
+                            <input
+                              name="legalName"
+                              required
+                              minLength={2}
+                              className={inputClass}
+                            />
                           </Field>
                           <Field label="Organisationsnummer">
-                            <input name="organizationNumber" required minLength={6} className={inputClass} />
+                            <input
+                              name="organizationNumber"
+                              required
+                              minLength={6}
+                              className={inputClass}
+                            />
                           </Field>
                           <Field label="Företagsform">
-                            <select name="businessForm" defaultValue="limited_company" className={inputClass}>
+                            <select
+                              name="businessForm"
+                              defaultValue="limited_company"
+                              className={inputClass}
+                            >
                               <option value="limited_company">Aktiebolag</option>
                               <option value="sole_trader">Enskild firma</option>
-                              <option value="partnership">Handels-/kommanditbolag</option>
+                              <option value="trading_partnership">Handelsbolag</option>
+                              <option value="limited_partnership">Kommanditbolag</option>
                               <option value="economic_association">Ekonomisk förening</option>
                               <option value="other">Övrigt</option>
                             </select>
                           </Field>
                           <Field label="Faktura-e-post">
-                            <input name="billingEmail" type="email" required className={inputClass} />
+                            <input
+                              name="billingEmail"
+                              type="email"
+                              required
+                              className={inputClass}
+                            />
                           </Field>
                           <Field label="Betalningsvillkor">
                             <input
@@ -828,13 +998,17 @@ export default function PlatformHqWorkspaceV3() {
                       <label className="relative block">
                         <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-zinc-400" />
                         <input
-                          value={query}
-                          onChange={(event) => setQuery(event.target.value)}
-                          placeholder="Sök namn, org.nr, kundnummer eller e-post"
+                          value={customerQuery}
+                          onChange={(event) => setCustomerQuery(event.target.value)}
+                          placeholder="Sök namn, telefon, e-post, org.nr eller kundnummer"
                           className={`${inputClass} pl-10`}
                         />
                       </label>
-                      <select value={stage} onChange={(event) => setStage(event.target.value)} className={inputClass}>
+                      <select
+                        value={stage}
+                        onChange={(event) => setStage(event.target.value)}
+                        className={inputClass}
+                      >
                         <option value="all">Alla kunder</option>
                         <option value="attention">Kräver uppmärksamhet</option>
                         <option value="lead">Leads</option>
@@ -852,41 +1026,58 @@ export default function PlatformHqWorkspaceV3() {
                         <thead className="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-500">
                           <tr>
                             <th className="px-3 py-3">Företag</th>
-                            <th className="px-3 py-3">Kundnummer</th>
+                            <th className="px-3 py-3">Kontakt</th>
                             <th className="px-3 py-3">Abonnemang</th>
-                            <th className="px-3 py-3 text-right">Saldo</th>
+                            {canViewFinancialOverview && (
+                              <th className="px-3 py-3 text-right">Saldo</th>
+                            )}
                             <th className="px-3 py-3">Öppna</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100">
                           {filteredOrganizations.map((organization) => (
-                            <tr key={organization.id} className="hover:bg-zinc-50">
+                            <tr
+                              key={organization.id}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => openOrganization(organization.id)}
+                              onKeyDown={(event) =>
+                                openCustomerFromKeyboard(event, organization.id)
+                              }
+                              className="cursor-pointer transition hover:bg-zinc-50 focus:bg-zinc-50 focus:outline-none"
+                            >
                               <td className="px-3 py-4">
                                 <p className="font-semibold">{organization.name}</p>
                                 <p className="mt-1 text-xs text-zinc-500">
-                                  {organization.organization_number ?? organization.billing_email ?? "–"}
+                                  {organization.customer_number} · {organization.organization_number ?? "org.nr saknas"}
                                 </p>
                               </td>
-                              <td className="px-3 py-4 font-medium">
-                                {organization.customer_number ?? "Tilldelas när fakturaprofilen är klar"}
+                              <td className="px-3 py-4">
+                                <p className="font-medium">
+                                  {organization.primary_contact_name ?? "Kontakt saknas"}
+                                </p>
+                                <p className="mt-1 text-xs text-zinc-500">
+                                  {organization.primary_phone ??
+                                    organization.primary_email ??
+                                    organization.billing_email ??
+                                    "–"}
+                                </p>
                               </td>
                               <td className="px-3 py-4">
-                                <p className="font-medium">{organization.plan_name ?? "Ingen plan"}</p>
+                                <p className="font-medium">
+                                  {organization.plan_name ?? "Ingen plan"}
+                                </p>
                                 <p className="mt-1 text-xs text-zinc-500">
                                   {organization.subscription_status ?? "saknas"} · {organization.seat_count ?? 0} användare
                                 </p>
                               </td>
-                              <td className="px-3 py-4 text-right font-semibold">
-                                {sek.format(asNumber(organization.outstanding_inc_vat))}
-                              </td>
+                              {canViewFinancialOverview && (
+                                <td className="px-3 py-4 text-right font-semibold">
+                                  {sek.format(asNumber(organization.outstanding_inc_vat))}
+                                </td>
+                              )}
                               <td className="px-3 py-4">
-                                <button
-                                  type="button"
-                                  onClick={() => openOrganization(organization.id)}
-                                  className={secondaryButtonClass}
-                                >
-                                  Kund 360
-                                </button>
+                                <span className={secondaryButtonClass}>Kund 360</span>
                               </td>
                             </tr>
                           ))}
@@ -928,17 +1119,28 @@ export default function PlatformHqWorkspaceV3() {
                 busy={busy}
               />
             )}
+            {activeTab === "costs" && (
+              <HqCostsWorkspace data={data} runAction={runAction} busy={busy} />
+            )}
             {activeTab === "support" && (
-              <HqSupportWorkspace
+              <HqSupportQueueWorkspace
                 data={data}
                 selectedOrganizationId={selectedOrganizationId}
                 runAction={runAction}
                 busy={busy}
+                onOpenOrganization={(organizationId) =>
+                  openOrganization(organizationId, "support")
+                }
+                onClearOrganization={() => clearOrganization("support")}
               />
             )}
-            {(activeTab === "catalog" || activeTab === "staff" || activeTab === "audit") && (
-              <HqSystemWorkspace mode={activeTab} data={data} runAction={runAction} busy={busy} />
+            {activeTab === "catalog" && (
+              <HqSystemWorkspace mode="catalog" data={data} runAction={runAction} busy={busy} />
             )}
+            {activeTab === "staff" && (
+              <HqStaffAccessWorkspace data={data} runAction={runAction} busy={busy} />
+            )}
+            {activeTab === "audit" && <HqAuditWorkspace data={data} />}
           </div>
         </div>
       </div>
