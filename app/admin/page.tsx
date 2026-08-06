@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { UsersRound } from "lucide-react";
+import { Calculator, UsersRound } from "lucide-react";
 
 import PlatformHqWorkspaceV3 from "@/components/platform-admin/PlatformHqWorkspaceV3";
 import { getHqConfig, HQ_COOKIE_NAME, verifyHqSession } from "@/lib/hq-auth";
@@ -39,12 +39,20 @@ export default async function PlatformAdminPage() {
   return (
     <>
       <PlatformHqWorkspaceV3 />
-      <Link
-        href="/admin/kundservice"
-        className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-emerald-800"
-      >
-        <UsersRound className="h-4 w-4" /> Kundservice
-      </Link>
+      <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
+        <Link
+          href="/admin/timpris"
+          className="inline-flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-800 shadow-xl transition hover:bg-zinc-50"
+        >
+          <Calculator className="h-4 w-4" /> Timpris & lönsamhet
+        </Link>
+        <Link
+          href="/admin/kundservice"
+          className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-emerald-800"
+        >
+          <UsersRound className="h-4 w-4" /> Kundservice
+        </Link>
+      </div>
     </>
   );
 }
