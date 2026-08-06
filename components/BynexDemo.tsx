@@ -4,9 +4,24 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Building2, CircleDollarSign, Clock3, FileSignature, FolderKanban,
-  BookOpenCheck, HardHat, Headphones, Home, Menu, MessageCircle, PackageSearch,
-  ReceiptText, Settings, Sparkles, UsersRound, WalletCards, Wrench, X
+  Building2,
+  CircleDollarSign,
+  Clock3,
+  FileSignature,
+  FolderKanban,
+  BookOpenCheck,
+  HardHat,
+  Headphones,
+  Home,
+  Menu,
+  MessageCircle,
+  PackageSearch,
+  ReceiptText,
+  Settings,
+  Sparkles,
+  UsersRound,
+  Wrench,
+  X,
 } from "lucide-react";
 
 import Logo from "@/components/layout/Logo";
@@ -21,10 +36,9 @@ import LiveConnectModule from "@/components/modules/connect/LiveConnectModule";
 import LiveChangeOrdersModule from "@/components/modules/commercial/LiveChangeOrdersModule";
 import LiveQuotesModule from "@/components/modules/commercial/LiveQuotesModule";
 import LiveInvoicesModule from "@/components/modules/invoices/LiveInvoicesModule";
-import LiveBookkeepingModule from "@/components/modules/bookkeeping/LiveBookkeepingModule";
+import LiveBookkeepingWorkspace from "@/components/modules/bookkeeping/LiveBookkeepingWorkspace";
 import LiveAccountingIntegrationsModule from "@/components/modules/accounting/LiveAccountingIntegrationsModule";
 import LiveYearEndModule from "@/components/modules/bookkeeping/LiveYearEndModule";
-import LiveSoleTraderModule from "@/components/modules/sole-trader/LiveSoleTraderModule";
 import LivePropertyPortalModule from "@/components/modules/property/LivePropertyPortalModule";
 import CompanySettings from "@/components/modules/settings/CompanySettings";
 import SupportPanel from "@/components/modules/support/SupportPanel";
@@ -33,35 +47,84 @@ import SmartModuleCommands from "@/components/smart/SmartModuleCommands";
 import type { ModuleId } from "@/lib/navigation";
 import type { CompanyContext } from "@/lib/company-context";
 
-const modules: Array<{
+type NavigationModule = {
   id: ModuleId;
   label: string;
+  section: string;
   icon: React.ComponentType<{ className?: string }>;
   productModule?: string;
   roles?: string[];
   businessForms?: string[];
-}> = [
-  { id: "dashboard", label: "Översikt", icon: Home },
-  { id: "projects", label: "Projekt", icon: FolderKanban, productModule: "projects" },
-  { id: "people", label: "Personal & UE", icon: UsersRound, productModule: "time_payroll" },
-  { id: "time", label: "Bynex Tid", icon: Clock3, productModule: "time_payroll" },
-  { id: "foreman", label: "Arbetsledaren", icon: HardHat, productModule: "projects" },
-  { id: "site-manager", label: "Platschef", icon: Building2, productModule: "projects" },
-  { id: "materials", label: "Material & inköp", icon: PackageSearch, productModule: "materials" },
-  { id: "assets", label: "Maskiner & tillgångar", icon: Wrench, productModule: "assets" },
-  { id: "connect", label: "Bynex Connect", icon: MessageCircle, productModule: "projects" },
-  { id: "change-orders", label: "ÄTA", icon: FileSignature, productModule: "change_orders" },
-  { id: "quotes", label: "Offerter", icon: ReceiptText, productModule: "quotes" },
-  { id: "invoices", label: "Fakturering", icon: CircleDollarSign, productModule: "invoicing" },
-  { id: "bookkeeping", label: "Bokföring", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
-  { id: "accounting-integrations", label: "Ekonomikopplingar", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
-  { id: "year-end", label: "Bokslut", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader", "limited_company"] },
-  { id: "sole-trader", label: "Enskild ekonomi", icon: WalletCards, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader"] },
-  { id: "property-portal", label: "Kundportal & digital pärm", icon: Building2, productModule: "customer_portal", roles: ["owner", "admin", "office", "manager", "supervisor"] },
-  { id: "settings", label: "Företagsinställningar", icon: Settings },
+};
+
+const modules: NavigationModule[] = [
+  { id: "dashboard", label: "Bynex Översikt", section: "Start", icon: Home },
+  { id: "projects", label: "Bynex Projekt", section: "Projekt & affär", icon: FolderKanban, productModule: "projects" },
+  { id: "people", label: "Bynex Personal & UE", section: "Projekt & affär", icon: UsersRound, productModule: "time_payroll" },
+  { id: "time", label: "Bynex Tid", section: "Projekt & affär", icon: Clock3, productModule: "time_payroll" },
+  { id: "change-orders", label: "Bynex ÄTA", section: "Projekt & affär", icon: FileSignature, productModule: "change_orders" },
+  { id: "quotes", label: "Bynex Offert", section: "Projekt & affär", icon: ReceiptText, productModule: "quotes" },
+  { id: "invoices", label: "Bynex Fakturering", section: "Projekt & affär", icon: CircleDollarSign, productModule: "invoicing" },
+  { id: "foreman", label: "Bynex Arbetsledare", section: "Byggplats", icon: HardHat, productModule: "projects" },
+  { id: "site-manager", label: "Bynex Platschef", section: "Byggplats", icon: Building2, productModule: "projects" },
+  { id: "materials", label: "Bynex Material", section: "Byggplats", icon: PackageSearch, productModule: "materials" },
+  { id: "assets", label: "Bynex Maskiner", section: "Byggplats", icon: Wrench, productModule: "assets" },
+  { id: "connect", label: "Bynex Connect", section: "Byggplats", icon: MessageCircle, productModule: "projects" },
+  { id: "bookkeeping", label: "Bynex Bokföring", section: "Ekonomi", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
+  { id: "accounting-integrations", label: "Bynex Ekonomikopplingar", section: "Ekonomi", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
+  { id: "year-end", label: "Bynex Bokslut", section: "Ekonomi", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader", "limited_company"] },
+  { id: "property-portal", label: "Bynex Pärmen", section: "Kund & system", icon: Building2, productModule: "customer_portal", roles: ["owner", "admin", "office", "manager", "supervisor"] },
+  { id: "settings", label: "Företagsinställningar", section: "Kund & system", icon: Settings },
 ];
 
-export default function BynexDemo({ enabledProductModules, company: initialCompany }: { enabledProductModules?: string[]; company: CompanyContext }) {
+function NavigationItems({
+  items,
+  active,
+  onSelect,
+}: {
+  items: NavigationModule[];
+  active: ModuleId;
+  onSelect: (id: ModuleId) => void;
+}) {
+  return (
+    <>
+      {items.map((item, index) => {
+        const Icon = item.icon;
+        const selected = item.id === active;
+        const showSection = index === 0 || items[index - 1]?.section !== item.section;
+        return (
+          <div key={item.id}>
+            {showSection && (
+              <p className="mb-2 mt-6 px-4 text-[10px] font-bold uppercase tracking-[0.18em] text-[#7e858f] first:mt-0">
+                {item.section}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => onSelect(item.id)}
+              className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${
+                selected
+                  ? "bg-[#c9cdd3] text-[#090a0c] shadow-sm"
+                  : "text-[#c9cdd3] hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <Icon className="h-5 w-5" />
+              {item.label}
+            </button>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+export default function BynexDemo({
+  enabledProductModules,
+  company: initialCompany,
+}: {
+  enabledProductModules?: string[];
+  company: CompanyContext;
+}) {
   const [active, setActive] = useState<ModuleId>("dashboard");
   const [company, setCompany] = useState(initialCompany);
   const [mobileNav, setMobileNav] = useState(false);
@@ -69,14 +132,18 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
   const [supportOpen, setSupportOpen] = useState(false);
   const [smartCommandsOpen, setSmartCommandsOpen] = useState(false);
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+
   const enabledModuleSlugs = useMemo(
-    () => enabledProductModules ? new Set(company.modules.filter((item) => item.visible).map((item) => item.slug)) : null,
+    () => enabledProductModules
+      ? new Set(company.modules.filter((item) => item.visible).map((item) => item.slug))
+      : null,
     [company.modules, enabledProductModules],
   );
+
   const visibleModules = useMemo(() => {
     const roleFiltered = modules.filter((item) =>
-      (!item.roles || item.roles.includes(company.role)) &&
-      (!item.businessForms || item.businessForms.includes(company.businessForm)),
+      (!item.roles || item.roles.includes(company.role))
+      && (!item.businessForms || item.businessForms.includes(company.businessForm)),
     );
     if (!enabledModuleSlugs) return roleFiltered;
     return roleFiltered.filter((item) => !item.productModule || enabledModuleSlugs.has(item.productModule));
@@ -106,6 +173,12 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
     return () => window.cancelAnimationFrame(frame);
   }, [visibleModules]);
 
+  useEffect(() => {
+    if (visibleModules.some((item) => item.id === active)) return;
+    const frame = window.requestAnimationFrame(() => setActive("dashboard"));
+    return () => window.cancelAnimationFrame(frame);
+  }, [active, visibleModules]);
+
   function notify(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(null), 2600);
@@ -115,58 +188,50 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
     <div className="min-h-screen bg-[#f7f5f0] text-[#090a0c]">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 overflow-y-auto border-r border-[#34373c] bg-[#202226] p-5 text-white lg:block">
         <Logo />
-        <nav className="mt-8 space-y-1">
-          {visibleModules.map((item) => {
-            const Icon = item.icon;
-            const selected = item.id === active;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActive(item.id)}
-                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${
-                  selected
-                    ? "bg-[#c9cdd3] text-[#090a0c] shadow-sm"
-                    : "text-[#c9cdd3] hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                {item.label}
-              </button>
-            );
-          })}
-          {company.platformRole && <Link href="/admin" className="mt-3 flex w-full items-center justify-center rounded-2xl bg-[#b8bdc5] px-4 py-3 text-sm font-semibold text-[#090a0c] transition hover:bg-[#d5d8dc]">Bynex HQ</Link>}
+        <nav className="mt-8 pb-6">
+          <NavigationItems items={visibleModules} active={active} onSelect={setActive} />
+          {company.platformRole && (
+            <Link
+              href="/admin"
+              className="mt-6 flex w-full items-center justify-center rounded-2xl bg-[#b8bdc5] px-4 py-3 text-sm font-semibold text-[#090a0c] transition hover:bg-[#d5d8dc]"
+            >
+              Bynex HQ
+            </Link>
+          )}
         </nav>
-
       </aside>
 
       {mobileNav && (
         <div className="fixed inset-0 z-50 bg-black/30 lg:hidden">
-          <div className="h-full w-[86%] max-w-sm bg-[#202226] p-5 text-white">
+          <div className="h-full w-[86%] max-w-sm overflow-y-auto bg-[#202226] p-5 text-white">
             <div className="flex items-center justify-between">
               <Logo />
-              <button onClick={() => setMobileNav(false)} className="rounded-xl p-2 text-[#c9cdd3] hover:bg-white/10 hover:text-white">
+              <button
+                type="button"
+                onClick={() => setMobileNav(false)}
+                className="rounded-xl p-2 text-[#c9cdd3] hover:bg-white/10 hover:text-white"
+                aria-label="Stäng meny"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav className="mt-8 space-y-1">
-              {visibleModules.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setActive(item.id);
-                      setMobileNav(false);
-                    }}
-                    className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold ${
-                      item.id === active ? "bg-[#c9cdd3] text-[#090a0c]" : "text-[#c9cdd3] hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    <Icon className="h-5 w-5" />
-                    {item.label}
-                  </button>
-                );
-              })}
+            <nav className="mt-8 pb-8">
+              <NavigationItems
+                items={visibleModules}
+                active={active}
+                onSelect={(id) => {
+                  setActive(id);
+                  setMobileNav(false);
+                }}
+              />
+              {company.platformRole && (
+                <Link
+                  href="/admin"
+                  className="mt-6 flex w-full items-center justify-center rounded-2xl bg-[#b8bdc5] px-4 py-3 text-sm font-semibold text-[#090a0c]"
+                >
+                  Bynex HQ
+                </Link>
+              )}
             </nav>
           </div>
         </div>
@@ -177,8 +242,10 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
           <div className="mx-auto flex max-w-[1500px] items-center justify-between">
             <div className="flex items-center gap-3">
               <button
+                type="button"
                 onClick={() => setMobileNav(true)}
                 className="rounded-xl border border-[#d8d8d5] bg-[#fcfbf8] p-2 text-[#454950] lg:hidden"
+                aria-label="Öppna meny"
               >
                 <Menu className="h-5 w-5" />
               </button>
@@ -190,7 +257,16 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
                 </div>
                 <div className="ml-1 hidden h-9 w-px bg-[#d8d8d5] md:block" />
                 <div className="hidden min-w-0 items-center gap-2 md:flex" aria-label={`Aktivt företag: ${company.name}`}>
-                  {companyLogoUrl ? <div className="h-10 w-16 shrink-0 rounded-xl border border-[#d8d8d5] bg-[#fcfbf8] bg-contain bg-center bg-no-repeat shadow-sm" style={{ backgroundImage: `url("${companyLogoUrl}")` }} /> : <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e8e8e6] text-sm font-bold text-[#454950] shadow-sm">{company.name.slice(0, 1).toUpperCase()}</div>}
+                  {companyLogoUrl ? (
+                    <div
+                      className="h-10 w-16 shrink-0 rounded-xl border border-[#d8d8d5] bg-[#fcfbf8] bg-contain bg-center bg-no-repeat shadow-sm"
+                      style={{ backgroundImage: `url("${companyLogoUrl}")` }}
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e8e8e6] text-sm font-bold text-[#454950] shadow-sm">
+                      {company.name.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
                   <p className="max-w-40 truncate text-sm font-semibold text-[#454950]">{company.name}</p>
                 </div>
               </div>
@@ -198,6 +274,7 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
 
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => setSmartCommandsOpen(true)}
                 className="inline-flex items-center gap-2 rounded-2xl bg-[#202226] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#090a0c]"
                 aria-label="Öppna Bynex Smart"
@@ -205,8 +282,16 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
                 <Sparkles className="h-5 w-5 text-[#c9cdd3]" />
                 <span className="hidden sm:inline">Bynex Smart</span>
               </button>
-              <button onClick={() => setSupportOpen(true)} className="rounded-2xl border border-[#d8d8d5] bg-[#e8e8e6] p-3 text-[#454950]" aria-label="Hjälp och support"><Headphones className="h-5 w-5" /></button>
               <button
+                type="button"
+                onClick={() => setSupportOpen(true)}
+                className="rounded-2xl border border-[#d8d8d5] bg-[#e8e8e6] p-3 text-[#454950]"
+                aria-label="Hjälp och support"
+              >
+                <Headphones className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
                 onClick={() => setActive("settings")}
                 className="rounded-2xl border border-[#d8d8d5] bg-[#e8e8e6] p-3 text-[#454950]"
                 aria-label="Inställningar"
@@ -239,12 +324,20 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
           {active === "change-orders" && <LiveChangeOrdersModule notify={notify} />}
           {active === "quotes" && <LiveQuotesModule notify={notify} role={company.role} />}
           {active === "invoices" && <LiveInvoicesModule notify={notify} />}
-          {active === "bookkeeping" && <LiveBookkeepingModule notify={notify} />}
+          {active === "bookkeeping" && (
+            <LiveBookkeepingWorkspace notify={notify} businessForm={company.businessForm} />
+          )}
           {active === "accounting-integrations" && <LiveAccountingIntegrationsModule notify={notify} />}
           {active === "year-end" && <LiveYearEndModule />}
-          {active === "sole-trader" && <LiveSoleTraderModule />}
           {active === "property-portal" && <LivePropertyPortalModule notify={notify} />}
-          {active === "settings" && <CompanySettings company={company} onSaved={setCompany} onBrandingSaved={loadCompanyBranding} notify={notify} />}
+          {active === "settings" && (
+            <CompanySettings
+              company={company}
+              onSaved={setCompany}
+              onBrandingSaved={loadCompanyBranding}
+              notify={notify}
+            />
+          )}
         </main>
       </div>
 
@@ -254,10 +347,20 @@ export default function BynexDemo({ enabledProductModules, company: initialCompa
         </div>
       )}
       {supportOpen && <SupportPanel onClose={() => setSupportOpen(false)} notify={notify} />}
-      {smartCommandsOpen && <SmartModuleCommands company={company} onClose={() => setSmartCommandsOpen(false)} notify={notify} onSaved={(moduleSlug, visible) => {
-        setCompany((current) => ({ ...current, modules: current.modules.map((item) => item.slug === moduleSlug ? { ...item, visible } : item) }));
-        setActive("dashboard");
-      }} />}
+      {smartCommandsOpen && (
+        <SmartModuleCommands
+          company={company}
+          onClose={() => setSmartCommandsOpen(false)}
+          notify={notify}
+          onSaved={(moduleSlug, visible) => {
+            setCompany((current) => ({
+              ...current,
+              modules: current.modules.map((item) => item.slug === moduleSlug ? { ...item, visible } : item),
+            }));
+            setActive("dashboard");
+          }}
+        />
+      )}
     </div>
   );
 }
