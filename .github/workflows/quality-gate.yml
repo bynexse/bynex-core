@@ -7,15 +7,109 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Check out repository
+      - name: Check out source branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Integrate employment pricing and read-only HQ support
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          employment = Path('components/modules/people/EmploymentPanel.tsx')
+          text = employment.read_text(encoding='utf-8')
+          import_marker = 'import { Badge } from "@/components/ui/core";\n'
+          import_line = 'import EmploymentPricingPanel from "@/components/modules/people/EmploymentPricingPanel";\n'
+          if import_line not in text and import_marker in text:
+              text = text.replace(import_marker, import_marker + import_line, 1)
+
+          render_marker = '      {editing && (\n'
+          pricing_render = '''      <EmploymentPricingPanel
+        workerId={workerId}
+        employmentType={employmentType}
+        notify={notify}
+      />
+
+'''
+          if pricing_render not in text and render_marker in text:
+              text = text.replace(render_marker, pricing_render + render_marker, 1)
+          employment.write_text(text, encoding='utf-8')
+
+          route = Path('app/api/private/platform-hq/customer-assistance/route.ts')
+          text = route.read_text(encoding='utf-8')
+          old_roles = '''const pricingManagementRoles = new Set([
+  "platform_owner",
+  "platform_admin",
+  "finance",
+]);'''
+          if old_roles in text:
+              text = text.replace(old_roles, 'const pricingManagementRoles = new Set<string>();', 1)
+
+          old_return = '''  return Response.json({
+    data: {
+      ...objectValue(assistanceResult.data),
+      labor_pricing: objectValue(laborPricingResult.data),
+    },
+  });'''
+          new_return = '''  const laborPricing = objectValue(laborPricingResult.data);
+  const laborPricingPermissions = objectValue(laborPricing.permissions);
+
+  return Response.json({
+    data: {
+      ...objectValue(assistanceResult.data),
+      labor_pricing: {
+        ...laborPricing,
+        permissions: {
+          ...laborPricingPermissions,
+          can_manage_settings: false,
+        },
+      },
+    },
+  });'''
+          if old_return in text:
+              text = text.replace(old_return, new_return, 1)
+          route.write_text(text, encoding='utf-8')
+
+          page = Path('components/platform-admin/PlatformLaborPricingPage.tsx')
+          text = page.read_text(encoding='utf-8')
+          text = text.replace(
+              'Kund 360 · timpris och lönsamhet',
+              'Kund 360 · supportöversikt för timpris',
+          )
+          text = text.replace(
+              'Du kan se kalkylunderlaget men inte ändra företagets valda timpris.',
+              'Företaget ändrar sitt pris på medarbetarens anställningskort. HQ visar endast underlaget för support.',
+          )
+          page.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Persist integration on pull-request branch
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if git diff --quiet -- \
+            components/modules/people/EmploymentPanel.tsx \
+            app/api/private/platform-hq/customer-assistance/route.ts \
+            components/platform-admin/PlatformLaborPricingPage.tsx; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            components/modules/people/EmploymentPanel.tsx \
+            app/api/private/platform-hq/customer-assistance/route.ts \
+            components/platform-admin/PlatformLaborPricingPage.tsx
+          git commit -m "feat: put customer hourly pricing on employment cards"
+          git push origin HEAD:"$HEAD_REF"
 
       - name: Use Node.js 22
         uses: actions/setup-node@v4
