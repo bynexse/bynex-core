@@ -30,6 +30,13 @@ const quoteApprovalRoute = fs.readFileSync(
   new URL("../../app/api/private/quotes/approval-link/route.ts", import.meta.url),
   "utf8",
 );
+const changeOrderApprovalRoute = fs.readFileSync(
+  new URL(
+    "../../app/api/private/change-orders/approval-link-v2/route.ts",
+    import.meta.url,
+  ),
+  "utf8",
+);
 const snapshotPanel = fs.readFileSync(
   new URL("../../components/documents/DocumentSnapshotPanel.tsx", import.meta.url),
   "utf8",
@@ -157,6 +164,26 @@ test("offerten kan skickas direkt med Bynex från den låsta kundlänken", () =>
   assert.match(snapshotPanel, /Skapa och skicka mejl/);
   assert.match(snapshotPanel, /sendEmail/);
   assert.match(snapshotPanel, /Offerten skickades via Bynex/);
+});
+
+test("granskad ÄTA skickas via Bynex och behåller kundlänken vid leveransfel", () => {
+  assert.match(changeOrderApprovalRoute, /sendBynexCustomerDocumentEmail/);
+  assert.match(changeOrderApprovalRoute, /messageType: "change_order"/);
+  assert.match(changeOrderApprovalRoute, /documentLabel: "ÄTA"/);
+  assert.match(changeOrderApprovalRoute, /change_order_number/);
+  assert.match(changeOrderApprovalRoute, /customer_email/);
+  assert.match(changeOrderApprovalRoute, /deliverySkippedReason/);
+  assert.match(changeOrderApprovalRoute, /approvalUrl: row\.approval_url/);
+  assert.match(changeOrderApprovalRoute, /body\?\.sendEmail !== false/);
+});
+
+test("ÄTA-mejlet visar prisform, projekt, moms och säker Bynex-länk", () => {
+  assert.match(changeOrderApprovalRoute, /priceTypeLabels\[priceType\]/);
+  assert.match(changeOrderApprovalRoute, /Pris exkl\. moms/);
+  assert.match(changeOrderApprovalRoute, /Pris inkl\. moms/);
+  assert.match(changeOrderApprovalRoute, /project_number/);
+  assert.match(changeOrderApprovalRoute, /actionLabel: "Granska och besluta om ÄTA"/);
+  assert.match(changeOrderApprovalRoute, /actionUrl: row\.approval_url/);
 });
 
 test("kundlänken lagras bara som hash och leveransen är idempotent", () => {
