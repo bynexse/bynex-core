@@ -37,10 +37,12 @@ test("intern fakturaworker kräver separat timing-safe hemlighet", () => {
 });
 
 test("e-post skickas fail-closed och idempotent med verkligt leverantörskvitto", () => {
-  assert.match(worker, /BYNEX_EMAIL_DOMAIN_VERIFIED/);
+  assert.doesNotMatch(worker, /BYNEX_EMAIL_DOMAIN_VERIFIED/);
+  assert.match(worker, /requireVerifiedBynexEmail/);
   assert.match(worker, /RESEND_API_KEY/);
   assert.match(worker, /Idempotency-Key/);
   assert.match(worker, /providerId/);
+  assert.match(worker, /E-postleverantören svarade HTTP/);
   assert.match(migration, /Leverantörens meddelande-id krävs/);
   assert.match(migration, /provider_message_id/);
 });
