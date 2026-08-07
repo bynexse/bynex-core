@@ -24,6 +24,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Verify Bynex email branding
+        run: npm run test:email
       - name: Type-check
         run: npm run typecheck
       - name: Build
