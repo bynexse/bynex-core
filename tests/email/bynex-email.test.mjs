@@ -22,6 +22,25 @@ const contractDelivery = fs.readFileSync(
   new URL("../../lib/platform/contract-delivery.ts", import.meta.url),
   "utf8",
 );
+const customerDocumentDelivery = fs.readFileSync(
+  new URL("../../lib/email/customer-document-delivery.ts", import.meta.url),
+  "utf8",
+);
+const quoteApprovalRoute = fs.readFileSync(
+  new URL("../../app/api/private/quotes/approval-link/route.ts", import.meta.url),
+  "utf8",
+);
+const snapshotPanel = fs.readFileSync(
+  new URL("../../components/documents/DocumentSnapshotPanel.tsx", import.meta.url),
+  "utf8",
+);
+const deliveryMigration = fs.readFileSync(
+  new URL(
+    "../../supabase/migrations/20260807113000_bynex_email_delivery_log.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 test("ämnesraden följer Bynex – företag – ärende och nummer", () => {
   assert.equal(
@@ -128,4 +147,33 @@ test("befintliga faktura- och avtalsutskick använder den gemensamma mallen", ()
     assert.doesNotMatch(source, /subject:\s*`Faktura /);
     assert.doesNotMatch(source, /from:\s*`Bynex Faktura/);
   }
+});
+
+test("offerten kan skickas direkt med Bynex från den låsta kundlänken", () => {
+  assert.match(quoteApprovalRoute, /sendBynexCustomerDocumentEmail/);
+  assert.match(quoteApprovalRoute, /body\?\.sendEmail === true/);
+  assert.match(quoteApprovalRoute, /messageType: "quote"/);
+  assert.match(quoteApprovalRoute, /documentLabel: "Offert"/);
+  assert.match(snapshotPanel, /Skapa och skicka mejl/);
+  assert.match(snapshotPanel, /sendEmail/);
+  assert.match(snapshotPanel, /Offerten skickades via Bynex/);
+});
+
+test("kundlänken lagras bara som hash och leveransen är idempotent", () => {
+  assert.match(customerDocumentDelivery, /action_url_sha256: sha256\(actionUrl\)/);
+  assert.match(customerDocumentDelivery, /Idempotency-Key/);
+  assert.match(customerDocumentDelivery, /idempotency_key/);
+  assert.match(customerDocumentDelivery, /\["sent", "delivered"\]/);
+  assert.doesNotMatch(deliveryMigration, /action_url\s+text/i);
+  assert.match(deliveryMigration, /action_url_sha256 text/);
+  assert.match(deliveryMigration, /unique \(organization_id, idempotency_key\)/);
+});
+
+test("leveransloggen är tenant-isolerad, revisionsloggad och får inte hårdraderas", () => {
+  assert.match(deliveryMigration, /enable row level security/);
+  assert.match(deliveryMigration, /force row level security/);
+  assert.match(deliveryMigration, /private\.has_organization_role/);
+  assert.match(deliveryMigration, /bynex_email_deliveries_write_audit_log/);
+  assert.match(deliveryMigration, /grant select, insert, update/);
+  assert.doesNotMatch(deliveryMigration, /grant[^;]*delete/i);
 });
