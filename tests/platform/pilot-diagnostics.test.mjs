@@ -75,10 +75,11 @@ test("diagnostic evidence is tenant-isolated, immutable and never hard-deleted",
   assert.doesNotMatch(migration, /grant delete on public\.pilot_diagnostics/i);
 });
 
-test("HQ drift center can triage reports with an administrative audit event", () => {
+test("HQ drift center can triage reports with a database-owned audit event", () => {
   assert.match(hqPage, /PlatformPilotDiagnosticsPage/);
   assert.match(hqApi, /platform_staff/);
   assert.match(hqApi, /writableRoles/);
-  assert.match(hqApi, /pilot_diagnostic_status_changed/);
-  assert.match(hqApi, /platform_admin_audit_events/);
+  assert.match(migration, /pilot_diagnostic_status_changed/);
+  assert.match(migration, /platform_admin_audit_events/);
+  assert.doesNotMatch(hqApi, /from\("platform_admin_audit_events"\)\.insert/);
 });
