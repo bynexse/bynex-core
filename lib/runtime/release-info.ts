@@ -16,7 +16,7 @@ function clean(value: string | undefined, fallback: string, maximum: number) {
 export function getBynexReleaseInfo(): BynexReleaseInfo {
   const version = clean(
     process.env.BYNEX_RELEASE_VERSION ?? process.env.npm_package_version,
-    "1.1.1",
+    "1.2.0",
     40,
   );
   const commitSha = clean(
