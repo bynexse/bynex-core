@@ -21,6 +21,7 @@ export type CustomerDocumentDeliveryInput = {
   messageType: CustomerDocumentMessageType;
   sourceId: string;
   sourceVersionId?: string | null;
+  deliveryAttemptKey?: string | null;
   companyName: string;
   recipientEmail: string;
   recipientName?: string | null;
@@ -148,6 +149,9 @@ export async function sendBynexCustomerDocumentEmail(
       footerText: `Säkert levererat genom Bynex för ${input.companyName}.`,
     });
 
+    const deliveryAttemptHash = input.deliveryAttemptKey
+      ? sha256(input.deliveryAttemptKey)
+      : "";
     const idempotencyKey = sha256([
       input.organizationId,
       input.messageType,
@@ -155,6 +159,7 @@ export async function sendBynexCustomerDocumentEmail(
       input.sourceVersionId ?? "",
       documentHash ?? "",
       to,
+      deliveryAttemptHash,
     ].join(":"));
 
     const { data: existing, error: existingError } = await input.client
