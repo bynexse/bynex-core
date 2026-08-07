@@ -30,8 +30,7 @@ function emailEnvironmentReady() {
     ?? ""
   ).trim().toLowerCase();
   return Boolean(
-    process.env.BYNEX_EMAIL_DOMAIN_VERIFIED === "true"
-    && process.env.RESEND_API_KEY
+    process.env.RESEND_API_KEY
     && /^[^\s@]+@bynex\.se$/.test(fromEmail),
   );
 }
