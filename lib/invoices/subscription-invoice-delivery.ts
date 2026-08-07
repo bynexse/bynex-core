@@ -134,9 +134,6 @@ async function sendEmail(job: ClaimedJob, bytes: Uint8Array) {
       "Peppol-leverans kräver en konfigurerad Peppol-accesspunkt och behandlas inte av e-postworkern",
     );
   }
-  if (process.env.BYNEX_EMAIL_DOMAIN_VERIFIED !== "true") {
-    throw new Error("Bynex e-postdomän är inte verifierad för fakturautskick");
-  }
 
   const apiKey = required("RESEND_API_KEY");
   const fromEmail = requireVerifiedBynexEmail("BYNEX_INVOICE_FROM_EMAIL");
