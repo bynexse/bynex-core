@@ -89,7 +89,9 @@ export async function GET() {
     await Promise.all([
       ctx.supabase
         .from("organization_bookkeeping_settings")
-        .select("enabled,default_expense_account,input_vat_account,default_supplier_payable_account")
+        .select(
+          "enabled,accounting_method,default_expense_account,input_vat_account,default_supplier_payable_account",
+        )
         .eq("organization_id", ctx.organizationId)
         .maybeSingle(),
       ctx.supabase
@@ -207,6 +209,7 @@ export async function GET() {
 
   const openPeriods = periodsResult.data ?? [];
   const bookkeepingEnabled = settingsResult.data?.enabled === true;
+  const accountingMethod = settingsResult.data?.accounting_method ?? null;
 
   const items = invoices.map((invoice) => {
     const metadata = record(invoice.raw_metadata);
@@ -218,6 +221,9 @@ export async function GET() {
     const signature = duplicateSignature(invoice);
 
     if (!bookkeepingEnabled) blockers.push("Bynex Bokföring är inte aktiverat");
+    if (bookkeepingEnabled && accountingMethod !== "accrual") {
+      blockers.push("Kontantmetoden kräver betalningsmatchning");
+    }
     if (invoice.invoice_kind !== "invoice") {
       blockers.push("Kreditnotan kräver korrigeringsflödet");
     }
@@ -318,6 +324,7 @@ export async function GET() {
     {
       role: ctx.role,
       bookkeepingEnabled,
+      accountingMethod,
       defaults: settingsResult.data,
       metrics: {
         ready: items.filter((item) => item.ready).length,
