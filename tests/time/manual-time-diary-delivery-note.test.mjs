@@ -17,13 +17,6 @@ const policyMigration = readFileSync(
   ),
   "utf8",
 );
-const constraintFix = readFileSync(
-  new URL(
-    "supabase/migrations/20260807220200_project_daily_log_constraint_normalization.sql",
-    root,
-  ),
-  "utf8",
-);
 const captureApi = readFileSync(
   new URL("app/api/private/time/capture/route.ts", root),
   "utf8",
@@ -37,7 +30,7 @@ const fieldPanel = readFileSync(
   "utf8",
 );
 const officePanel = readFileSync(
-  new URL("components/modules/time/TimePolicyDiaryPanel.tsx", root),
+  new URL("components/modules/time/TimePolicyDiaryPanelV2.tsx", root),
   "utf8",
 );
 const timeWorkspace = readFileSync(
@@ -77,11 +70,22 @@ test("the employer controls whether workers may enter time manually", () => {
     /Företaget kräver in- och utstämpling\. Kontakta arbetsledningen om tiden behöver rättas/,
   );
   assert.match(policyMigration, /set_organization_time_capture_settings/);
-  assert.doesNotMatch(policyMigration, /update public\.time_entries[\s\S]*set entry_mode = 'clock'/);
+  assert.doesNotMatch(
+    policyMigration,
+    /update public\.time_entries[\s\S]*set entry_mode = 'clock'/,
+  );
 });
 
-test("the project diary is daily, tenant safe, reviewable and audited", () => {
-  assert.match(policyMigration, /create table if not exists public\.project_daily_logs/);
+test("worker contributions extend rather than replace the existing project diary", () => {
+  assert.match(
+    policyMigration,
+    /create table if not exists public\.project_daily_log_contributions/,
+  );
+  assert.match(policyMigration, /project_daily_log_contribution_requests/);
+  assert.doesNotMatch(
+    policyMigration,
+    /create table if not exists public\.project_daily_logs\s*\(/,
+  );
   assert.match(
     policyMigration,
     /unique \(organization_id,project_id,worker_id,work_date\)/,
@@ -95,13 +99,12 @@ test("the project diary is daily, tenant safe, reviewable and audited", () => {
   ]) {
     assert.match(policyMigration, new RegExp(`\\b${field}\\b`));
   }
-  assert.match(policyMigration, /upsert_project_daily_log/);
-  assert.match(policyMigration, /review_project_daily_log/);
-  assert.match(policyMigration, /project_daily_logs_select/);
+  assert.match(policyMigration, /upsert_project_daily_log_contribution/);
+  assert.match(policyMigration, /review_project_daily_log_contribution/);
+  assert.match(policyMigration, /project_daily_log_contributions_select/);
+  assert.match(policyMigration, /project_daily_log_contributions_submission_state_check/);
+  assert.match(policyMigration, /project_daily_log_contributions_decision_state_check/);
   assert.match(policyMigration, /private\.write_audit_log/);
-  assert.match(constraintFix, /pg_get_constraintdef/);
-  assert.match(constraintFix, /status in \('submitted','reviewed','rejected'\)/);
-  assert.match(constraintFix, /project_daily_logs_submission_state_check/);
 });
 
 test("delivery notes create reviewed material once and reconcile instead of duplicating", () => {
@@ -125,7 +128,7 @@ test("delivery notes create reviewed material once and reconcile instead of dupl
   assert.match(captureMigration, /Följesedeln är redan registrerad/);
 });
 
-test("write APIs use authenticated RPC boundaries rather than client supplied tenant writes", () => {
+test("write APIs use authenticated RPC boundaries rather than tenant writes from the client", () => {
   assert.match(captureApi, /requireSupabaseUser\("time_payroll"\)/);
   assert.match(captureApi, /create_manual_time_entry/);
   assert.match(captureApi, /add_time_entry_article/);
@@ -136,11 +139,18 @@ test("write APIs use authenticated RPC boundaries rather than client supplied te
   assert.doesNotMatch(captureApi, /from\("material_items"\)\.insert/);
 
   assert.match(dailyApi, /requireSupabaseUser\("time_payroll"\)/);
+  assert.match(dailyApi, /from\("project_daily_log_contributions"\)/);
   assert.match(dailyApi, /set_organization_time_capture_settings/);
-  assert.match(dailyApi, /upsert_project_daily_log/);
-  assert.match(dailyApi, /review_project_daily_log/);
-  assert.doesNotMatch(dailyApi, /from\("project_daily_logs"\)\.insert/);
-  assert.doesNotMatch(dailyApi, /from\("project_daily_logs"\)\.update/);
+  assert.match(dailyApi, /upsert_project_daily_log_contribution/);
+  assert.match(dailyApi, /review_project_daily_log_contribution/);
+  assert.doesNotMatch(
+    dailyApi,
+    /from\("project_daily_log_contributions"\)\.insert/,
+  );
+  assert.doesNotMatch(
+    dailyApi,
+    /from\("project_daily_log_contributions"\)\.update/,
+  );
 });
 
 test("the field PWA is thumb friendly and keeps Smart proposals human reviewed", () => {
@@ -172,16 +182,18 @@ test("the field PWA is thumb friendly and keeps Smart proposals human reviewed",
   assert.doesNotMatch(fieldPanel, /setInterval\([^)]*apply_delivery_note/i);
 });
 
-test("the office can set time policy and review the diary day by day", () => {
+test("the office can set time policy and review permanent diary contributions", () => {
   assert.match(officePanel, /Stämpling och manuell tid/);
   assert.match(officePanel, /In- och utstämpling är obligatorisk/);
   assert.match(officePanel, /GPS föreslår projekt/);
   assert.match(officePanel, /Dagbok är obligatorisk/);
-  assert.match(officePanel, /Dagboken dag för dag/);
+  assert.match(officePanel, /Dagboken är en permanent del/);
+  assert.match(officePanel, /Bidragen dag för dag/);
   assert.match(officePanel, /Begär rättelse/);
   assert.match(officePanel, /Markera granskad/);
   assert.match(officePanel, /action: "save_settings"/);
   assert.match(officePanel, /action: "review_log"/);
+  assert.doesNotMatch(officePanel, /dailyLogEnabled/);
 });
 
 test("field and office navigation expose the same shared workflow", () => {
