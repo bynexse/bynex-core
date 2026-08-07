@@ -1,4 +1,4 @@
-const VERSION = "bynex-pwa-v1";
+const VERSION = "bynex-pwa-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 const PUBLIC_CACHE = `${VERSION}-public`;
 const OFFLINE_URL = "/offline";
@@ -12,6 +12,8 @@ const STATIC_SHELL = [
 const PRIVATE_PREFIXES = [
   "/api/",
   "/app",
+  "/field",
+  "/start",
   "/admin",
   "/account",
   "/auth",
