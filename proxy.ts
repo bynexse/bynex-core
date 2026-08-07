@@ -39,8 +39,8 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isPilotGateEnabled()) {
-    const config = getPilotConfig();
-    if (!config) {
+    const pilotConfig = getPilotConfig();
+    if (!pilotConfig) {
       return NextResponse.json(
         { error: "Pilotinloggningen är inte korrekt konfigurerad." },
         { status: 503 },
@@ -51,7 +51,7 @@ export async function proxy(request: NextRequest) {
       path === "/pilot-login" || path === "/api/pilot/session";
     const isAuthenticated = await verifyPilotSession(
       request.cookies.get(PILOT_COOKIE_NAME)?.value,
-      config.sessionSecret,
+      pilotConfig.sessionSecret,
     );
 
     if (isLoginRequest) {
@@ -88,10 +88,13 @@ export async function proxy(request: NextRequest) {
             { error: "HQ-låset är inte konfigurerat. Åtkomst är spärrad." },
             { status: 503 },
           )
-        : new NextResponse("Bynex HQ är spärrat tills säkerhetslåset är konfigurerat.", {
-            status: 503,
-            headers: { "content-type": "text/plain; charset=utf-8" },
-          });
+        : new NextResponse(
+            "Bynex HQ är spärrat tills säkerhetslåset är konfigurerat.",
+            {
+              status: 503,
+              headers: { "content-type": "text/plain; charset=utf-8" },
+            },
+          );
     }
 
     const hasHqSession = await verifyHqSession(
@@ -120,6 +123,8 @@ export async function proxy(request: NextRequest) {
     path !== "/kundportal/inbjudan";
   if (
     path.startsWith("/app") ||
+    path.startsWith("/field") ||
+    path.startsWith("/start") ||
     path.startsWith("/admin") ||
     path.startsWith("/account") ||
     path.startsWith("/onboarding") ||
