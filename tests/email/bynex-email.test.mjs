@@ -1,0 +1,131 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import test from "node:test";
+
+import {
+  buildBynexEmail,
+  buildBynexSender,
+  buildBynexSubject,
+  requireVerifiedBynexEmail,
+  resolveReplyTo,
+} from "../../lib/email/bynex-email.ts";
+
+const customerInvoiceWorker = fs.readFileSync(
+  new URL("../../lib/invoices/customer-invoice-delivery.ts", import.meta.url),
+  "utf8",
+);
+const subscriptionInvoiceWorker = fs.readFileSync(
+  new URL("../../lib/invoices/subscription-invoice-delivery.ts", import.meta.url),
+  "utf8",
+);
+const contractDelivery = fs.readFileSync(
+  new URL("../../lib/platform/contract-delivery.ts", import.meta.url),
+  "utf8",
+);
+
+test("ämnesraden följer Bynex – företag – ärende och nummer", () => {
+  assert.equal(
+    buildBynexSubject({
+      companyName: "C Alsbjer AB",
+      documentLabel: "ÄTA",
+      reference: "BY-X0012-ÄTA003",
+    }),
+    "Bynex – C Alsbjer AB – ÄTA BY-X0012-ÄTA003",
+  );
+  assert.equal(
+    buildBynexSubject({
+      companyName: "C Alsbjer AB",
+      documentLabel: "Offert",
+      reference: "BY-O0007",
+    }),
+    "Bynex – C Alsbjer AB – Offert BY-O0007",
+  );
+});
+
+test("avsändaren använder Bynex, företaget och verifierad Bynex-domän", () => {
+  assert.equal(
+    buildBynexSender({
+      companyName: "C Alsbjer AB",
+      fromEmail: "faktura@bynex.se",
+    }),
+    "Bynex – C Alsbjer AB <faktura@bynex.se>",
+  );
+  assert.throws(
+    () =>
+      buildBynexSender({
+        companyName: "C Alsbjer AB",
+        fromEmail: "noreply@vercel.app",
+      }),
+    /@bynex\.se/,
+  );
+});
+
+test("mallen visar Bynex och företaget utan driftleverantörernas namn", () => {
+  const email = buildBynexEmail({
+    fromEmail: "utskick@bynex.se",
+    companyName: "C Alsbjer AB",
+    documentLabel: "Faktura",
+    reference: "1042",
+    recipientName: "Anna Andersson",
+    heading: "Faktura 1042",
+    message: "Här kommer fakturan.",
+    details: [
+      { label: "Att betala", value: "12 500 kr" },
+      { label: "Förfallodatum", value: "2026-08-31" },
+    ],
+    action: {
+      label: "Öppna fakturan",
+      url: "https://bynex.se/faktura/saker-lank",
+    },
+  });
+
+  assert.equal(email.subject, "Bynex – C Alsbjer AB – Faktura 1042");
+  assert.match(email.from, /^Bynex – C Alsbjer AB <[^>]+@bynex\.se>$/);
+  assert.match(email.html, />BYNEX</);
+  assert.match(email.html, /C Alsbjer AB/);
+  assert.match(email.html, /Öppna fakturan/);
+  assert.match(email.text, /BYNEX – C Alsbjer AB/);
+  assert.doesNotMatch(email.html, /supabase|vercel/i);
+  assert.doesNotMatch(email.text, /supabase|vercel/i);
+});
+
+test("reply-to väljer första giltiga kundföretagsadress", () => {
+  assert.equal(
+    resolveReplyTo(" ekonomi@kund.se ", "support@bynex.se"),
+    "ekonomi@kund.se",
+  );
+  assert.equal(resolveReplyTo("fel adress", "support@bynex.se"), "support@bynex.se");
+  assert.equal(resolveReplyTo("fel adress"), undefined);
+});
+
+test("miljöadressen måste vara en verifierad @bynex.se-adress", () => {
+  const previous = process.env.TEST_BYNEX_EMAIL;
+  try {
+    process.env.TEST_BYNEX_EMAIL = "faktura@bynex.se";
+    assert.equal(
+      requireVerifiedBynexEmail("TEST_BYNEX_EMAIL"),
+      "faktura@bynex.se",
+    );
+    process.env.TEST_BYNEX_EMAIL = "system@supabase.co";
+    assert.throws(
+      () => requireVerifiedBynexEmail("TEST_BYNEX_EMAIL"),
+      /@bynex\.se/,
+    );
+  } finally {
+    if (previous === undefined) delete process.env.TEST_BYNEX_EMAIL;
+    else process.env.TEST_BYNEX_EMAIL = previous;
+  }
+});
+
+test("befintliga faktura- och avtalsutskick använder den gemensamma mallen", () => {
+  for (const source of [
+    customerInvoiceWorker,
+    subscriptionInvoiceWorker,
+    contractDelivery,
+  ]) {
+    assert.match(source, /buildBynexEmail/);
+    assert.match(source, /requireVerifiedBynexEmail/);
+    assert.doesNotMatch(source, /subject:\s*`Faktura /);
+    assert.doesNotMatch(source, /from:\s*`Bynex Faktura/);
+  }
+});
