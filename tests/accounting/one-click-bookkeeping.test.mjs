@@ -24,7 +24,19 @@ const complianceMigration = readFileSync(
   ),
   "utf8",
 );
-const migrations = [baseMigration, hardeningMigration, complianceMigration].join("\n");
+const resolutionMigration = readFileSync(
+  new URL(
+    "supabase/migrations/20260807201500_one_click_posting_column_resolution.sql",
+    root,
+  ),
+  "utf8",
+);
+const migrations = [
+  baseMigration,
+  hardeningMigration,
+  complianceMigration,
+  resolutionMigration,
+].join("\n");
 const api = readFileSync(
   new URL("app/api/private/bookkeeping/one-click/route.ts", root),
   "utf8",
@@ -135,4 +147,13 @@ test("manual corrections can still be saved and booked atomically in one human a
   assert.match(hardeningMigration, /review_and_book_supplier_invoice_one_click/);
   assert.match(hardeningMigration, /perform public\.review_supplier_invoice/);
   assert.match(complianceMigration, /book_supplier_invoice_one_click_safe/);
+});
+
+test("PL/pgSQL output names can never shadow voucher table columns", () => {
+  assert.match(resolutionMigration, /#variable_conflict use_column/);
+  assert.match(resolutionMigration, /pg_get_functiondef/);
+  assert.match(
+    resolutionMigration,
+    /revoke all on function public\.book_supplier_invoice_one_click\(uuid, uuid\)/,
+  );
 });
