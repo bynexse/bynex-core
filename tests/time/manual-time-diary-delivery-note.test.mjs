@@ -25,12 +25,24 @@ const dailyApi = readFileSync(
   new URL("app/api/private/time/daily/route.ts", root),
   "utf8",
 );
+const missingDiaryApi = readFileSync(
+  new URL("app/api/private/time/daily/missing/route.ts", root),
+  "utf8",
+);
 const fieldPanel = readFileSync(
   new URL("components/field/EmployeeFieldTimeDiary.tsx", root),
   "utf8",
 );
 const officePanel = readFileSync(
   new URL("components/modules/time/TimePolicyDiaryPanelV2.tsx", root),
+  "utf8",
+);
+const missingDiaryPanel = readFileSync(
+  new URL("components/modules/time/TimeMissingDiaryPanel.tsx", root),
+  "utf8",
+);
+const officeWrapper = readFileSync(
+  new URL("components/modules/time/TimePolicyDiaryPanel.tsx", root),
   "utf8",
 );
 const timeWorkspace = readFileSync(
@@ -194,6 +206,33 @@ test("the office can set time policy and review permanent diary contributions", 
   assert.match(officePanel, /action: "save_settings"/);
   assert.match(officePanel, /action: "review_log"/);
   assert.doesNotMatch(officePanel, /dailyLogEnabled/);
+});
+
+test("mandatory diary mode produces a real missing-contribution control list", () => {
+  assert.match(missingDiaryApi, /requireSupabaseUser\("time_payroll"\)/);
+  assert.match(missingDiaryApi, /daily_log_required/);
+  assert.match(missingDiaryApi, /from\("time_entries"\)/);
+  assert.match(missingDiaryApi, /from\("project_daily_log_contributions"\)/);
+  assert.match(missingDiaryApi, /\.neq\("status", "draft"\)/);
+  assert.match(missingDiaryApi, /completedKeys/);
+  assert.match(missingDiaryApi, /durationMinutes/);
+  assert.doesNotMatch(missingDiaryApi, /\.insert\(|\.update\(|\.delete\(/);
+
+  for (const phrase of [
+    "Obligatorisk projektdagbok",
+    "Utkast räknas inte som färdiga",
+    "Avslutad projekttid finns",
+    "saknade bidrag",
+  ]) {
+    assert.ok(
+      missingDiaryPanel.toLocaleLowerCase("sv-SE").includes(
+        phrase.toLocaleLowerCase("sv-SE"),
+      ),
+      `missing required diary control phrase: ${phrase}`,
+    );
+  }
+  assert.match(officeWrapper, /TimeMissingDiaryPanel/);
+  assert.match(officeWrapper, /<TimeMissingDiaryPanel/);
 });
 
 test("field and office navigation expose the same shared workflow", () => {
