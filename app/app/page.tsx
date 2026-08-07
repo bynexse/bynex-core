@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import BynexWorkspaceV2 from "@/components/BynexWorkspaceV2";
+import BynexAppWithDocuments from "@/components/BynexAppWithDocuments";
 import type { CompanyContext } from "@/lib/company-context";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -156,7 +156,7 @@ export default async function BynexAppPage() {
   };
 
   return (
-    <BynexWorkspaceV2
+    <BynexAppWithDocuments
       enabledProductModules={enabledProductModules}
       company={company}
     />
