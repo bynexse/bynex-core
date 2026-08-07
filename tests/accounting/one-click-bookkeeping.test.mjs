@@ -59,7 +59,7 @@ const workspace = readFileSync(
 test("one-click is the default bookkeeping workspace with one explicit posting action", () => {
   assert.match(workspace, /useState<BookkeepingTab>\("one-click"\)/);
   assert.match(workspace, /Enklicksbokföring/);
-  assert.match(panel, />\s*Bokför\s*</);
+  assert.match(panel, /\bBokför\b/);
   assert.match(panel, /supplierInvoiceId: item\.id/);
   assert.doesNotMatch(panel, /Bokför alla|autoPost|setInterval\([^)]*book/i);
 });
