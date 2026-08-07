@@ -158,15 +158,5 @@ export async function PATCH(request: Request) {
     );
   }
 
-  await auth.supabase.from("platform_admin_audit_events").insert({
-    staff_user_id: auth.userId,
-    action: "pilot_diagnostic_status_changed",
-    metadata: {
-      diagnostic_id: diagnosticId,
-      diagnostic_code: data.diagnostic_code,
-      status,
-    },
-  });
-
   return Response.json({ diagnostic: data });
 }
