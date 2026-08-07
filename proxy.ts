@@ -25,6 +25,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Resend signs the exact raw request body with a short-lived Svix signature.
+  // The route verifies that signature before any inbox or file operation.
+  if (path === "/api/webhooks/resend/inbound") {
+    return NextResponse.next();
+  }
+
   // Customer endpoints are protected by high-entropy, hashed, one-time tokens.
   if (
     path.startsWith("/offert/") ||

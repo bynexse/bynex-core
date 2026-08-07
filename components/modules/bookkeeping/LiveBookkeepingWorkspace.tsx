@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BookOpenCheck, Building2 } from "lucide-react";
+import { BookOpenCheck, Building2, Inbox } from "lucide-react";
 
 import LiveBookkeepingModule from "@/components/modules/bookkeeping/LiveBookkeepingModule";
+import SupplierInvoiceInboxPanel from "@/components/modules/bookkeeping/SupplierInvoiceInboxPanel";
 import LiveSoleTraderModule from "@/components/modules/sole-trader/LiveSoleTraderModule";
 
-type WorkspaceView = "bookkeeping" | "sole-trader";
+type WorkspaceView = "bookkeeping" | "supplier-inbox" | "sole-trader";
 
 export default function LiveBookkeepingWorkspace({
   notify,
@@ -21,6 +22,7 @@ export default function LiveBookkeepingWorkspace({
   const views = useMemo(
     () => [
       { id: "bookkeeping" as const, label: "Löpande bokföring", icon: BookOpenCheck },
+      { id: "supplier-inbox" as const, label: "Leverantörsinkorg", icon: Inbox },
       ...(soleTrader
         ? [{ id: "sole-trader" as const, label: "Enskild firma", icon: Building2 }]
         : []),
@@ -66,6 +68,7 @@ export default function LiveBookkeepingWorkspace({
       </div>
 
       {view === "bookkeeping" && <LiveBookkeepingModule notify={notify} />}
+      {view === "supplier-inbox" && <SupplierInvoiceInboxPanel notify={notify} />}
       {view === "sole-trader" && soleTrader && <LiveSoleTraderModule />}
     </div>
   );
