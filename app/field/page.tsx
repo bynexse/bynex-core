@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import EmployeeFieldContactsConnect from "@/components/field/EmployeeFieldContactsConnect";
 import EmployeeFieldPwa from "@/components/field/EmployeeFieldPwa";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -8,7 +9,8 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Arbetsläge",
-  description: "Bynex arbetsapp för tid, projekt och maskin.",
+  description:
+    "Bynex arbetsapp för tid, projekt, maskin, företagskontakter och Connect.",
   robots: { index: false, follow: false },
 };
 
@@ -45,10 +47,16 @@ export default async function EmployeeFieldPage() {
   if (!organization || !membership) redirect("/onboarding?error=membership");
 
   return (
-    <EmployeeFieldPwa
-      initialName={profile.full_name}
-      initialCompanyName={organization.name}
-      initialRole={membership.role}
-    />
+    <>
+      <EmployeeFieldPwa
+        initialName={profile.full_name}
+        initialCompanyName={organization.name}
+        initialRole={membership.role}
+      />
+      <EmployeeFieldContactsConnect
+        initialName={profile.full_name}
+        initialCompanyName={organization.name}
+      />
+    </>
   );
 }
