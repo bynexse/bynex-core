@@ -187,7 +187,7 @@ test("the office can set time policy and review permanent diary contributions", 
   assert.match(officePanel, /In- och utstämpling är obligatorisk/);
   assert.match(officePanel, /GPS föreslår projekt/);
   assert.match(officePanel, /Dagbok är obligatorisk/);
-  assert.match(officePanel, /Dagboken är en permanent del/);
+  assert.match(officePanel, /Projektdagboken är en permanent del/);
   assert.match(officePanel, /Bidragen dag för dag/);
   assert.match(officePanel, /Begär rättelse/);
   assert.match(officePanel, /Markera granskad/);
