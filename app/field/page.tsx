@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import EmployeeFieldContactsConnect from "@/components/field/EmployeeFieldContactsConnect";
 import EmployeeFieldPwa from "@/components/field/EmployeeFieldPwa";
+import EmployeeFieldTimeDiary from "@/components/field/EmployeeFieldTimeDiary";
 import PilotDiagnosticReporter from "@/components/pilot/PilotDiagnosticReporter";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Arbetsläge",
   description:
-    "Bynex arbetsapp för tid, projekt, maskin, företagskontakter och Connect.",
+    "Bynex arbetsapp för tid, dagbok, projekt, material, maskin, företagskontakter och Connect.",
   robots: { index: false, follow: false },
 };
 
@@ -53,6 +54,10 @@ export default async function EmployeeFieldPage() {
         initialName={profile.full_name}
         initialCompanyName={organization.name}
         initialRole={membership.role}
+      />
+      <EmployeeFieldTimeDiary
+        initialName={profile.full_name}
+        initialCompanyName={organization.name}
       />
       <EmployeeFieldContactsConnect
         initialName={profile.full_name}
