@@ -9,6 +9,7 @@ import BynexDocumentsDrawer, {
   documentContextFromModule,
   type DocumentContextType,
 } from "@/components/documents/BynexDocumentsDrawer";
+import PilotDiagnosticReporter from "@/components/pilot/PilotDiagnosticReporter";
 import type { CompanyContext } from "@/lib/company-context";
 
 const documentContexts = new Set<DocumentContextType>([
@@ -72,6 +73,7 @@ export default function BynexAppWithDocuments({
         company={company}
       />
       <PremiumOfficeInsights />
+      <PilotDiagnosticReporter surface="office" />
 
       <button
         type="button"
