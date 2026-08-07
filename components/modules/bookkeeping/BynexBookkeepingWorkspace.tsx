@@ -14,6 +14,7 @@ import {
 import LiveAccountingIntegrationsModule from "@/components/modules/accounting/LiveAccountingIntegrationsModule";
 import LiveBookkeepingModule from "@/components/modules/bookkeeping/LiveBookkeepingModule";
 import OneClickBookkeepingPanel from "@/components/modules/bookkeeping/OneClickBookkeepingPanel";
+import OneClickExceptionResolver from "@/components/modules/bookkeeping/OneClickExceptionResolver";
 import SupplierInvoiceInboxPanel from "@/components/modules/bookkeeping/SupplierInvoiceInboxPanel";
 import LiveYearEndModule from "@/components/modules/bookkeeping/LiveYearEndModule";
 import LiveSoleTraderModule from "@/components/modules/sole-trader/LiveSoleTraderModule";
@@ -40,8 +41,8 @@ const baseTabs: Array<{
   },
   {
     id: "supplier-inbox",
-    label: "Leverantörsinkorg",
-    description: "Komplettera endast underlag med avvikelse",
+    label: "Komplettera",
+    description: "Fyll bara i det som saknas",
     icon: Inbox,
   },
   {
@@ -88,6 +89,7 @@ export default function BynexBookkeepingWorkspace({
     [soleTrader],
   );
   const [active, setActive] = useState<BookkeepingTab>("one-click");
+  const [fullInboxOpen, setFullInboxOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -153,7 +155,14 @@ export default function BynexBookkeepingWorkspace({
         />
       )}
       {active === "supplier-inbox" && (
-        <SupplierInvoiceInboxPanel notify={notify} />
+        <>
+          <OneClickExceptionResolver
+            notify={notify}
+            fullInboxOpen={fullInboxOpen}
+            onToggleFullInbox={() => setFullInboxOpen((current) => !current)}
+          />
+          {fullInboxOpen && <SupplierInvoiceInboxPanel notify={notify} />}
+        </>
       )}
       {active === "bookkeeping" && <LiveBookkeepingModule notify={notify} />}
       {active === "integrations" && (
