@@ -60,6 +60,10 @@ export default function BynexAppWithDocuments({
     setDocumentsOpen(true);
   }
 
+  function documentsChanged() {
+    window.dispatchEvent(new Event("bynex:documents-changed"));
+  }
+
   return (
     <>
       <BynexWorkspaceV2
@@ -83,6 +87,7 @@ export default function BynexAppWithDocuments({
         onClose={() => setDocumentsOpen(false)}
         initialContext={initialContext}
         initialProjectId={initialProjectId}
+        onChanged={documentsChanged}
       />
     </>
   );
