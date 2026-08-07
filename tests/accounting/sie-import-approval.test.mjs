@@ -25,6 +25,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const numberGuardMigration = readFileSync(
+  new URL(
+    "supabase/migrations/20260807212500_global_voucher_number_guard.sql",
+    root,
+  ),
+  "utf8",
+);
 
 function preview(overrides = {}) {
   return {
@@ -191,6 +198,16 @@ test("databasmotorn är atomisk, idempotent och återanvänder bokföringsmotorn
     migration,
     /grant (insert|update|delete) on table public\.sie_import_/i,
   );
+});
+
+test("verifikationsnummer är serialiserade och unika över företagets räkenskapsår", () => {
+  assert.match(numberGuardMigration, /pg_advisory_xact_lock/);
+  assert.match(numberGuardMigration, /hashtextextended\(p_organization_id::text/);
+  assert.match(numberGuardMigration, /max\(substring\(bv\.voucher_number from 2\)::bigint\)/);
+  assert.match(numberGuardMigration, /greatest\([\s\S]*global_next_number[\s\S]*next_voucher_number/);
+  assert.match(numberGuardMigration, /update public\.bookkeeping_fiscal_years/);
+  assert.match(numberGuardMigration, /security definer/);
+  assert.match(numberGuardMigration, /set search_path = ''/);
 });
 
 test("genomförd import och källbevis kan inte skrivas över eller raderas", () => {
