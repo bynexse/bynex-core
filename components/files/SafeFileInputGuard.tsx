@@ -19,17 +19,28 @@ function asFileInput(target: EventTarget | null) {
 }
 
 function createTransfer() {
-  if (typeof DataTransfer !== "function") return null;
-  try {
-    return new DataTransfer();
-  } catch {
-    return null;
+  if (typeof DataTransfer === "function") {
+    try {
+      return new DataTransfer();
+    } catch {
+      // Continue to the compatibility fallback below.
+    }
   }
+
+  if (typeof ClipboardEvent === "function") {
+    try {
+      return new ClipboardEvent("").clipboardData;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
 }
 
 async function stageSelectedFiles(input: HTMLInputElement) {
   const selected = Array.from(input.files ?? []);
-  if (!selected.length || input.hasAttribute("webkitdirectory")) return;
+  if (!selected.length) return;
 
   input.dataset.bynexFileRead = "reading";
   input.setAttribute("aria-busy", "true");
@@ -81,7 +92,12 @@ export default function SafeFileInputGuard() {
     const handleChange = (event: Event) => {
       if (!event.isTrusted) return;
       const input = asFileInput(event.target);
-      if (!input?.files?.length) return;
+      if (
+        !input?.files?.length
+        || input.hasAttribute("webkitdirectory")
+      ) {
+        return;
+      }
 
       // Stop app-level handlers until the browser-backed file reference has
       // been copied into a memory-backed File that remains readable.
