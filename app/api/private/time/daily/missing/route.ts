@@ -13,6 +13,24 @@ type Authenticated = Exclude<
   { response: Response }
 >;
 
+type ProjectLookup = {
+  projectNumber: string;
+  name: string;
+};
+
+type WorkerLookup = {
+  fullName: string;
+  jobTitle: string | null;
+};
+
+type MissingGroup = {
+  projectId: string;
+  workerId: string;
+  workDate: string;
+  durationMinutes: number;
+  timeEntryIds: string[];
+};
+
 function localDate(value: Date) {
   return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, "0")}-${String(value.getUTCDate()).padStart(2, "0")}`;
 }
@@ -97,13 +115,20 @@ export async function GET() {
   const required = settings?.daily_log_required === true;
   if (!required) {
     return Response.json(
-      { required: false, missing: [], checkedFrom: null, fetchedAt: new Date().toISOString() },
+      {
+        required: false,
+        missing: [],
+        checkedFrom: null,
+        fetchedAt: new Date().toISOString(),
+      },
       { headers: { "cache-control": "no-store" } },
     );
   }
 
   const now = new Date();
-  const cutoff = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const cutoff = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
   cutoff.setUTCDate(cutoff.getUTCDate() - 45);
   const checkedFrom = localDate(cutoff);
 
@@ -161,27 +186,30 @@ export async function GET() {
         `${contribution.project_id}:${contribution.worker_id}:${contribution.work_date}`,
     ),
   );
-  const projectById = new Map(
-    (projects.data ?? []).map((project) => [project.id, project]),
+  const projectById = new Map<string, ProjectLookup>(
+    (projects.data ?? []).map((project) => [
+      project.id,
+      {
+        projectNumber: project.project_number,
+        name: project.name,
+      },
+    ]),
   );
-  const workerById = new Map(
-    (workers.data ?? []).map((worker) => [worker.id, worker]),
+  const workerById = new Map<string, WorkerLookup>(
+    (workers.data ?? []).map((worker) => [
+      worker.id,
+      {
+        fullName: worker.full_name,
+        jobTitle: worker.job_title,
+      },
+    ]),
   );
 
-  const grouped = new Map<
-    string,
-    {
-      projectId: string;
-      workerId: string;
-      workDate: string;
-      durationMinutes: number;
-      timeEntryIds: string[];
-    }
-  >();
+  const grouped = new Map<string, MissingGroup>();
   for (const entry of entries.data ?? []) {
     if (!entry.project_id || !entry.work_date) continue;
     const key = `${entry.project_id}:${entry.worker_id}:${entry.work_date}`;
-    const current = grouped.get(key) ?? {
+    const current: MissingGroup = grouped.get(key) ?? {
       projectId: entry.project_id,
       workerId: entry.worker_id,
       workDate: entry.work_date,
@@ -200,10 +228,10 @@ export async function GET() {
       const worker = workerById.get(item.workerId);
       return {
         ...item,
-        projectNumber: project?.project_number ?? null,
+        projectNumber: project?.projectNumber ?? null,
         projectName: project?.name ?? "Projekt",
-        workerName: worker?.full_name ?? "Medarbetare",
-        workerJobTitle: worker?.job_title ?? null,
+        workerName: worker?.fullName ?? "Medarbetare",
+        workerJobTitle: worker?.jobTitle ?? null,
       };
     })
     .sort((left, right) =>
