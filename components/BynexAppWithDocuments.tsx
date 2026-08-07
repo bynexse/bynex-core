@@ -4,6 +4,7 @@ import { Paperclip, UploadCloud } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import BynexWorkspaceV2 from "@/components/BynexWorkspaceV2";
+import PremiumOfficeInsights from "@/components/dashboard/PremiumOfficeInsights";
 import BynexDocumentsDrawer, {
   documentContextFromModule,
   type DocumentContextType,
@@ -70,6 +71,7 @@ export default function BynexAppWithDocuments({
         enabledProductModules={enabledProductModules}
         company={company}
       />
+      <PremiumOfficeInsights />
 
       <button
         type="button"
