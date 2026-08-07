@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import EmployeeFieldContactsConnect from "@/components/field/EmployeeFieldContactsConnect";
 import EmployeeFieldPwa from "@/components/field/EmployeeFieldPwa";
+import PilotDiagnosticReporter from "@/components/pilot/PilotDiagnosticReporter";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,7 @@ export default async function EmployeeFieldPage() {
         initialName={profile.full_name}
         initialCompanyName={organization.name}
       />
+      <PilotDiagnosticReporter surface="field" />
     </>
   );
 }
