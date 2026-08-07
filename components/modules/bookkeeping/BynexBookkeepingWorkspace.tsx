@@ -7,11 +7,13 @@ import {
   Cable,
   Inbox,
   Landmark,
+  ShieldCheck,
   WalletCards,
   Zap,
 } from "lucide-react";
 
 import LiveAccountingIntegrationsModule from "@/components/modules/accounting/LiveAccountingIntegrationsModule";
+import BookkeepingControlCenter from "@/components/modules/bookkeeping/BookkeepingControlCenter";
 import LiveBookkeepingModule from "@/components/modules/bookkeeping/LiveBookkeepingModule";
 import OneClickBookkeepingPanel from "@/components/modules/bookkeeping/OneClickBookkeepingPanel";
 import OneClickExceptionResolver from "@/components/modules/bookkeeping/OneClickExceptionResolver";
@@ -21,6 +23,7 @@ import LiveSoleTraderModule from "@/components/modules/sole-trader/LiveSoleTrade
 
 type BookkeepingTab =
   | "one-click"
+  | "control"
   | "supplier-inbox"
   | "bookkeeping"
   | "integrations"
@@ -38,6 +41,12 @@ const baseTabs: Array<{
     label: "Enklicksbokföring",
     description: "Kontrollera raden och bokför direkt",
     icon: Zap,
+  },
+  {
+    id: "control",
+    label: "Bynex Kontroll",
+    description: "Månadskoll, avvikelser och bevis",
+    icon: ShieldCheck,
   },
   {
     id: "supplier-inbox",
@@ -109,7 +118,8 @@ export default function BynexBookkeepingWorkspace({
               <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">
                 Kompletta leverantörsfakturor går till enklickskön. Bynex visar hela
                 konteringen före bokföring och stoppar bara det underlag som saknar en
-                nödvändig uppgift.
+                nödvändig uppgift. Bynex Kontroll visar därefter nästa ekonomiska
+                avvikelse och vilket bevis som ligger bakom statusen.
                 {soleTrader
                   ? " Funktionerna för enskild firma ligger i samma ekonomiarbetsyta."
                   : " Funktioner som endast gäller enskild firma visas inte för aktiebolag."}
@@ -118,7 +128,7 @@ export default function BynexBookkeepingWorkspace({
           </div>
         </div>
 
-        <div className="grid gap-2 p-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        <div className="grid gap-2 p-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-7">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const selected = active === tab.id;
@@ -152,6 +162,14 @@ export default function BynexBookkeepingWorkspace({
         <OneClickBookkeepingPanel
           notify={notify}
           onOpenInbox={() => setActive("supplier-inbox")}
+        />
+      )}
+      {active === "control" && (
+        <BookkeepingControlCenter
+          onOpenOneClick={() => setActive("one-click")}
+          onOpenComplement={() => setActive("supplier-inbox")}
+          onOpenBookkeeping={() => setActive("bookkeeping")}
+          onOpenYearEnd={() => setActive("year-end")}
         />
       )}
       {active === "supplier-inbox" && (
