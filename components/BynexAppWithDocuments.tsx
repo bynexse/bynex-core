@@ -1,7 +1,7 @@
 "use client";
 
 import { Paperclip, UploadCloud } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import BynexWorkspaceV2 from "@/components/BynexWorkspaceV2";
 import BynexDocumentsDrawer, {
@@ -9,6 +9,23 @@ import BynexDocumentsDrawer, {
   type DocumentContextType,
 } from "@/components/documents/BynexDocumentsDrawer";
 import type { CompanyContext } from "@/lib/company-context";
+
+const documentContexts = new Set<DocumentContextType>([
+  "general",
+  "bookkeeping",
+  "supplier_invoice",
+  "customer_invoice",
+  "quote",
+  "change_order",
+  "project",
+  "customer_portal",
+  "property",
+]);
+
+type DocumentOpenDetail = {
+  context?: DocumentContextType;
+  projectId?: string | null;
+};
 
 export default function BynexAppWithDocuments({
   enabledProductModules,
@@ -20,10 +37,26 @@ export default function BynexAppWithDocuments({
   const [documentsOpen, setDocumentsOpen] = useState(false);
   const [initialContext, setInitialContext] =
     useState<DocumentContextType>("general");
+  const [initialProjectId, setInitialProjectId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleOpen = (event: Event) => {
+      const detail = (event as CustomEvent<DocumentOpenDetail>).detail ?? {};
+      if (detail.context && documentContexts.has(detail.context)) {
+        setInitialContext(detail.context);
+      }
+      setInitialProjectId(detail.projectId ?? null);
+      setDocumentsOpen(true);
+    };
+
+    window.addEventListener("bynex:open-documents", handleOpen);
+    return () => window.removeEventListener("bynex:open-documents", handleOpen);
+  }, []);
 
   function openDocuments() {
     const activeModule = new URLSearchParams(window.location.search).get("module");
     setInitialContext(documentContextFromModule(activeModule));
+    setInitialProjectId(null);
     setDocumentsOpen(true);
   }
 
@@ -49,6 +82,7 @@ export default function BynexAppWithDocuments({
         open={documentsOpen}
         onClose={() => setDocumentsOpen(false)}
         initialContext={initialContext}
+        initialProjectId={initialProjectId}
       />
     </>
   );
