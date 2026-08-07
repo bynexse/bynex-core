@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import PwaInstallManager from "@/components/pwa/PwaInstallManager";
 import "./globals.css";
 
 const siteName = "Bynex";
@@ -35,6 +36,12 @@ export const metadata: Metadata = {
   category: "business software",
   referrer: "origin-when-cross-origin",
   manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Bynex",
+    statusBarStyle: "black-translucent",
+    startupImage: "/brand/bynex-mark.png",
+  },
   formatDetection: {
     email: false,
     address: false,
@@ -67,11 +74,15 @@ export const metadata: Metadata = {
     description: defaultDescription,
     images: ["/opengraph-image"],
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
   themeColor: "#1d1f22",
   colorScheme: "light",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -79,7 +90,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="sv">
-      <body>{children}</body>
+      <body>
+        {children}
+        <PwaInstallManager />
+      </body>
     </html>
   );
 }
