@@ -5,15 +5,26 @@ import {
   BookOpenCheck,
   Building2,
   Cable,
+  Inbox,
   Landmark,
+  ShieldCheck,
   WalletCards,
+  Zap,
 } from "lucide-react";
+
 import LiveAccountingIntegrationsModule from "@/components/modules/accounting/LiveAccountingIntegrationsModule";
+import BookkeepingControlCenter from "@/components/modules/bookkeeping/BookkeepingControlCenter";
 import LiveBookkeepingModule from "@/components/modules/bookkeeping/LiveBookkeepingModule";
+import OneClickBookkeepingPanel from "@/components/modules/bookkeeping/OneClickBookkeepingPanel";
+import OneClickExceptionResolver from "@/components/modules/bookkeeping/OneClickExceptionResolver";
+import SupplierInvoiceInboxPanel from "@/components/modules/bookkeeping/SupplierInvoiceInboxPanel";
 import LiveYearEndModule from "@/components/modules/bookkeeping/LiveYearEndModule";
 import LiveSoleTraderModule from "@/components/modules/sole-trader/LiveSoleTraderModule";
 
 type BookkeepingTab =
+  | "one-click"
+  | "control"
+  | "supplier-inbox"
   | "bookkeeping"
   | "integrations"
   | "year-end"
@@ -25,6 +36,24 @@ const baseTabs: Array<{
   description: string;
   icon: typeof BookOpenCheck;
 }> = [
+  {
+    id: "one-click",
+    label: "Enklicksbokföring",
+    description: "Kontrollera raden och bokför direkt",
+    icon: Zap,
+  },
+  {
+    id: "control",
+    label: "Bynex Kontroll",
+    description: "Månadskoll, avvikelser och bevis",
+    icon: ShieldCheck,
+  },
+  {
+    id: "supplier-inbox",
+    label: "Komplettera",
+    description: "Fyll bara i det som saknas",
+    icon: Inbox,
+  },
   {
     id: "bookkeeping",
     label: "Löpande bokföring",
@@ -68,7 +97,8 @@ export default function BynexBookkeepingWorkspace({
         : baseTabs,
     [soleTrader],
   );
-  const [active, setActive] = useState<BookkeepingTab>("bookkeeping");
+  const [active, setActive] = useState<BookkeepingTab>("one-click");
+  const [fullInboxOpen, setFullInboxOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -83,19 +113,22 @@ export default function BynexBookkeepingWorkspace({
                 Bynex Bokföring
               </p>
               <h2 className="mt-2 text-3xl font-semibold tracking-tight">
-                All ekonomi samlad på ett ställe
+                Snabbast möjliga flöde – med full kontroll
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">
-                Löpande bokföring, kopplingar och bokslut ligger nu i samma arbetsyta.
+                Kompletta leverantörsfakturor går till enklickskön. Bynex visar hela
+                konteringen före bokföring och stoppar bara det underlag som saknar en
+                nödvändig uppgift. Bynex Kontroll visar därefter nästa ekonomiska
+                avvikelse och vilket bevis som ligger bakom statusen.
                 {soleTrader
-                  ? " Funktionerna för enskild firma visas här inne och inte som en separat huvudmeny."
+                  ? " Funktionerna för enskild firma ligger i samma ekonomiarbetsyta."
                   : " Funktioner som endast gäller enskild firma visas inte för aktiebolag."}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="grid gap-2 p-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-2 p-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-7">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const selected = active === tab.id;
@@ -125,6 +158,30 @@ export default function BynexBookkeepingWorkspace({
         </div>
       </section>
 
+      {active === "one-click" && (
+        <OneClickBookkeepingPanel
+          notify={notify}
+          onOpenInbox={() => setActive("supplier-inbox")}
+        />
+      )}
+      {active === "control" && (
+        <BookkeepingControlCenter
+          onOpenOneClick={() => setActive("one-click")}
+          onOpenComplement={() => setActive("supplier-inbox")}
+          onOpenBookkeeping={() => setActive("bookkeeping")}
+          onOpenYearEnd={() => setActive("year-end")}
+        />
+      )}
+      {active === "supplier-inbox" && (
+        <>
+          <OneClickExceptionResolver
+            notify={notify}
+            fullInboxOpen={fullInboxOpen}
+            onToggleFullInbox={() => setFullInboxOpen((current) => !current)}
+          />
+          {fullInboxOpen && <SupplierInvoiceInboxPanel notify={notify} />}
+        </>
+      )}
       {active === "bookkeeping" && <LiveBookkeepingModule notify={notify} />}
       {active === "integrations" && (
         <LiveAccountingIntegrationsModule notify={notify} />
