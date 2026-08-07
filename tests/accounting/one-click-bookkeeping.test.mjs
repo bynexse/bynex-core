@@ -49,9 +49,20 @@ const api = readFileSync(
   new URL("app/api/private/bookkeeping/one-click/route.ts", root),
   "utf8",
 );
+const reviewApi = readFileSync(
+  new URL("app/api/private/bookkeeping/one-click/review/route.ts", root),
+  "utf8",
+);
 const panel = readFileSync(
   new URL(
     "components/modules/bookkeeping/OneClickBookkeepingPanel.tsx",
+    root,
+  ),
+  "utf8",
+);
+const exceptionPanel = readFileSync(
+  new URL(
+    "components/modules/bookkeeping/OneClickExceptionResolver.tsx",
     root,
   ),
   "utf8",
@@ -170,4 +181,37 @@ test("PL/pgSQL output names can never shadow voucher table columns", () => {
     resolutionMigration,
     /revoke all on function public\.book_supplier_invoice_one_click\(uuid, uuid\)/,
   );
+});
+
+test("exception handling asks only for missing fields and offers save-and-book", () => {
+  assert.match(exceptionPanel, /Fyll i – spara och bokför direkt/);
+  assert.match(exceptionPanel, /Spara och bokför/);
+  assert.match(exceptionPanel, /formNoValidate/);
+  assert.match(exceptionPanel, /blockers\.map/);
+  assert.match(exceptionPanel, /Frågar bara efter det som saknas/);
+  assert.match(exceptionPanel, /Öppna original/);
+});
+
+test("special accounting cases remain simple but route to the correct controlled flow", () => {
+  assert.match(exceptionPanel, /Kontantmetoden:/);
+  assert.match(exceptionPanel, /Kreditnota:/);
+  assert.match(exceptionPanel, /Utländsk valuta:/);
+  assert.match(exceptionPanel, /directBookAvailable/);
+  assert.match(exceptionPanel, /queue\?\.accountingMethod === "accrual"/);
+});
+
+test("save-and-book uses the existing atomic database function and never duplicates its logic", () => {
+  assert.match(reviewApi, /intent === "save"/);
+  assert.match(reviewApi, /review_supplier_invoice/);
+  assert.match(reviewApi, /review_and_book_supplier_invoice_one_click/);
+  assert.match(reviewApi, /requireSupabaseUser\("bookkeeping"\)/);
+  assert.match(reviewApi, /financeRoles/);
+  assert.doesNotMatch(reviewApi, /from\("bookkeeping_vouchers"\)\.insert/);
+});
+
+test("the full administrative inbox is opt-in rather than the everyday default", () => {
+  assert.match(workspace, /fullInboxOpen && <SupplierInvoiceInboxPanel/);
+  assert.match(workspace, /OneClickExceptionResolver/);
+  assert.match(workspace, /label: "Komplettera"/);
+  assert.match(exceptionPanel, /Visa full inkorg/);
 });
