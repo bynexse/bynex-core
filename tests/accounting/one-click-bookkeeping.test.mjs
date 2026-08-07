@@ -31,11 +31,19 @@ const resolutionMigration = readFileSync(
   ),
   "utf8",
 );
+const methodMigration = readFileSync(
+  new URL(
+    "supabase/migrations/20260807202000_one_click_accrual_method_guard.sql",
+    root,
+  ),
+  "utf8",
+);
 const migrations = [
   baseMigration,
   hardeningMigration,
   complianceMigration,
   resolutionMigration,
+  methodMigration,
 ].join("\n");
 const api = readFileSync(
   new URL("app/api/private/bookkeeping/one-click/route.ts", root),
@@ -89,6 +97,7 @@ test("the API exposes only validated invoices and never accepts a bulk posting l
     "Möjlig dubblett",
     "Valutakurs",
     "Kreditnotan",
+    "Kontantmetoden kräver betalningsmatchning",
   ]) {
     assert.ok(api.includes(blocker), `missing server-side queue blocker: ${blocker}`);
   }
@@ -111,6 +120,8 @@ test("compliance guard blocks unsupported or ambiguous accounting cases", () => 
   assert.match(complianceMigration, /invoice_kind <> 'invoice'/);
   assert.match(complianceMigration, /currency <> 'SEK'/);
   assert.match(complianceMigration, /duplicate_of_document_id is not null/);
+  assert.match(methodMigration, /accounting_method <> 'accrual'/);
+  assert.match(methodMigration, /Kontantmetoden kräver betalningsmatchning/);
   assert.match(hardeningMigration, /Möjlig dubblett/);
   assert.match(hardeningMigration, /Originalunderlaget saknas/);
   assert.match(hardeningMigration, /Totalbeloppet måste motsvara netto plus moms/);
@@ -132,7 +143,7 @@ test("only the fail-closed entry points are executable by authenticated users", 
     /revoke all on function public\.book_supplier_invoice_one_click\(uuid, uuid\)[\s\S]*from public, anon, authenticated/,
   );
   assert.match(
-    complianceMigration,
+    methodMigration,
     /grant execute on function public\.book_supplier_invoice_one_click_safe\(uuid, uuid\)[\s\S]*to authenticated/,
   );
   assert.match(
