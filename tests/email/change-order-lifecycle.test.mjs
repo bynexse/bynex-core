@@ -9,6 +9,13 @@ const migration = fs.readFileSync(
   ),
   "utf8",
 );
+const advisoryMigration = fs.readFileSync(
+  new URL(
+    "../../supabase/migrations/20260807135000_change_order_recall_advisory_mode.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 const route = fs.readFileSync(
   new URL(
     "../../app/api/private/change-orders/lifecycle/route.ts",
@@ -40,6 +47,16 @@ test("återkallelse ogiltigförklarar länkar men bevarar den frysta versionen",
   assert.match(migration, /set status = 'draft'/);
   assert.match(migration, /'customer_links_invalidated', true/);
   assert.doesNotMatch(migration, /delete from public\.change_order_versions/i);
+});
+
+test("återkallad ÄTA följer Bynex rådgivande arbetsstartsläge utan teknisk spärr", () => {
+  assert.match(advisoryMigration, /recall_change_order_customer_review/);
+  assert.match(advisoryMigration, /work_start_blocked = false/);
+  assert.match(advisoryMigration, /'work_start_mode', 'advisory'/);
+  assert.match(advisoryMigration, /set status = 'superseded'/);
+  assert.match(advisoryMigration, /set status = 'draft'/);
+  assert.doesNotMatch(advisoryMigration, /work_start_blocked = true/);
+  assert.doesNotMatch(advisoryMigration, /delete from public\.change_order_versions/i);
 });
 
 test("skriftligt godkännande binds till exakt innehåll, tid och bevis", () => {
