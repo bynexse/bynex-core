@@ -2,12 +2,12 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Bynex – byggsystem för svenska byggföretag",
+    name: "Bynex Arbetsläge – Tid, Projekt och Maskin",
     short_name: "Bynex",
     description:
-      "Tidrapportering, byggdagbok, projekt, ÄTA, offerter, fakturering, lön, bokföring och Bynex Pärmen i ett system.",
-    id: "/app",
-    start_url: "/app",
+      "Den snabba arbetsappen för tidrapportering, dagens projekt och tilldelade maskiner.",
+    id: "/start",
+    start_url: "/start",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",
@@ -15,7 +15,7 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#1d1f22",
     lang: "sv-SE",
     dir: "ltr",
-    categories: ["business", "productivity", "finance"],
+    categories: ["business", "productivity"],
     prefer_related_applications: false,
     icons: [
       {
@@ -35,30 +35,41 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         name: "Bynex Tid",
         short_name: "Tid",
-        description: "Registrera tid och öppna dagens arbetsflöde.",
-        url: "/app?module=time",
-        icons: [{ src: "/brand/bynex-mark.png", sizes: "1254x1254", type: "image/png" }],
+        description: "Stämpla in, stämpla ut och hantera rast.",
+        url: "/field?tab=time",
+        icons: [
+          {
+            src: "/brand/bynex-mark.png",
+            sizes: "1254x1254",
+            type: "image/png",
+          },
+        ],
       },
       {
         name: "Bynex Projekt",
         short_name: "Projekt",
-        description: "Öppna aktiva projekt och dagens produktion.",
-        url: "/app?module=projects",
-        icons: [{ src: "/brand/bynex-mark.png", sizes: "1254x1254", type: "image/png" }],
+        description: "Öppna dagens projekt och rapportera hinder.",
+        url: "/field?tab=project",
+        icons: [
+          {
+            src: "/brand/bynex-mark.png",
+            sizes: "1254x1254",
+            type: "image/png",
+          },
+        ],
       },
       {
-        name: "Bynex ÄTA",
-        short_name: "ÄTA",
-        description: "Dokumentera, prisuppskatta och hantera ÄTA.",
-        url: "/app?module=change-orders",
-        icons: [{ src: "/brand/bynex-mark.png", sizes: "1254x1254", type: "image/png" }],
-      },
-      {
-        name: "Bynex Pärmen",
-        short_name: "Pärmen",
-        description: "Öppna fastighetens dokument, garantier och underhåll.",
-        url: "/app?module=property-portal",
-        icons: [{ src: "/brand/bynex-mark.png", sizes: "1254x1254", type: "image/png" }],
+        name: "Bynex Maskin",
+        short_name: "Maskin",
+        description: "Se tilldelad maskin, service och retur.",
+        url: "/field?tab=machine",
+        icons: [
+          {
+            src: "/brand/bynex-mark.png",
+            sizes: "1254x1254",
+            type: "image/png",
+          },
+        ],
       },
     ],
   };
