@@ -212,10 +212,6 @@ export async function sendBynexCustomerDocumentEmail(
     }
     deliveryId = String(prepared.id);
 
-    if (process.env.BYNEX_EMAIL_DOMAIN_VERIFIED !== "true") {
-      throw new Error("Bynex e-postdomän är inte verifierad för kundutskick");
-    }
-
     const apiKey = required("RESEND_API_KEY");
     const fromEmail = requireVerifiedBynexEmail(
       "BYNEX_DOCUMENT_FROM_EMAIL",
