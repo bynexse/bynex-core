@@ -27,8 +27,23 @@ type PendingChangeOrder = {
   } | null;
 };
 
+type EvidenceFile = {
+  id: string;
+  title: string;
+  original_filename: string;
+  category: string;
+  mime_type: string;
+  size_bytes: number | string;
+  created_at: string;
+};
+
 type DeliveryPayload = {
   changeOrders?: PendingChangeOrder[];
+  error?: string;
+};
+
+type EvidencePayload = {
+  evidenceFiles?: EvidenceFile[];
   error?: string;
 };
 
@@ -48,28 +63,48 @@ function localDateTime() {
   return now.toISOString().slice(0, 16);
 }
 
+function shortDate(value: string) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime())
+    ? value
+    : new Intl.DateTimeFormat("sv-SE", { dateStyle: "medium" }).format(parsed);
+}
+
 export default function ChangeOrderLifecycleQueue({
   notify,
 }: {
   notify: (message: string) => void;
 }) {
   const [items, setItems] = useState<PendingChangeOrder[]>([]);
+  const [evidenceFiles, setEvidenceFiles] = useState<EvidenceFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [openAction, setOpenAction] = useState<OpenAction>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const response = await fetch("/api/private/change-orders/delivery", {
-      cache: "no-store",
-    });
-    const payload = (await response.json().catch(() => null)) as DeliveryPayload | null;
-    if (!response.ok) {
-      setError(payload?.error ?? "ÄTA-besluten kunde inte kontrolleras.");
+    const [deliveryResponse, evidenceResponse] = await Promise.all([
+      fetch("/api/private/change-orders/delivery", { cache: "no-store" }),
+      fetch("/api/private/change-orders/lifecycle", { cache: "no-store" }),
+    ]);
+    const [deliveryPayload, evidencePayload] = await Promise.all([
+      deliveryResponse.json().catch(() => null) as Promise<DeliveryPayload | null>,
+      evidenceResponse.json().catch(() => null) as Promise<EvidencePayload | null>,
+    ]);
+
+    if (!deliveryResponse.ok) {
+      setError(deliveryPayload?.error ?? "ÄTA-besluten kunde inte kontrolleras.");
       setLoading(false);
       return;
     }
-    setItems(payload?.changeOrders ?? []);
+    if (!evidenceResponse.ok) {
+      setError(evidencePayload?.error ?? "Bevisfilerna kunde inte hämtas.");
+      setLoading(false);
+      return;
+    }
+
+    setItems(deliveryPayload?.changeOrders ?? []);
+    setEvidenceFiles(evidencePayload?.evidenceFiles ?? []);
     setError(null);
     setLoading(false);
   }, []);
@@ -206,7 +241,7 @@ export default function ChangeOrderLifecycleQueue({
                     <div>
                       <h4 className="font-semibold text-emerald-950">Registrera godkännande utanför Bynex</h4>
                       <p className="mt-1 text-xs leading-5 text-emerald-900">
-                        Registreringen binds till exakt den låsta version och kontrollhash som kunden fick. Uppge var originalbeviset finns.
+                        Registreringen binds till exakt den låsta version och kontrollhash som kunden fick. Uppge var originalbeviset finns och välj gärna själva filen från Bynex Dokument.
                       </p>
                     </div>
                     <button
@@ -264,14 +299,32 @@ export default function ChangeOrderLifecycleQueue({
                   </div>
 
                   <label className="mt-4 block text-sm font-semibold">
-                    Referens till bevis
+                    Referens till originalbevis *
                     <input
                       name="evidenceReference"
+                      required
+                      minLength={3}
                       maxLength={500}
-                      placeholder="Exempel: Mejlet 7 augusti 10:42 eller filnamn i Bynex Dokument"
+                      placeholder="Exempel: Mejlet 7 augusti 10:42 eller undertecknad PDF avtal-ata-001.pdf"
                       className="input mt-2 bg-white"
                     />
                   </label>
+
+                  <label className="mt-4 block text-sm font-semibold">
+                    Bevisfil från Bynex Dokument
+                    <select name="evidenceFileId" defaultValue="" className="input mt-2 bg-white">
+                      <option value="">Ingen fil vald</option>
+                      {evidenceFiles.map((file) => (
+                        <option key={file.id} value={file.id}>
+                          {file.title} · {file.original_filename} · {shortDate(file.created_at)}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="mt-2 block text-xs font-normal leading-5 text-emerald-900">
+                      När en fil väljs kopplar Bynex den automatiskt till ÄTA:n som internt bevis. Kunden får inte se filen om den inte publiceras separat.
+                    </span>
+                  </label>
+
                   <label className="mt-4 block text-sm font-semibold">
                     Vad godkände kunden och hur kontrollerades det? *
                     <textarea
@@ -280,14 +333,16 @@ export default function ChangeOrderLifecycleQueue({
                       minLength={5}
                       maxLength={3000}
                       rows={4}
-                      placeholder="Beskriv godkännandet och var originalunderlaget sparas."
+                      placeholder="Beskriv godkännandet, omfattningen och hur originalunderlaget kontrollerades."
                       className="input mt-2 bg-white"
                     />
                   </label>
 
-                  <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-3 text-xs leading-5 text-emerald-950">
-                    Lägg originalmejl, SMS-bild eller undertecknad PDF i Bynex Dokument och koppla filen till ÄTA:n. Själva godkännandet sparas aldrig enbart som en fri kommentar.
-                  </div>
+                  {evidenceFiles.length === 0 && (
+                    <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-3 text-xs leading-5 text-emerald-950">
+                      Det finns ännu ingen valbar fil. Lägg originalmejl, SMS-bild eller undertecknad PDF i Bynex Dokument. Du kan ändå registrera godkännandet nu med en exakt bevisreferens och koppla filen senare via ÄTA:ns dokument.
+                    </div>
+                  )}
 
                   <button
                     disabled={busy}
