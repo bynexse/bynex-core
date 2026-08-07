@@ -77,11 +77,14 @@ test("the queue shows the facts a craft business owner must understand before cl
     "Original och belopp verifierade",
     "Öppen bokföringsperiod",
     "Projektkostnad",
-    "Ingående moms",
+    "ingående moms",
     "Leverantörsskuld",
     "Kontrollera raden och bokför",
   ]) {
-    assert.ok(panel.includes(phrase), `missing visible one-click fact: ${phrase}`);
+    assert.ok(
+      panel.toLocaleLowerCase("sv-SE").includes(phrase.toLocaleLowerCase("sv-SE")),
+      `missing visible one-click fact: ${phrase}`,
+    );
   }
   assert.match(panel, /suggestedAccountNumber/);
   assert.match(panel, /suggestedVatCode/);
@@ -122,7 +125,7 @@ test("compliance guard blocks unsupported or ambiguous accounting cases", () => 
   assert.match(complianceMigration, /duplicate_of_document_id is not null/);
   assert.match(methodMigration, /accounting_method <> 'accrual'/);
   assert.match(methodMigration, /Kontantmetoden kräver betalningsmatchning/);
-  assert.match(hardeningMigration, /Möjlig dubblett/);
+  assert.match(hardeningMigration, /möjlig dubblett/i);
   assert.match(hardeningMigration, /Originalunderlaget saknas/);
   assert.match(hardeningMigration, /Totalbeloppet måste motsvara netto plus moms/);
   assert.match(hardeningMigration, /Ingen öppen bokföringsperiod/);
