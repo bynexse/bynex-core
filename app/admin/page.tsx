@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Activity, BriefcaseBusiness } from "lucide-react";
+import { Activity, BriefcaseBusiness, Database } from "lucide-react";
 
 import PlatformHqWorkspaceV3 from "@/components/platform-admin/PlatformHqWorkspaceV3";
 import { getHqConfig, HQ_COOKIE_NAME, verifyHqSession } from "@/lib/hq-auth";
@@ -40,6 +40,12 @@ export default async function PlatformAdminPage() {
     <>
       <PlatformHqWorkspaceV3 />
       <div className="fixed bottom-5 right-5 z-50 flex flex-wrap justify-end gap-2">
+        <Link
+          href="/admin/recovery"
+          className="inline-flex items-center gap-2 rounded-2xl border border-zinc-300 bg-white px-5 py-3 text-sm font-semibold text-zinc-800 shadow-xl transition hover:bg-zinc-50"
+        >
+          <Database className="h-4 w-4 text-blue-700" /> Återställning
+        </Link>
         <Link
           href="/admin/drift"
           className="inline-flex items-center gap-2 rounded-2xl border border-zinc-300 bg-white px-5 py-3 text-sm font-semibold text-zinc-800 shadow-xl transition hover:bg-zinc-50"
