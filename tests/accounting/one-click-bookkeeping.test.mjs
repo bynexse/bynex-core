@@ -197,7 +197,7 @@ test("special accounting cases remain simple but route to the correct controlled
   assert.match(exceptionPanel, /Kreditnota:/);
   assert.match(exceptionPanel, /Utländsk valuta:/);
   assert.match(exceptionPanel, /directBookAvailable/);
-  assert.match(exceptionPanel, /queue\.accountingMethod === "accrual"/);
+  assert.match(exceptionPanel, /queue\?\.accountingMethod === "accrual"/);
 });
 
 test("save-and-book uses the existing atomic database function and never duplicates its logic", () => {
