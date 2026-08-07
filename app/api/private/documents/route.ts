@@ -59,6 +59,7 @@ const checksumPattern = /^[0-9a-f]{64}$/;
 
 type JsonObject = Record<string, unknown>;
 type Context = Extract<Awaited<ReturnType<typeof documentContext>>, { ok: true }>;
+
 type DocumentRow = {
   id: string;
   organization_id: string;
@@ -81,6 +82,7 @@ type DocumentRow = {
   source: string;
   customer_visible: boolean;
   status: string;
+  uploaded_by_user_id: string;
   uploaded_at: string | null;
   created_at: string;
   updated_at: string;
@@ -206,7 +208,6 @@ function documentKindFromContext(document: DocumentRow) {
 
 function localAnalysis(document: DocumentRow): AnalysisResult {
   const kind = documentKindFromContext(document);
-  const missing = ["Belopp, datum och motpart behöver granskas manuellt."];
   return {
     documentKind: kind,
     counterpartyName: null,
@@ -232,7 +233,7 @@ function localAnalysis(document: DocumentRow): AnalysisResult {
       "Bynex Smart kunde inte läsa filinnehållet automatiskt. Dokumentet är sparat och väntar på mänsklig komplettering.",
     confidence: 0.15,
     lineItems: [],
-    missingInformation: missing,
+    missingInformation: ["Belopp, datum och motpart behöver granskas manuellt."],
     rawResult: {},
     modelSource: "local",
     modelName: null,
@@ -277,9 +278,7 @@ function normalizedAnalysis(
     projects.find(
       (project) => project.project_number.toLowerCase() === projectReference,
     ) ??
-    projects.find(
-      (project) => project.name.toLowerCase() === projectName,
-    ) ??
+    projects.find((project) => project.name.toLowerCase() === projectName) ??
     projects.find(
       (project) =>
         projectReference &&
@@ -290,8 +289,16 @@ function normalizedAnalysis(
   const rawNet = finiteMoney(raw.netAmount);
   const rawVat = finiteMoney(raw.vatAmount);
   const rawTotal = finiteMoney(raw.totalAmount);
-  const netAmount = rawNet ?? (rawTotal !== null && rawVat !== null ? Math.max(0, rawTotal - rawVat) : null);
-  const vatAmount = rawVat ?? (rawTotal !== null && netAmount !== null ? Math.max(0, rawTotal - netAmount) : null);
+  const netAmount =
+    rawNet ??
+    (rawTotal !== null && rawVat !== null
+      ? Math.max(0, rawTotal - rawVat)
+      : null);
+  const vatAmount =
+    rawVat ??
+    (rawTotal !== null && netAmount !== null
+      ? Math.max(0, rawTotal - netAmount)
+      : null);
   const totalAmount =
     netAmount !== null && vatAmount !== null
       ? Math.round((netAmount + vatAmount) * 100) / 100
@@ -424,9 +431,9 @@ async function choices(context: Context) {
       canFinance
         ? context.supabase
             .from("customer_invoices")
-            .select("id,project_id,invoice_number,status,total_amount,customer_name")
+            .select("id,project_id,invoice_number,status,amount_payable")
             .eq("organization_id", context.organizationId)
-            .order("updated_at", { ascending: false })
+            .order("created_at", { ascending: false })
             .limit(250)
         : Promise.resolve({ data: [], error: null }),
       canOperate
@@ -641,7 +648,7 @@ export async function GET(request: Request) {
   let documentsQuery = context.supabase
     .from("bynex_documents")
     .select(
-      "id,context_type,category,project_id,quote_id,change_order_id,customer_invoice_id,supplier_invoice_id,property_id,bookkeeping_document_id,title,original_filename,storage_bucket,storage_path,mime_type,size_bytes,checksum_sha256,source,customer_visible,status,uploaded_at,created_at,updated_at",
+      "id,context_type,category,project_id,quote_id,change_order_id,customer_invoice_id,supplier_invoice_id,property_id,bookkeeping_document_id,title,original_filename,storage_bucket,storage_path,mime_type,size_bytes,checksum_sha256,source,customer_visible,status,uploaded_by_user_id,uploaded_at,created_at,updated_at",
     )
     .eq("organization_id", context.organizationId)
     .order("created_at", { ascending: false })
@@ -653,10 +660,13 @@ export async function GET(request: Request) {
     documentsQuery = documentsQuery.eq("project_id", projectId);
   }
 
-  const [documentsResult, choiceData] = await Promise.all([
-    documentsQuery,
-    choices(context),
-  ]);
+  let choiceData;
+  try {
+    choiceData = await choices(context);
+  } catch {
+    return Response.json({ error: "Dokumentvalen kunde inte hämtas." }, { status: 500 });
+  }
+  const documentsResult = await documentsQuery;
   if (documentsResult.error) {
     if (missingFeature(documentsResult.error.code)) {
       return Response.json(
@@ -683,7 +693,10 @@ export async function GET(request: Request) {
         .in("document_id", documentIds)
     : { data: [], error: null };
   if (analysesResult.error) {
-    return Response.json({ error: "Dokumentanalyserna kunde inte hämtas." }, { status: 500 });
+    return Response.json(
+      { error: "Dokumentanalyserna kunde inte hämtas." },
+      { status: 500 },
+    );
   }
   const analysisByDocument = new Map(
     (analysesResult.data ?? []).map((analysis) => [analysis.document_id, analysis]),
@@ -723,8 +736,13 @@ export async function POST(request: Request) {
     const originalFilename = text(body?.fileName, 240);
     const mimeType = text(body?.mimeType, 160).toLowerCase();
     const sizeBytes = Number(body?.sizeBytes);
-    const checksum = text(body?.checksumSha256, 64).toLowerCase();
-    const source = body?.source === "camera" ? "camera" : context.role === "employee" || context.role === "contractor" ? "worker" : "upload";
+    const digest = text(body?.checksumSha256, 64).toLowerCase();
+    const source =
+      body?.source === "camera"
+        ? "camera"
+        : context.role === "employee" || context.role === "contractor"
+          ? "worker"
+          : "upload";
     const projectId = optionalUuid(body?.projectId);
     const quoteId = optionalUuid(body?.quoteId);
     const changeOrderId = optionalUuid(body?.changeOrderId);
@@ -741,7 +759,7 @@ export async function POST(request: Request) {
       !Number.isInteger(sizeBytes) ||
       sizeBytes < 1 ||
       sizeBytes > MAX_FILE_SIZE ||
-      !checksumPattern.test(checksum) ||
+      !checksumPattern.test(digest) ||
       projectId === undefined ||
       quoteId === undefined ||
       changeOrderId === undefined ||
@@ -755,8 +773,9 @@ export async function POST(request: Request) {
     }
 
     if (
-      ["bookkeeping", "supplier_invoice", "customer_invoice"].includes(contextType) &&
-      !financeRoles.has(context.role)
+      ["bookkeeping", "supplier_invoice", "customer_invoice"].includes(
+        contextType,
+      ) && !financeRoles.has(context.role)
     ) {
       return Response.json(
         { error: "Ekonomidokument kräver behörighet för ekonomi." },
@@ -767,7 +786,10 @@ export async function POST(request: Request) {
       ["quote", "property"].includes(contextType) &&
       !operationsRoles.has(context.role)
     ) {
-      return Response.json({ error: "Behörighet till vald dokumenttyp saknas." }, { status: 403 });
+      return Response.json(
+        { error: "Behörighet till vald dokumenttyp saknas." },
+        { status: 403 },
+      );
     }
 
     let resolvedProjectId = projectId;
@@ -775,28 +797,39 @@ export async function POST(request: Request) {
       return Response.json({ error: "Välj offert." }, { status: 400 });
     }
     if (contextType === "change_order") {
-      if (!changeOrderId) return Response.json({ error: "Välj ÄTA." }, { status: 400 });
+      if (!changeOrderId) {
+        return Response.json({ error: "Välj ÄTA." }, { status: 400 });
+      }
       const { data: changeOrder } = await context.supabase
         .from("change_orders")
         .select("id,project_id")
         .eq("organization_id", context.organizationId)
         .eq("id", changeOrderId)
         .maybeSingle();
-      if (!changeOrder) return Response.json({ error: "ÄTA:n hittades inte." }, { status: 404 });
+      if (!changeOrder) {
+        return Response.json({ error: "ÄTA:n hittades inte." }, { status: 404 });
+      }
       resolvedProjectId = changeOrder.project_id;
     }
     if (contextType === "customer_invoice") {
-      if (!customerInvoiceId) return Response.json({ error: "Välj kundfaktura." }, { status: 400 });
+      if (!customerInvoiceId) {
+        return Response.json({ error: "Välj kundfaktura." }, { status: 400 });
+      }
       const { data: invoice } = await context.supabase
         .from("customer_invoices")
         .select("id,project_id")
         .eq("organization_id", context.organizationId)
         .eq("id", customerInvoiceId)
         .maybeSingle();
-      if (!invoice) return Response.json({ error: "Fakturan hittades inte." }, { status: 404 });
+      if (!invoice) {
+        return Response.json({ error: "Fakturan hittades inte." }, { status: 404 });
+      }
       resolvedProjectId = invoice.project_id ?? resolvedProjectId;
     }
-    if (["project", "customer_portal"].includes(contextType) && !resolvedProjectId) {
+    if (
+      ["project", "customer_portal"].includes(contextType) &&
+      !resolvedProjectId
+    ) {
       return Response.json({ error: "Välj projekt." }, { status: 400 });
     }
     if (contextType === "property" && !propertyId) {
@@ -811,7 +844,9 @@ export async function POST(request: Request) {
         .eq("id", resolvedProjectId)
         .eq("active", true)
         .maybeSingle();
-      if (!project) return Response.json({ error: "Projektet hittades inte." }, { status: 404 });
+      if (!project) {
+        return Response.json({ error: "Projektet hittades inte." }, { status: 404 });
+      }
     }
     if (quoteId) {
       const { data: quote } = await context.supabase
@@ -820,7 +855,9 @@ export async function POST(request: Request) {
         .eq("organization_id", context.organizationId)
         .eq("id", quoteId)
         .maybeSingle();
-      if (!quote) return Response.json({ error: "Offerten hittades inte." }, { status: 404 });
+      if (!quote) {
+        return Response.json({ error: "Offerten hittades inte." }, { status: 404 });
+      }
     }
     if (propertyId) {
       const { data: property } = await context.supabase
@@ -829,20 +866,22 @@ export async function POST(request: Request) {
         .eq("organization_id", context.organizationId)
         .eq("id", propertyId)
         .maybeSingle();
-      if (!property) return Response.json({ error: "Fastigheten hittades inte." }, { status: 404 });
+      if (!property) {
+        return Response.json({ error: "Fastigheten hittades inte." }, { status: 404 });
+      }
     }
 
     const { data: duplicate } = await context.supabase
       .from("bynex_documents")
       .select("id,title,original_filename,status,created_at")
       .eq("organization_id", context.organizationId)
-      .eq("checksum_sha256", checksum)
+      .eq("checksum_sha256", digest)
       .neq("status", "archived")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (duplicate) {
-      return Response.json({ duplicate: true, document: duplicate }, { status: 200 });
+      return Response.json({ duplicate: true, document: duplicate });
     }
 
     const documentId = randomUUID();
@@ -866,7 +905,7 @@ export async function POST(request: Request) {
         storage_path: storagePath,
         mime_type: mimeType,
         size_bytes: sizeBytes,
-        checksum_sha256: checksum,
+        checksum_sha256: digest,
         source,
         customer_visible: customerVisible,
         status: "pending_upload",
@@ -899,7 +938,7 @@ export async function POST(request: Request) {
   const { data: document, error: documentError } = await context.supabase
     .from("bynex_documents")
     .select(
-      "id,organization_id,context_type,category,project_id,quote_id,change_order_id,customer_invoice_id,supplier_invoice_id,property_id,bookkeeping_document_id,title,original_filename,storage_bucket,storage_path,mime_type,size_bytes,checksum_sha256,source,customer_visible,status,uploaded_at,created_at,updated_at",
+      "id,organization_id,context_type,category,project_id,quote_id,change_order_id,customer_invoice_id,supplier_invoice_id,property_id,bookkeeping_document_id,title,original_filename,storage_bucket,storage_path,mime_type,size_bytes,checksum_sha256,source,customer_visible,status,uploaded_by_user_id,uploaded_at,created_at,updated_at",
     )
     .eq("organization_id", context.organizationId)
     .eq("id", documentId)
@@ -910,7 +949,10 @@ export async function POST(request: Request) {
 
   if (action === "complete_upload" || action === "reanalyze") {
     if (action === "complete_upload" && document.status !== "pending_upload") {
-      return Response.json({ error: "Dokumentet är redan uppladdat." }, { status: 409 });
+      return Response.json(
+        { error: "Dokumentet är redan uppladdat." },
+        { status: 409 },
+      );
     }
     await context.supabase
       .from("bynex_documents")
@@ -956,7 +998,10 @@ export async function POST(request: Request) {
   if (action === "approve") {
     if (!approvalRoles.has(context.role)) {
       return Response.json(
-        { error: "Ägare, administration, kontor eller projektledning måste godkänna förslaget." },
+        {
+          error:
+            "Ägare, administration, kontor eller projektledning måste godkänna förslaget.",
+        },
         { status: 403 },
       );
     }
@@ -977,7 +1022,10 @@ export async function POST(request: Request) {
     );
     if (error || !data) {
       return Response.json(
-        { error: error?.message || "Dokumentförslaget kunde inte godkännas." },
+        {
+          error:
+            error?.message || "Dokumentförslaget kunde inte godkännas.",
+        },
         { status: error?.code === "42501" ? 403 : 409 },
       );
     }
@@ -986,7 +1034,10 @@ export async function POST(request: Request) {
 
   if (action === "reject") {
     if (!approvalRoles.has(context.role)) {
-      return Response.json({ error: "Behörighet att avvisa förslaget saknas." }, { status: 403 });
+      return Response.json(
+        { error: "Behörighet att avvisa förslaget saknas." },
+        { status: 403 },
+      );
     }
     const { error: analysisError } = await context.supabase
       .from("bynex_document_analyses")
@@ -998,7 +1049,10 @@ export async function POST(request: Request) {
       .eq("organization_id", context.organizationId)
       .eq("document_id", documentId);
     if (analysisError) {
-      return Response.json({ error: "Förslaget kunde inte avvisas." }, { status: 409 });
+      return Response.json(
+        { error: "Förslaget kunde inte avvisas." },
+        { status: 409 },
+      );
     }
     await context.supabase
       .from("bynex_documents")
@@ -1009,15 +1063,26 @@ export async function POST(request: Request) {
   }
 
   if (action === "archive") {
-    if (!approvalRoles.has(context.role) && document.uploaded_by_user_id !== context.userId) {
-      return Response.json({ error: "Behörighet att arkivera dokumentet saknas." }, { status: 403 });
+    if (
+      !approvalRoles.has(context.role) &&
+      document.uploaded_by_user_id !== context.userId
+    ) {
+      return Response.json(
+        { error: "Behörighet att arkivera dokumentet saknas." },
+        { status: 403 },
+      );
     }
     const { error } = await context.supabase
       .from("bynex_documents")
       .update({ status: "archived" })
       .eq("organization_id", context.organizationId)
       .eq("id", documentId);
-    if (error) return Response.json({ error: "Dokumentet kunde inte arkiveras." }, { status: 409 });
+    if (error) {
+      return Response.json(
+        { error: "Dokumentet kunde inte arkiveras." },
+        { status: 409 },
+      );
+    }
     return Response.json({ ok: true });
   }
 
