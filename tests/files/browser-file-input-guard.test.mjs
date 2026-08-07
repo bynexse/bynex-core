@@ -24,6 +24,11 @@ test("selected files are copied before application upload handlers run", () => {
   assert.match(guard, /dispatchEvent\(new Event\("change"/);
 });
 
+test("directory uploads are not swallowed and older browsers have a fallback", () => {
+  assert.match(guard, /input\.hasAttribute\("webkitdirectory"\)/);
+  assert.match(guard, /new ClipboardEvent\(""\)\.clipboardData/);
+});
+
 test("temporary cloud-file permission failures get a Swedish recovery message", () => {
   assert.match(guard, /Välj filen igen/);
   assert.match(guard, /iCloud eller Google Drive/);
