@@ -18,4 +18,5 @@ export type ModuleId =
   | "year-end"
   | "sole-trader"
   | "property-portal"
+  | "files"
   | "settings";
