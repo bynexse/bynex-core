@@ -103,7 +103,6 @@ export function structuralSieImportBlockers(preview: SiePreview) {
     const key = sieVoucherReferenceKey(voucher);
     if (!voucher.series.trim() && !voucher.number.trim()) {
       blockers.push("En verifikation saknar både serie och nummer.");
-      break;
     }
     if (seenReferences.has(key)) duplicateReferences.add(key);
     seenReferences.add(key);
@@ -115,19 +114,16 @@ export function structuralSieImportBlockers(preview: SiePreview) {
       blockers.push(
         `Verifikation ${voucher.series}${voucher.number} ligger utanför #RAR 0.`,
       );
-      break;
     }
     if (voucher.transactions.length < 2) {
       blockers.push(
         `Verifikation ${voucher.series}${voucher.number} har färre än två bokföringsrader.`,
       );
-      break;
     }
     if (voucher.transactions.some((transaction) => transaction.amount === 0)) {
       blockers.push(
         `Verifikation ${voucher.series}${voucher.number} innehåller en nollrad.`,
       );
-      break;
     }
   }
   if (duplicateReferences.size > 0) {
