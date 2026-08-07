@@ -1,5 +1,11 @@
 import { createHash } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+import {
+  buildBynexEmail,
+  requireVerifiedBynexEmail,
+  resolveReplyTo,
+} from "@/lib/email/bynex-email";
 import { renderSubscriptionInvoicePdf } from "@/lib/invoices/subscription-invoice-pdf";
 
 type UnknownRecord = Record<string, unknown>;
@@ -33,20 +39,6 @@ function string(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
-function html(value: unknown) {
-  return string(value).replace(
-    /[&<>"']/g,
-    (character) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      })[character] ?? character,
-  );
-}
-
 function money(value: unknown) {
   const amount = Number(value);
   return Number.isFinite(amount)
@@ -78,8 +70,9 @@ async function claim(client: SupabaseClient, workerId: string, limit: number) {
       p_lease_seconds: 300,
     },
   );
-  if (error)
+  if (error) {
     throw new Error(`Abonnemangsfakturakön kunde inte hämtas: ${error.message}`);
+  }
   return (data ?? []) as ClaimedJob[];
 }
 
@@ -146,13 +139,7 @@ async function sendEmail(job: ClaimedJob, bytes: Uint8Array) {
   }
 
   const apiKey = required("RESEND_API_KEY");
-  const fromEmail = required("BYNEX_INVOICE_FROM_EMAIL").trim().toLowerCase();
-  if (!/^[^\s@]+@bynex\.se$/.test(fromEmail)) {
-    throw new Error(
-      "BYNEX_INVOICE_FROM_EMAIL måste vara en verifierad @bynex.se-adress",
-    );
-  }
-
+  const fromEmail = requireVerifiedBynexEmail("BYNEX_INVOICE_FROM_EMAIL");
   const invoice = job.payload.invoice;
   const customer = record(invoice.customer_snapshot);
   const issuer = record(invoice.issuer_snapshot);
@@ -163,10 +150,35 @@ async function sendEmail(job: ClaimedJob, bytes: Uint8Array) {
 
   const creditNote = invoice.document_type === "credit_note";
   const documentLabel = creditNote ? "Kreditfaktura" : "Faktura";
-  const invoiceNumber = string(invoice.invoice_number);
-  const dueText = creditNote
-    ? "Beloppet har krediterats mot den ursprungliga fakturan."
-    : `Förfallodatum: <strong>${html(invoice.due_date)}</strong><br>Betalningsreferens: <strong>${html(invoiceNumber)}</strong>`;
+  const invoiceNumber = string(invoice.invoice_number) || "utan nummer";
+  const companyName = string(issuer.legal_name) || "Bynex";
+  const email = buildBynexEmail({
+    fromEmail,
+    companyName,
+    documentLabel,
+    reference: invoiceNumber,
+    recipientName: string(customer.contact_name || customer.legal_name),
+    heading: `${documentLabel} ${invoiceNumber}`,
+    message: creditNote
+      ? `${companyName} har utfärdat kreditfaktura ${invoiceNumber}.`
+      : `Här kommer faktura ${invoiceNumber} från ${companyName}.`,
+    details: [
+      {
+        label: creditNote ? "Krediterat belopp" : "Att betala",
+        value: money(invoice.amount_inc_vat),
+      },
+      ...(!creditNote
+        ? [
+            { label: "Förfallodatum", value: string(invoice.due_date) },
+            { label: "Betalningsreferens", value: invoiceNumber },
+          ]
+        : [{ label: "Status", value: "Krediterad mot ursprunglig faktura" }]),
+    ],
+    attachmentText: `${documentLabel}n finns bifogad som en låst PDF-version.`,
+    replyHint: "Har du frågor kan du svara direkt på detta meddelande.",
+    footerText: `Säkert levererad genom Bynex för ${companyName}.`,
+  });
+
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -175,13 +187,15 @@ async function sendEmail(job: ClaimedJob, bytes: Uint8Array) {
       "Idempotency-Key": job.idempotency_key,
     },
     body: JSON.stringify({
-      from: `Bynex Faktura <${fromEmail}>`,
+      from: email.from,
       to: [recipient],
-      reply_to:
-        string(issuer.email) || process.env.BYNEX_BILLING_REPLY_TO || undefined,
-      subject: `${documentLabel} ${invoiceNumber} från ${string(issuer.legal_name)}`,
-      html: `<div style="font-family:Arial,sans-serif;color:#202124;line-height:1.6"><h1 style="font-size:24px">${html(documentLabel)} ${html(invoiceNumber)}</h1><p>Hej ${html(customer.legal_name)},</p><p>Här kommer ${html(documentLabel.toLowerCase())} <strong>${html(invoiceNumber)}</strong> från ${html(issuer.legal_name)}.</p><p>${creditNote ? "Krediterat belopp" : "Att betala"}: <strong>${html(money(invoice.amount_inc_vat))}</strong><br>${dueText}</p><p>Dokumentet finns bifogat som PDF.</p><hr style="border:0;border-top:1px solid #ddd"><p style="font-size:12px;color:#666">Säkert levererad med Bynex.</p></div>`,
-      text: `${documentLabel} ${invoiceNumber} från ${string(issuer.legal_name)}\n\n${creditNote ? "Krediterat belopp" : "Att betala"}: ${money(invoice.amount_inc_vat)}\n${creditNote ? "Beloppet har krediterats mot den ursprungliga fakturan." : `Förfallodatum: ${string(invoice.due_date)}\nBetalningsreferens: ${invoiceNumber}`}\n\nDokumentet finns bifogat som PDF.`,
+      reply_to: resolveReplyTo(
+        issuer.email,
+        process.env.BYNEX_BILLING_REPLY_TO,
+      ),
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
       attachments: [
         {
           filename: `${creditNote ? "Kreditfaktura" : "Faktura"}-${invoiceNumber}.pdf`,

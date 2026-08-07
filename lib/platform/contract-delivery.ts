@@ -1,3 +1,9 @@
+import {
+  buildBynexEmail,
+  requireVerifiedBynexEmail,
+  resolveReplyTo,
+} from "@/lib/email/bynex-email";
+
 type UnknownRecord = Record<string, unknown>;
 
 function required(name: string, fallbackName?: string) {
@@ -17,20 +23,6 @@ function string(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
-function html(value: unknown) {
-  return string(value).replace(
-    /[&<>"']/g,
-    (character) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      })[character] ?? character,
-  );
-}
-
 export async function sendPlatformContractEmail(input: {
   contractId: string;
   token: string;
@@ -44,17 +36,10 @@ export async function sendPlatformContractEmail(input: {
     throw new Error("Bynex e-postdomän är inte verifierad för avtalsutskick");
   }
   const apiKey = required("RESEND_API_KEY");
-  const fromEmail = required(
+  const fromEmail = requireVerifiedBynexEmail(
     "BYNEX_CONTRACT_FROM_EMAIL",
     "BYNEX_INVOICE_FROM_EMAIL",
-  )
-    .trim()
-    .toLowerCase();
-  if (!/^[^\s@]+@bynex\.se$/.test(fromEmail)) {
-    throw new Error(
-      "BYNEX_CONTRACT_FROM_EMAIL måste vara en verifierad @bynex.se-adress",
-    );
-  }
+  );
 
   const snapshot = record(input.payload.document_snapshot);
   const recipient = record(snapshot.recipient);
@@ -75,7 +60,30 @@ export async function sendPlatformContractEmail(input: {
     : new URL(input.requestUrl);
   const signingUrl = new URL("/avtal/signera", baseUrl);
   signingUrl.searchParams.set("token", input.token);
-  const title = string(input.payload.title || snapshot.title || "Bynex-avtal");
+
+  const title = string(input.payload.title || snapshot.title || "Avtal");
+  const companyName = string(organization.name) || "Bynex";
+  const email = buildBynexEmail({
+    fromEmail,
+    companyName,
+    documentLabel: "Avtal",
+    reference: title,
+    recipientName: string(recipient.name),
+    heading: title,
+    message: `${companyName} har ett avtal redo för granskning och elektroniskt godkännande.`,
+    details: [
+      { label: "Giltig till", value: input.expiresAt },
+      { label: "Dokumentkontroll", value: input.documentSha256 },
+    ],
+    action: {
+      label: "Granska och signera avtalet",
+      url: signingUrl.toString(),
+    },
+    attachmentText: "Samma låsta avtalsversion finns bifogad som PDF.",
+    replyHint: "Har du frågor kan du svara direkt på detta meddelande.",
+    footerText: `Säkert levererat genom Bynex för ${companyName}.`,
+  });
+
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -84,12 +92,15 @@ export async function sendPlatformContractEmail(input: {
       "Idempotency-Key": `platform-contract:${input.contractId}:${input.documentSha256}`,
     },
     body: JSON.stringify({
-      from: `Bynex Avtal <${fromEmail}>`,
+      from: email.from,
       to: [recipientEmail],
-      reply_to: process.env.BYNEX_CONTRACT_REPLY_TO || undefined,
-      subject: `${title} – för granskning och signering`,
-      html: `<div style="font-family:Arial,sans-serif;color:#202124;line-height:1.6"><h1 style="font-size:24px">${html(title)}</h1><p>Hej ${html(recipient.name)},</p><p>${html(organization.name)} har ett avtal från Bynex redo för granskning och elektroniskt godkännande.</p><p><a href="${html(signingUrl.toString())}" style="display:inline-block;background:#111827;color:white;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:700">Granska och signera avtalet</a></p><p>Länken gäller till <strong>${html(input.expiresAt)}</strong>. PDF-versionen som skickades är kopplad till kontrollhash <code>${html(input.documentSha256)}</code>.</p><p>Har du frågor kan du svara på detta meddelande.</p><hr style="border:0;border-top:1px solid #ddd"><p style="font-size:12px;color:#666">Säkert levererad med Bynex.</p></div>`,
-      text: `${title}\n\nHej ${string(recipient.name)},\n\nAvtalet är redo för granskning och elektroniskt godkännande:\n${signingUrl.toString()}\n\nLänken gäller till ${input.expiresAt}.\nDokumenthash: ${input.documentSha256}`,
+      reply_to: resolveReplyTo(
+        organization.email,
+        process.env.BYNEX_CONTRACT_REPLY_TO,
+      ),
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
       attachments: [
         {
           filename: `${title.replace(/[^a-z0-9åäö_-]+/gi, "-")}.pdf`,

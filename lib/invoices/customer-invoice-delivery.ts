@@ -1,5 +1,11 @@
 import { createHash } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+import {
+  buildBynexEmail,
+  requireVerifiedBynexEmail,
+  resolveReplyTo,
+} from "@/lib/email/bynex-email";
 import { renderCustomerInvoicePdf } from "@/lib/invoices/customer-invoice-pdf";
 
 type UnknownRecord = Record<string, unknown>;
@@ -31,20 +37,6 @@ function record(value: unknown): UnknownRecord {
 
 function string(value: unknown) {
   return typeof value === "string" ? value : "";
-}
-
-function html(value: unknown) {
-  return string(value).replace(
-    /[&<>"']/g,
-    (character) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      })[character] ?? character,
-  );
 }
 
 function money(value: unknown) {
@@ -104,8 +96,9 @@ async function existingPdf(client: SupabaseClient, invoice: UnknownRecord) {
     .download(path);
   if (error || !data) return null;
   const bytes = new Uint8Array(await data.arrayBuffer());
-  if (sha256(bytes) !== expectedHash)
+  if (sha256(bytes) !== expectedHash) {
     throw new Error("Den lagrade faktura-PDF:ens kontrollhash stämmer inte");
+  }
   return { path, checksum: expectedHash, bytes };
 }
 
@@ -140,8 +133,9 @@ async function ensurePdf(client: SupabaseClient, job: ClaimedJob) {
       p_checksum_sha256: checksum,
     },
   );
-  if (recordError)
+  if (recordError) {
     throw new Error(`PDF-beviset kunde inte låsas: ${recordError.message}`);
+  }
   return { path, checksum, bytes };
 }
 
@@ -150,19 +144,35 @@ async function sendEmail(job: ClaimedJob, bytes: Uint8Array) {
     throw new Error("Bynex e-postdomän är inte verifierad för fakturautskick");
   }
   const apiKey = required("RESEND_API_KEY");
-  const fromEmail = required("BYNEX_INVOICE_FROM_EMAIL").trim().toLowerCase();
-  if (!/^[^\s@]+@bynex\.se$/.test(fromEmail)) {
-    throw new Error(
-      "BYNEX_INVOICE_FROM_EMAIL måste vara en verifierad @bynex.se-adress",
-    );
-  }
+  const fromEmail = requireVerifiedBynexEmail("BYNEX_INVOICE_FROM_EMAIL");
   const invoice = job.payload.invoice;
   const customer = record(invoice.customer_snapshot);
   const issuer = record(invoice.issuer_snapshot);
   const recipient = string(customer.email).trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient))
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
     throw new Error("Fakturamottagarens e-postadress är ogiltig");
-  const invoiceNumber = string(invoice.invoice_number);
+  }
+
+  const invoiceNumber = string(invoice.invoice_number) || "utan nummer";
+  const companyName = string(issuer.legal_name) || "Företaget";
+  const email = buildBynexEmail({
+    fromEmail,
+    companyName,
+    documentLabel: "Faktura",
+    reference: invoiceNumber,
+    recipientName: string(customer.contact_name || customer.legal_name),
+    heading: `Faktura ${invoiceNumber}`,
+    message: `Här kommer faktura ${invoiceNumber} från ${companyName}.`,
+    details: [
+      { label: "Att betala", value: money(invoice.amount_payable) },
+      { label: "Förfallodatum", value: string(invoice.due_date) },
+      { label: "Betalningsreferens", value: string(invoice.payment_reference) },
+    ],
+    attachmentText: "Fakturan finns bifogad som en låst PDF-version.",
+    replyHint: "Har du frågor om fakturan kan du svara direkt på detta meddelande.",
+    footerText: `Säkert levererad genom Bynex för ${companyName}.`,
+  });
+
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -171,13 +181,15 @@ async function sendEmail(job: ClaimedJob, bytes: Uint8Array) {
       "Idempotency-Key": job.idempotency_key,
     },
     body: JSON.stringify({
-      from: `Bynex Faktura <${fromEmail}>`,
+      from: email.from,
       to: [recipient],
-      reply_to:
-        string(issuer.email) || process.env.BYNEX_BILLING_REPLY_TO || undefined,
-      subject: `Faktura ${invoiceNumber} från ${string(issuer.legal_name)}`,
-      html: `<div style="font-family:Arial,sans-serif;color:#202124;line-height:1.6"><h1 style="font-size:24px">Faktura ${html(invoiceNumber)}</h1><p>Hej ${html(customer.contact_name || customer.legal_name)},</p><p>Här kommer faktura <strong>${html(invoiceNumber)}</strong> från ${html(issuer.legal_name)}.</p><p>Att betala: <strong>${html(money(invoice.amount_payable))}</strong><br>Förfallodatum: <strong>${html(invoice.due_date)}</strong><br>Betalningsreferens: <strong>${html(invoice.payment_reference)}</strong></p><p>Fakturan finns bifogad som PDF.</p><hr style="border:0;border-top:1px solid #ddd"><p style="font-size:12px;color:#666">Säkert levererad med Bynex.</p></div>`,
-      text: `Faktura ${invoiceNumber} från ${string(issuer.legal_name)}\n\nAtt betala: ${money(invoice.amount_payable)}\nFörfallodatum: ${string(invoice.due_date)}\nBetalningsreferens: ${string(invoice.payment_reference)}\n\nFakturan finns bifogad som PDF.`,
+      reply_to: resolveReplyTo(
+        issuer.email,
+        process.env.BYNEX_BILLING_REPLY_TO,
+      ),
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
       attachments: [
         {
           filename: `Faktura-${invoiceNumber}.pdf`,
@@ -196,8 +208,9 @@ async function sendEmail(job: ClaimedJob, bytes: Uint8Array) {
     );
   }
   const providerId = string(record(result).id);
-  if (!providerId)
+  if (!providerId) {
     throw new Error("E-postleverantören returnerade inget meddelande-id");
+  }
   return providerId;
 }
 
@@ -214,8 +227,9 @@ async function complete(
       p_provider_message_id: providerMessageId,
     },
   );
-  if (error)
+  if (error) {
     throw new Error(`Leveranskvittot kunde inte sparas: ${error.message}`);
+  }
 }
 
 async function fail(client: SupabaseClient, job: ClaimedJob, cause: unknown) {
@@ -229,8 +243,9 @@ async function fail(client: SupabaseClient, job: ClaimedJob, cause: unknown) {
       p_error_message: message,
     },
   );
-  if (error)
+  if (error) {
     throw new Error(`Leveransfelet kunde inte registreras: ${error.message}`);
+  }
 }
 
 export async function runCustomerInvoiceDelivery(input?: {
