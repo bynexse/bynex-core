@@ -55,7 +55,7 @@ test("omskicket bevarar historik och loggar ett nytt kundutskick", () => {
 
 test("API:t visar verklig leveransstatus och kan skicka en ny låst länk", () => {
   assert.match(deliveryRoute, /bynex_email_deliveries/);
-  assert.match(deliveryRoute, /Inget mejlförsök/);
+  assert.match(deliveryRoute, /latestDelivery/);
   assert.match(deliveryRoute, /reissue_change_order_customer_link/);
   assert.match(deliveryRoute, /sendBynexCustomerDocumentEmail/);
   assert.match(deliveryRoute, /messageType: "change_order"/);
