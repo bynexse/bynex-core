@@ -42,11 +42,14 @@ test("återkallelse ogiltigförklarar länkar men bevarar den frysta versionen",
   assert.doesNotMatch(migration, /delete from public\.change_order_versions/i);
 });
 
-test("skriftligt godkännande binds till exakt innehåll och låser upp arbetsstart", () => {
+test("skriftligt godkännande binds till exakt innehåll, tid och bevis", () => {
   assert.match(migration, /record_manual_change_order_approval/);
   assert.match(migration, /change_order_customer_approvals/);
   assert.match(migration, /change_order_signatures/);
   assert.match(migration, /v_version\.content_hash/);
+  assert.match(migration, /p_decided_at < v_version\.frozen_at/);
+  assert.match(migration, /v_evidence_reference is null and p_evidence_file_id is null/);
+  assert.match(migration, /least\(coalesce\(v_change_order\.signature_requested_at, p_decided_at\), p_decided_at\)/);
   assert.match(migration, /'external_written_approval'/);
   assert.match(migration, /price_status = 'customer_approved'/);
   assert.match(migration, /work_start_blocked = false/);
@@ -63,21 +66,26 @@ test("endast aldrig kundexponerade utkast får hårdraderas", () => {
   assert.match(migration, /delete from public\.change_orders/);
 });
 
-test("API:t använder rollstyrda RPC-funktioner och validerar bevis", () => {
+test("API:t använder rollstyrda RPC-funktioner och hämtar bevisfiler", () => {
   assert.match(route, /requireSupabaseUser\("change_orders"\)/);
   assert.match(route, /recall_change_order_customer_review/);
   assert.match(route, /record_manual_change_order_approval/);
   assert.match(route, /delete_unexposed_change_order_draft/);
   assert.match(route, /evidenceMethods/);
   assert.match(route, /decidedAt\.toISOString\(\)/);
+  assert.match(route, /\.from\("bynex_files"\)/);
+  assert.match(route, /evidenceFiles/);
+  assert.match(route, /!evidenceReference && !evidenceFileId/);
   assert.doesNotMatch(route, /\.from\("change_orders"\)\.update/);
 });
 
-test("kundflödet visar både återkallelse och skriftligt godkännande", () => {
+test("kundflödet visar återkallelse, skriftligt godkännande och filval", () => {
   assert.match(queue, /Skriftligt godkänd/);
   assert.match(queue, /Återkalla/);
   assert.match(queue, /Registrera och lås kundgodkännandet/);
   assert.match(queue, /Återkalla och öppna som utkast/);
-  assert.match(queue, /Bynex Dokument/);
+  assert.match(queue, /Bevisfil från Bynex Dokument/);
+  assert.match(queue, /name="evidenceFileId"/);
+  assert.match(queue, /Referens till originalbevis/);
   assert.match(liveModule, /ChangeOrderLifecycleQueue/);
 });
