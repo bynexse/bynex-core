@@ -28,6 +28,8 @@ jobs:
         run: npm run test:email
       - name: Verify supplier invoice inbox
         run: npm run test:supplier-inbox
+      - name: Verify SIE review and approval
+        run: npm run test:sie
       - name: Type-check
         run: npm run typecheck
       - name: Build
