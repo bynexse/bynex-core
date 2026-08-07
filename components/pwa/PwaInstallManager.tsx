@@ -124,17 +124,17 @@ export default function PwaInstallManager() {
   if (installed || dismissed || (!installPrompt && !canShowIosHelp)) return null;
 
   return (
-    <aside className="fixed bottom-4 left-4 right-4 z-[100] mx-auto max-w-xl rounded-[1.6rem] border border-zinc-200 bg-white p-4 shadow-2xl sm:left-auto sm:right-5 sm:max-w-md" aria-label="Installera Bynex">
+    <aside className="fixed bottom-4 left-4 right-4 z-[100] mx-auto max-w-xl rounded-[1.6rem] border border-zinc-200 bg-white p-4 shadow-2xl sm:left-auto sm:right-5 sm:max-w-md" aria-label="Installera Bynex Arbetsläge">
       <div className="flex items-start gap-3">
         <div className="rounded-2xl bg-zinc-950 p-3 text-white">
           {canShowIosHelp ? <Share2 className="h-5 w-5" /> : <Download className="h-5 w-5" />}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-semibold">Lägg Bynex på hemskärmen</p>
+          <p className="font-semibold">Lägg Bynex Arbetsläge på hemskärmen</p>
           <p className="mt-1 text-sm leading-6 text-zinc-600">
             {canShowIosHelp
-              ? "Tryck på Dela i Safari och välj Lägg till på hemskärmen."
-              : "Öppna Bynex som en app med snabbstart till Tid, Projekt och ÄTA."}
+              ? "Tryck på Dela i Safari och välj Lägg till på hemskärmen. Arbetsappen öppnar Tid, Projekt och Maskin."
+              : "Öppna Bynex som en snabb arbetsapp med Tid, Projekt och Maskin – utan kontorets övriga menyer."}
           </p>
           {!canShowIosHelp && (
             <button
@@ -142,7 +142,7 @@ export default function PwaInstallManager() {
               onClick={() => void install()}
               className="mt-3 rounded-xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white"
             >
-              Installera Bynex
+              Installera arbetsappen
             </button>
           )}
         </div>
