@@ -24,12 +24,16 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
       - name: Verify Bynex email branding
         run: npm run test:email
       - name: Verify supplier invoice inbox
         run: npm run test:supplier-inbox
       - name: Verify SIE review and approval
         run: npm run test:sie
+      - name: Verify time, diary and delivery notes
+        run: npm run test:time-capture
       - name: Type-check
         run: npm run typecheck
       - name: Build
