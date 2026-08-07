@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import SafeFileInputGuard from "@/components/files/SafeFileInputGuard";
 import PwaInstallManager from "@/components/pwa/PwaInstallManager";
 import "./globals.css";
 
@@ -92,6 +93,7 @@ export default function RootLayout({
     <html lang="sv">
       <body>
         {children}
+        <SafeFileInputGuard />
         <PwaInstallManager />
       </body>
     </html>
