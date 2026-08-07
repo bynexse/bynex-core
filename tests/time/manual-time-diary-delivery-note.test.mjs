@@ -220,7 +220,6 @@ test("mandatory diary mode produces a real missing-contribution control list", (
 
   for (const phrase of [
     "Obligatorisk projektdagbok",
-    "Utkast räknas inte som färdiga",
     "Avslutad projekttid finns",
     "saknade bidrag",
   ]) {
@@ -231,6 +230,7 @@ test("mandatory diary mode produces a real missing-contribution control list", (
       `missing required diary control phrase: ${phrase}`,
     );
   }
+  assert.match(missingDiaryPanel, /Utkast räknas\s+inte som färdiga/);
   assert.match(officeWrapper, /TimeMissingDiaryPanel/);
   assert.match(officeWrapper, /<TimeMissingDiaryPanel/);
 });
