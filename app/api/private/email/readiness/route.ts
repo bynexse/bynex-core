@@ -47,7 +47,6 @@ export async function GET() {
   }
 
   const providerConfigured = Boolean(process.env.RESEND_API_KEY?.trim());
-  const domainVerified = process.env.BYNEX_EMAIL_DOMAIN_VERIFIED === "true";
   const documentFromConfigured = validBynexEmail(
     process.env.BYNEX_DOCUMENT_FROM_EMAIL ?? process.env.BYNEX_INVOICE_FROM_EMAIL,
   );
@@ -56,13 +55,15 @@ export async function GET() {
     process.env.BYNEX_APP_URL ?? process.env.NEXT_PUBLIC_APP_URL,
   );
 
-  const customerDocumentsReady = providerConfigured && domainVerified && documentFromConfigured;
-  const invoicesReady = providerConfigured && domainVerified && invoiceFromConfigured;
+  // Domain verification is intentionally checked by the provider during the
+  // real send. A duplicated boolean flag can drift from the provider state and
+  // previously blocked valid Bynex domains before an actual attempt was made.
+  const customerDocumentsReady = providerConfigured && documentFromConfigured;
+  const invoicesReady = providerConfigured && invoiceFromConfigured;
   const blockers = [
-    ...(!domainVerified ? ["Bynex e-postdomän är inte markerad som verifierad i servermiljön."] : []),
     ...(!providerConfigured ? ["E-postleverantörens servernyckel saknas."] : []),
-    ...(!documentFromConfigured ? ["Verifierad avsändaradress för offert och ÄTA saknas."] : []),
-    ...(!invoiceFromConfigured ? ["Verifierad avsändaradress för fakturor saknas."] : []),
+    ...(!documentFromConfigured ? ["Verifierad @bynex.se-adress för offert och ÄTA saknas."] : []),
+    ...(!invoiceFromConfigured ? ["Verifierad @bynex.se-adress för fakturor saknas."] : []),
   ];
 
   const { data: deliveries, error: deliveriesError } = await auth.supabase
@@ -83,10 +84,10 @@ export async function GET() {
       customerDocumentsReady,
       invoicesReady,
       providerConfigured,
-      domainVerified,
       documentFromConfigured,
       invoiceFromConfigured,
       appUrlConfigured,
+      domainVerificationMode: "provider_on_send",
       blockers,
     },
     deliveries: deliveries ?? [],
