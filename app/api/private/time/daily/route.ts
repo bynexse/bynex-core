@@ -98,15 +98,15 @@ export async function GET() {
     );
   }
 
-  let logsQuery = context.supabase
-    .from("project_daily_logs")
+  let contributionsQuery = context.supabase
+    .from("project_daily_log_contributions")
     .select(
       "id,project_id,worker_id,time_entry_id,work_date,work_performed,blockers,next_steps,weather,crew_count,status,submitted_at,reviewed_at,review_note,created_at,updated_at",
     )
     .eq("organization_id", context.organizationId)
     .order("work_date", { ascending: false })
     .order("updated_at", { ascending: false })
-    .limit(context.canManageTeam ? 180 : 60);
+    .limit(context.canManageTeam ? 250 : 90);
 
   if (!context.canManageTeam) {
     if (!context.worker?.id) {
@@ -115,14 +115,14 @@ export async function GET() {
         { status: 409 },
       );
     }
-    logsQuery = logsQuery.eq("worker_id", context.worker.id);
+    contributionsQuery = contributionsQuery.eq("worker_id", context.worker.id);
   }
 
-  const [settings, projects, workers, logs] = await Promise.all([
+  const [settings, projects, workers, contributions] = await Promise.all([
     context.supabase
       .from("organization_time_capture_settings")
       .select(
-        "organization_id,manual_entry_policy,gps_project_suggestion_enabled,daily_log_enabled,daily_log_required,updated_at",
+        "organization_id,manual_entry_policy,gps_project_suggestion_enabled,daily_log_required,updated_at",
       )
       .eq("organization_id", context.organizationId)
       .maybeSingle(),
@@ -147,10 +147,10 @@ export async function GET() {
           data: context.worker ? [context.worker] : [],
           error: null,
         }),
-    logsQuery,
+    contributionsQuery,
   ]);
 
-  const failure = [settings, projects, workers, logs].find(
+  const failure = [settings, projects, workers, contributions].find(
     (result) => result.error,
   )?.error;
   if (failure) {
@@ -158,7 +158,7 @@ export async function GET() {
     return Response.json(
       {
         error: setupRequired
-          ? "Företagets tidsregler och dagbok behöver installeras."
+          ? "Företagets tidsregler och dagboksbidrag behöver installeras."
           : "Tidsreglerna och projektdagboken kunde inte hämtas.",
         setupRequired,
       },
@@ -170,7 +170,6 @@ export async function GET() {
     organization_id: context.organizationId,
     manual_entry_policy: "manual_allowed",
     gps_project_suggestion_enabled: true,
-    daily_log_enabled: true,
     daily_log_required: false,
     updated_at: null,
   };
@@ -187,7 +186,7 @@ export async function GET() {
         context.canManageTeam,
       projects: projects.data ?? [],
       workers: workers.data ?? [],
-      logs: logs.data ?? [],
+      logs: contributions.data ?? [],
       fetchedAt: new Date().toISOString(),
     },
     { headers: { "cache-control": "no-store" } },
@@ -227,7 +226,6 @@ export async function POST(request: Request) {
         p_manual_entry_policy: policy,
         p_gps_project_suggestion_enabled:
           body?.gpsProjectSuggestionEnabled !== false,
-        p_daily_log_enabled: body?.dailyLogEnabled !== false,
         p_daily_log_required: body?.dailyLogRequired === true,
       },
     );
@@ -262,7 +260,7 @@ export async function POST(request: Request) {
     }
 
     const { data, error } = await context.supabase.rpc(
-      "upsert_project_daily_log",
+      "upsert_project_daily_log_contribution",
       {
         p_organization_id: context.organizationId,
         p_project_id: projectId,
@@ -301,10 +299,10 @@ export async function POST(request: Request) {
     }
 
     const { data, error } = await context.supabase.rpc(
-      "review_project_daily_log",
+      "review_project_daily_log_contribution",
       {
         p_organization_id: context.organizationId,
-        p_log_id: logId,
+        p_contribution_id: logId,
         p_decision: decision,
         p_review_note: text(body?.reviewNote, 2000) || null,
       },
