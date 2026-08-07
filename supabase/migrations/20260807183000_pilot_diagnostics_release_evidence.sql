@@ -156,6 +156,11 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_actor_user_id uuid := (select auth.uid());
+  v_is_platform_staff boolean := private.is_platform_staff(
+    array['platform_owner','platform_admin','sales','support','finance','read_only']::text[]
+  );
 begin
   if tg_op = 'INSERT' then
     insert into public.pilot_diagnostic_events(
@@ -187,10 +192,28 @@ begin
       ) values (
         new.organization_id,
         new.id,
-        (select auth.uid()),
+        v_actor_user_id,
         'status_changed',
         jsonb_build_object('from', old.status, 'to', new.status)
       );
+
+      if v_is_platform_staff then
+        insert into public.platform_admin_audit_events(
+          staff_user_id,
+          action,
+          metadata
+        ) values (
+          v_actor_user_id,
+          'pilot_diagnostic_status_changed',
+          jsonb_build_object(
+            'diagnostic_id', new.id,
+            'diagnostic_code', new.diagnostic_code,
+            'organization_id', new.organization_id,
+            'from', old.status,
+            'to', new.status
+          )
+        );
+      end if;
     end if;
 
     if new.assigned_staff_user_id is distinct from old.assigned_staff_user_id then
@@ -203,13 +226,31 @@ begin
       ) values (
         new.organization_id,
         new.id,
-        (select auth.uid()),
+        v_actor_user_id,
         'assignment_changed',
         jsonb_build_object(
           'from', old.assigned_staff_user_id,
           'to', new.assigned_staff_user_id
         )
       );
+
+      if v_is_platform_staff then
+        insert into public.platform_admin_audit_events(
+          staff_user_id,
+          action,
+          metadata
+        ) values (
+          v_actor_user_id,
+          'pilot_diagnostic_assignment_changed',
+          jsonb_build_object(
+            'diagnostic_id', new.id,
+            'diagnostic_code', new.diagnostic_code,
+            'organization_id', new.organization_id,
+            'from', old.assigned_staff_user_id,
+            'to', new.assigned_staff_user_id
+          )
+        );
+      end if;
     end if;
   end if;
   return new;
