@@ -16,6 +16,13 @@ const deliveryRoute = fs.readFileSync(
   ),
   "utf8",
 );
+const readinessRoute = fs.readFileSync(
+  new URL(
+    "../../app/api/private/email/readiness/route.ts",
+    import.meta.url,
+  ),
+  "utf8",
+);
 const recoveryPanel = fs.readFileSync(
   new URL(
     "../../components/modules/commercial/ChangeOrderDeliveryRecovery.tsx",
@@ -77,4 +84,14 @@ test("ett uttryckligt omskick får en egen idempotent leveransnyckel", () => {
   assert.match(emailDelivery, /deliveryAttemptHash/);
   assert.match(emailDelivery, /sha256\(input\.deliveryAttemptKey\)/);
   assert.match(emailDelivery, /Idempotency-Key/);
+});
+
+test("leverantören verifierar domänen vid verkligt utskick utan en separat manuell spärr", () => {
+  assert.doesNotMatch(emailDelivery, /BYNEX_EMAIL_DOMAIN_VERIFIED/);
+  assert.match(emailDelivery, /requireVerifiedBynexEmail/);
+  assert.match(emailDelivery, /status: "sending"/);
+  assert.match(emailDelivery, /markFailed/);
+  assert.match(emailDelivery, /provider_message_id/);
+  assert.doesNotMatch(readinessRoute, /BYNEX_EMAIL_DOMAIN_VERIFIED/);
+  assert.match(readinessRoute, /domainVerificationMode: "provider_on_send"/);
 });
