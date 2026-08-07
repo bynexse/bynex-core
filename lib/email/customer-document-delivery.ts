@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
   buildBynexEmail,
+  buildBynexSubject,
   requireVerifiedBynexEmail,
   resolveReplyTo,
 } from "@/lib/email/bynex-email";
@@ -74,7 +75,7 @@ function required(name: string) {
   return value;
 }
 
-function recipientEmail(value: string) {
+function normalizedRecipientEmail(value: string) {
   const normalized = value.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
     throw new Error("Kundens e-postadress är ogiltig");
@@ -92,6 +93,17 @@ function secureBynexUrl(value: string, messageType: CustomerDocumentMessageType)
     throw new Error("Kundlänken är inte en godkänd säker Bynex-länk");
   }
   return parsed.toString();
+}
+
+function configuredSenderForLog() {
+  const candidate = (
+    process.env.BYNEX_DOCUMENT_FROM_EMAIL
+    ?? process.env.BYNEX_INVOICE_FROM_EMAIL
+    ?? ""
+  ).trim().toLowerCase();
+  return /^[^\s@]+@bynex\.se$/i.test(candidate)
+    ? candidate
+    : "utskick@bynex.se";
 }
 
 async function markFailed(
@@ -116,39 +128,22 @@ export async function sendBynexCustomerDocumentEmail(
   input: CustomerDocumentDeliveryInput,
 ): Promise<CustomerDocumentDeliveryResult> {
   let deliveryId: string | undefined;
-  try {
-    if (process.env.BYNEX_EMAIL_DOMAIN_VERIFIED !== "true") {
-      throw new Error("Bynex e-postdomän är inte verifierad för kundutskick");
-    }
+  let subject: string | undefined;
 
-    const apiKey = required("RESEND_API_KEY");
-    const fromEmail = requireVerifiedBynexEmail(
-      "BYNEX_DOCUMENT_FROM_EMAIL",
-      "BYNEX_INVOICE_FROM_EMAIL",
-    );
-    const to = recipientEmail(input.recipientEmail);
+  try {
+    const to = normalizedRecipientEmail(input.recipientEmail);
     const actionUrl = secureBynexUrl(input.actionUrl, input.messageType);
     const documentHash = input.documentHash?.trim().toLowerCase() || null;
     if (documentHash && !/^[0-9a-f]{64}$/.test(documentHash)) {
       throw new Error("Dokumentets kontrollhash är ogiltig");
     }
 
-    const replyTo = resolveReplyTo(input.replyTo, process.env.BYNEX_DOCUMENT_REPLY_TO);
-    const email = buildBynexEmail({
-      fromEmail,
+    subject = buildBynexSubject({
       companyName: input.companyName,
       documentLabel: input.documentLabel,
       reference: input.reference,
-      recipientName: input.recipientName,
-      heading: input.heading,
-      message: input.message,
-      details: input.details,
-      action: { label: input.actionLabel, url: actionUrl },
-      attachmentText: input.attachmentText,
-      replyHint: "Har du frågor kan du svara direkt på detta meddelande.",
-      footerText: `Säkert levererat genom Bynex för ${input.companyName}.`,
     });
-
+    const replyTo = resolveReplyTo(input.replyTo, process.env.BYNEX_DOCUMENT_REPLY_TO);
     const deliveryAttemptHash = input.deliveryAttemptKey
       ? sha256(input.deliveryAttemptKey)
       : "";
@@ -182,6 +177,9 @@ export async function sendBynexCustomerDocumentEmail(
       };
     }
 
+    // Create the evidence row before checking provider configuration. Missing
+    // domains, API keys and other preflight failures then become visible in
+    // Bynex instead of disappearing before a delivery record exists.
     const { data: prepared, error: prepareError } = await input.client
       .from("bynex_email_deliveries")
       .upsert({
@@ -191,9 +189,9 @@ export async function sendBynexCustomerDocumentEmail(
         source_version_id: input.sourceVersionId ?? null,
         recipient_email: to,
         recipient_name: input.recipientName?.trim() || null,
-        sender_email: fromEmail,
+        sender_email: configuredSenderForLog(),
         reply_to_email: replyTo ?? null,
-        subject: email.subject,
+        subject,
         action_url_sha256: sha256(actionUrl),
         document_sha256: documentHash,
         idempotency_key: idempotencyKey,
@@ -213,6 +211,43 @@ export async function sendBynexCustomerDocumentEmail(
       );
     }
     deliveryId = String(prepared.id);
+
+    if (process.env.BYNEX_EMAIL_DOMAIN_VERIFIED !== "true") {
+      throw new Error("Bynex e-postdomän är inte verifierad för kundutskick");
+    }
+
+    const apiKey = required("RESEND_API_KEY");
+    const fromEmail = requireVerifiedBynexEmail(
+      "BYNEX_DOCUMENT_FROM_EMAIL",
+      "BYNEX_INVOICE_FROM_EMAIL",
+    );
+    const email = buildBynexEmail({
+      fromEmail,
+      companyName: input.companyName,
+      documentLabel: input.documentLabel,
+      reference: input.reference,
+      recipientName: input.recipientName,
+      heading: input.heading,
+      message: input.message,
+      details: input.details,
+      action: { label: input.actionLabel, url: actionUrl },
+      attachmentText: input.attachmentText,
+      replyHint: "Har du frågor kan du svara direkt på detta meddelande.",
+      footerText: `Säkert levererat genom Bynex för ${input.companyName}.`,
+    });
+
+    const { error: senderUpdateError } = await input.client
+      .from("bynex_email_deliveries")
+      .update({
+        sender_email: fromEmail,
+        reply_to_email: replyTo ?? null,
+        subject: email.subject,
+      })
+      .eq("organization_id", input.organizationId)
+      .eq("id", deliveryId);
+    if (senderUpdateError) {
+      throw new Error(`Avsändarinformationen kunde inte sparas: ${senderUpdateError.message}`);
+    }
 
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -275,6 +310,7 @@ export async function sendBynexCustomerDocumentEmail(
     return {
       status: "failed",
       deliveryId,
+      subject,
       error: errorMessage,
     };
   }
