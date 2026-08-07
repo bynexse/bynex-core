@@ -32,9 +32,6 @@ export async function sendPlatformContractEmail(input: {
   pdfBytes: Uint8Array;
   requestUrl: string;
 }) {
-  if (process.env.BYNEX_EMAIL_DOMAIN_VERIFIED !== "true") {
-    throw new Error("Bynex e-postdomän är inte verifierad för avtalsutskick");
-  }
   const apiKey = required("RESEND_API_KEY");
   const fromEmail = requireVerifiedBynexEmail(
     "BYNEX_CONTRACT_FROM_EMAIL",
