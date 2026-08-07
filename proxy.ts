@@ -96,7 +96,7 @@ export async function proxy(request: NextRequest) {
 
     const hasHqSession = await verifyHqSession(
       request.cookies.get(HQ_COOKIE_NAME)?.value,
-      hqConfig.sessionSecret,
+      config.sessionSecret,
     );
 
     if (isHqLogin) {
@@ -120,6 +120,8 @@ export async function proxy(request: NextRequest) {
     path !== "/kundportal/inbjudan";
   if (
     path.startsWith("/app") ||
+    path.startsWith("/field") ||
+    path.startsWith("/start") ||
     path.startsWith("/admin") ||
     path.startsWith("/account") ||
     path.startsWith("/onboarding") ||
