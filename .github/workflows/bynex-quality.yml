@@ -26,6 +26,8 @@ jobs:
         run: npm ci
       - name: Verify Bynex email branding
         run: npm run test:email
+      - name: Verify supplier invoice inbox
+        run: npm run test:supplier-inbox
       - name: Type-check
         run: npm run typecheck
       - name: Build
