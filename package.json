@@ -21,7 +21,7 @@
     "test:invoice-delivery": "node --experimental-strip-types --test tests/invoices/customer-invoice-pdf.test.mjs tests/auth/customer-invoice-delivery.test.mjs",
     "test:email": "node --experimental-strip-types --test tests/email/bynex-email.test.mjs tests/email/change-order-redelivery.test.mjs tests/email/change-order-lifecycle.test.mjs",
     "test:supplier-inbox": "node --experimental-strip-types --test tests/email/resend-inbound-webhook.test.mjs tests/accounting/supplier-inbox.test.mjs",
-    "test:hq": "node --experimental-strip-types --test tests/platform/smart-price.test.mjs",
+    "test:hq": "node --experimental-strip-types --test tests/platform/smart-price.test.mjs tests/platform/hq-customer-center.test.mjs",
     "test:smart-estimate": "node --experimental-strip-types --test tests/smart/change-order-estimate.test.mjs tests/smart/quote-outcome-analysis.test.mjs",
     "test:migrations": "node tests/database/migration-history.mjs"
   },
