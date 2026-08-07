@@ -71,6 +71,27 @@ async function lifecycleContext() {
   };
 }
 
+export async function GET() {
+  const context = await lifecycleContext();
+  if (!context.ok) return context.response;
+
+  const { data, error } = await context.supabase
+    .from("bynex_files")
+    .select("id,title,original_filename,category,mime_type,size_bytes,created_at")
+    .eq("organization_id", context.organizationId)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) {
+    return Response.json(
+      { error: "Bevisfilerna kunde inte hämtas från Bynex Dokument." },
+      { status: error.code === "42501" ? 403 : 500 },
+    );
+  }
+
+  return Response.json({ evidenceFiles: data ?? [] });
+}
+
 export async function POST(request: Request) {
   const context = await lifecycleContext();
   if (!context.ok) return context.response;
@@ -127,6 +148,7 @@ export async function POST(request: Request) {
       || !decidedAtText
       || Number.isNaN(decidedAt.getTime())
       || evidenceFileId === undefined
+      || (!evidenceReference && !evidenceFileId)
       || (signerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signerEmail))
     ) {
       return Response.json(
