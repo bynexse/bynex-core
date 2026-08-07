@@ -11,7 +11,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:db": "node tests/database/core-schema.mjs && node tests/database/migration-history.mjs && node tests/database/digital-binder-delivery.mjs && node tests/database/organization-document-settings.mjs && node tests/database/immutable-document-snapshots.mjs && node tests/database/document-branding-snapshots.mjs && node tests/database/worker-employment-profiles.mjs && node tests/database/skill-based-staffing.mjs && node tests/database/asset-maintenance-plans.mjs && node tests/database/asset-theft-evidence-gps.mjs && node tests/database/asset-module-entitlements.mjs && node tests/database/customer-portal-secure-invites.mjs && node tests/database/smart-project-artifacts.mjs && node tests/database/smart-quote-outcome-analyses.mjs && node tests/database/bynex-solo-plan.mjs && node tests/database/seo-startup-offer-hardening.mjs && node --test tests/files/browser-file-input-guard.test.mjs",
+    "test:db": "node tests/database/core-schema.mjs && node tests/database/migration-history.mjs && node tests/database/digital-binder-delivery.mjs && node tests/database/organization-document-settings.mjs && node tests/database/immutable-document-snapshots.mjs && node tests/database/document-branding-snapshots.mjs && node tests/database/worker-employment-profiles.mjs && node tests/database/skill-based-staffing.mjs && node tests/database/asset-maintenance-plans.mjs && node tests/database/asset-theft-evidence-gps.mjs && node tests/database/asset-module-entitlements.mjs && node tests/database/customer-portal-secure-invites.mjs && node tests/database/smart-project-artifacts.mjs && node tests/database/smart-quote-outcome-analyses.mjs && node tests/database/bynex-solo-plan.mjs && node tests/database/seo-startup-offer-hardening.mjs && node --test tests/files/browser-file-input-guard.test.mjs && node --test tests/database/asset-storage-policy-function-grant.mjs",
     "test:staffing": "node tests/staffing/match.test.mjs && node tests/database/skill-based-staffing.mjs",
     "test:qualifications": "node tests/people/qualifications.test.mjs",
     "test:sie": "node --experimental-strip-types --test tests/accounting/sie.test.mjs",
@@ -23,6 +23,7 @@
     "test:supplier-inbox": "node --experimental-strip-types --test tests/email/resend-inbound-webhook.test.mjs tests/accounting/supplier-inbox.test.mjs",
     "test:hq": "node --experimental-strip-types --test tests/platform/smart-price.test.mjs tests/platform/hq-customer-center.test.mjs",
     "test:file-upload": "node --test tests/files/browser-file-input-guard.test.mjs",
+    "test:asset-storage": "node --test tests/database/asset-storage-policy-function-grant.mjs",
     "test:smart-estimate": "node --experimental-strip-types --test tests/smart/change-order-estimate.test.mjs tests/smart/quote-outcome-analysis.test.mjs",
     "test:migrations": "node tests/database/migration-history.mjs"
   },
