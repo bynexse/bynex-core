@@ -1,13 +1,12 @@
 begin;
 
--- The employer decides whether workers may enter time manually. Management
--- can always correct time explicitly, while workers follow the selected policy.
+-- The employer decides whether workers may enter time manually. The project
+-- diary remains available regardless of the selected time-capture method.
 create table if not exists public.organization_time_capture_settings (
   organization_id uuid primary key references public.organizations(id) on delete cascade,
   manual_entry_policy text not null default 'manual_allowed'
     check (manual_entry_policy in ('manual_allowed','clock_required')),
   gps_project_suggestion_enabled boolean not null default true,
-  daily_log_enabled boolean not null default true,
   daily_log_required boolean not null default false,
   updated_by_user_id uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -37,39 +36,6 @@ using (
   private.is_organization_member(organization_id,(select auth.uid()))
 );
 
-drop policy if exists organization_time_capture_settings_management_insert
-  on public.organization_time_capture_settings;
-create policy organization_time_capture_settings_management_insert
-on public.organization_time_capture_settings
-for insert to authenticated
-with check (
-  private.has_organization_role(
-    organization_id,
-    array['owner','admin','office','manager']::text[],
-    (select auth.uid())
-  )
-);
-
-drop policy if exists organization_time_capture_settings_management_update
-  on public.organization_time_capture_settings;
-create policy organization_time_capture_settings_management_update
-on public.organization_time_capture_settings
-for update to authenticated
-using (
-  private.has_organization_role(
-    organization_id,
-    array['owner','admin','office','manager']::text[],
-    (select auth.uid())
-  )
-)
-with check (
-  private.has_organization_role(
-    organization_id,
-    array['owner','admin','office','manager']::text[],
-    (select auth.uid())
-  )
-);
-
 revoke all on public.organization_time_capture_settings
   from public,anon,authenticated;
 grant select on public.organization_time_capture_settings to authenticated;
@@ -78,7 +44,6 @@ create or replace function public.set_organization_time_capture_settings(
   p_organization_id uuid,
   p_manual_entry_policy text,
   p_gps_project_suggestion_enabled boolean,
-  p_daily_log_enabled boolean,
   p_daily_log_required boolean
 )
 returns public.organization_time_capture_settings
@@ -103,25 +68,18 @@ begin
   if v_policy not in ('manual_allowed','clock_required') then
     raise exception 'Tidsregeln är ogiltig' using errcode = '22023';
   end if;
-  if coalesce(p_daily_log_required,false)
-     and not coalesce(p_daily_log_enabled,true) then
-    raise exception 'Dagboken måste vara aktiverad innan den kan vara obligatorisk'
-      using errcode = '23514';
-  end if;
 
   insert into public.organization_time_capture_settings (
     organization_id,manual_entry_policy,gps_project_suggestion_enabled,
-    daily_log_enabled,daily_log_required,updated_by_user_id
+    daily_log_required,updated_by_user_id
   ) values (
     p_organization_id,v_policy,
     coalesce(p_gps_project_suggestion_enabled,true),
-    coalesce(p_daily_log_enabled,true),
     coalesce(p_daily_log_required,false),v_user_id
   )
   on conflict (organization_id) do update
   set manual_entry_policy = excluded.manual_entry_policy,
       gps_project_suggestion_enabled = excluded.gps_project_suggestion_enabled,
-      daily_log_enabled = excluded.daily_log_enabled,
       daily_log_required = excluded.daily_log_required,
       updated_by_user_id = excluded.updated_by_user_id,
       updated_at = now()
@@ -132,15 +90,16 @@ end;
 $$;
 
 revoke all on function public.set_organization_time_capture_settings(
-  uuid,text,boolean,boolean,boolean
+  uuid,text,boolean,boolean
 ) from public,anon;
 grant execute on function public.set_organization_time_capture_settings(
-  uuid,text,boolean,boolean,boolean
+  uuid,text,boolean,boolean
 ) to authenticated;
 
--- A project diary is independent of how time was captured. One worker can keep
--- one living diary entry per project and date, which management can review.
-create table if not exists public.project_daily_logs (
+-- Bynex already has one project-level daily summary per project and date.
+-- These worker contributions extend that diary without replacing or mutating
+-- the existing project_daily_logs contract.
+create table if not exists public.project_daily_log_contributions (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete cascade,
   project_id uuid not null,
@@ -151,10 +110,8 @@ create table if not exists public.project_daily_logs (
   blockers text,
   next_steps text,
   weather text,
-  crew_count integer check (crew_count is null or crew_count between 0 and 10000),
-  status text not null default 'draft'
-    check (status in ('draft','submitted','reviewed','rejected')),
-  client_request_id uuid,
+  crew_count integer,
+  status text not null default 'draft',
   created_by_user_id uuid references auth.users(id) on delete set null,
   updated_by_user_id uuid references auth.users(id) on delete set null,
   submitted_at timestamptz,
@@ -172,39 +129,82 @@ create table if not exists public.project_daily_logs (
   foreign key (organization_id,time_entry_id)
     references public.time_entries(organization_id,id)
     on delete set null (time_entry_id),
-  check (char_length(work_performed) <= 5000),
-  check (blockers is null or char_length(blockers) <= 3000),
-  check (next_steps is null or char_length(next_steps) <= 3000),
-  check (weather is null or char_length(weather) <= 160),
-  check (review_note is null or char_length(review_note) <= 2000),
-  check (status not in ('submitted','reviewed') or char_length(btrim(work_performed)) > 0),
-  check ((status in ('submitted','reviewed')) = (submitted_at is not null)),
-  check ((status = 'reviewed') = (reviewed_at is not null))
+  constraint project_daily_log_contributions_crew_count_check
+    check (crew_count is null or crew_count between 0 and 10000),
+  constraint project_daily_log_contributions_status_check
+    check (status in ('draft','submitted','reviewed','rejected')),
+  constraint project_daily_log_contributions_work_performed_check
+    check (char_length(work_performed) <= 5000),
+  constraint project_daily_log_contributions_blockers_check
+    check (blockers is null or char_length(blockers) <= 3000),
+  constraint project_daily_log_contributions_next_steps_check
+    check (next_steps is null or char_length(next_steps) <= 3000),
+  constraint project_daily_log_contributions_weather_check
+    check (weather is null or char_length(weather) <= 160),
+  constraint project_daily_log_contributions_review_note_check
+    check (review_note is null or char_length(review_note) <= 2000),
+  constraint project_daily_log_contributions_content_check
+    check (
+      status = 'draft'
+      or char_length(btrim(work_performed)) > 0
+    ),
+  constraint project_daily_log_contributions_submission_state_check
+    check (
+      (status in ('submitted','reviewed','rejected'))
+      = (submitted_at is not null)
+    ),
+  constraint project_daily_log_contributions_decision_state_check
+    check (
+      (
+        status in ('draft','submitted')
+        and reviewed_by_user_id is null
+        and reviewed_at is null
+      )
+      or
+      (
+        status in ('reviewed','rejected')
+        and reviewed_by_user_id is not null
+        and reviewed_at is not null
+      )
+    )
 );
 
-create unique index if not exists project_daily_logs_client_request_uidx
-  on public.project_daily_logs(organization_id,client_request_id)
-  where client_request_id is not null;
+create table if not exists public.project_daily_log_contribution_requests (
+  organization_id uuid not null references public.organizations(id) on delete cascade,
+  request_id uuid not null,
+  contribution_id uuid not null,
+  created_at timestamptz not null default now(),
+  primary key (organization_id,request_id),
+  foreign key (organization_id,contribution_id)
+    references public.project_daily_log_contributions(organization_id,id)
+    on delete restrict
+);
 
-create index if not exists project_daily_logs_project_date_idx
-  on public.project_daily_logs(organization_id,project_id,work_date desc,status);
+create index if not exists project_daily_log_contributions_project_date_idx
+  on public.project_daily_log_contributions(
+    organization_id,project_id,work_date desc,status
+  );
 
-create index if not exists project_daily_logs_worker_date_idx
-  on public.project_daily_logs(organization_id,worker_id,work_date desc);
+create index if not exists project_daily_log_contributions_worker_date_idx
+  on public.project_daily_log_contributions(
+    organization_id,worker_id,work_date desc
+  );
 
-drop trigger if exists project_daily_logs_set_updated_at
-  on public.project_daily_logs;
-create trigger project_daily_logs_set_updated_at
-before update on public.project_daily_logs
+drop trigger if exists project_daily_log_contributions_set_updated_at
+  on public.project_daily_log_contributions;
+create trigger project_daily_log_contributions_set_updated_at
+before update on public.project_daily_log_contributions
 for each row execute function public.set_updated_at();
 
-alter table public.project_daily_logs enable row level security;
-alter table public.project_daily_logs force row level security;
+alter table public.project_daily_log_contributions enable row level security;
+alter table public.project_daily_log_contributions force row level security;
+alter table public.project_daily_log_contribution_requests enable row level security;
+alter table public.project_daily_log_contribution_requests force row level security;
 
-drop policy if exists project_daily_logs_select
-  on public.project_daily_logs;
-create policy project_daily_logs_select
-on public.project_daily_logs
+drop policy if exists project_daily_log_contributions_select
+  on public.project_daily_log_contributions;
+create policy project_daily_log_contributions_select
+on public.project_daily_log_contributions
 for select to authenticated
 using (
   private.has_organization_role(
@@ -217,10 +217,13 @@ using (
   )
 );
 
-revoke all on public.project_daily_logs from public,anon,authenticated;
-grant select on public.project_daily_logs to authenticated;
+revoke all on public.project_daily_log_contributions
+  from public,anon,authenticated;
+revoke all on public.project_daily_log_contribution_requests
+  from public,anon,authenticated;
+grant select on public.project_daily_log_contributions to authenticated;
 
-create or replace function public.upsert_project_daily_log(
+create or replace function public.upsert_project_daily_log_contribution(
   p_organization_id uuid,
   p_project_id uuid,
   p_worker_id uuid,
@@ -247,7 +250,7 @@ declare
   v_timezone text;
   v_today date;
   v_privileged boolean;
-  v_existing public.project_daily_logs;
+  v_existing public.project_daily_log_contributions;
   v_result_id uuid;
   v_work_performed text := left(btrim(coalesce(p_work_performed,'')),5000);
   v_blockers text := nullif(left(btrim(coalesce(p_blockers,'')),3000),'');
@@ -275,10 +278,10 @@ begin
       using errcode = '42501';
   end if;
 
-  select log.id into v_result_id
-  from public.project_daily_logs log
-  where log.organization_id = p_organization_id
-    and log.client_request_id = p_client_request_id;
+  select request.contribution_id into v_result_id
+  from public.project_daily_log_contribution_requests request
+  where request.organization_id = p_organization_id
+    and request.request_id = p_client_request_id;
   if v_result_id is not null then return v_result_id; end if;
 
   select profile.id into v_profile_id
@@ -304,7 +307,7 @@ begin
     raise exception 'En aktiv personalprofil krävs' using errcode = 'P0002';
   end if;
   if v_worker_id is distinct from v_own_worker_id and not v_privileged then
-    raise exception 'Du får endast skriva din egen dagbok'
+    raise exception 'Du får endast skriva ditt eget dagboksbidrag'
       using errcode = '42501';
   end if;
   if not exists (
@@ -337,7 +340,9 @@ begin
     into v_timezone
   from public.organizations organization
   where organization.id = p_organization_id;
-  v_today := (statement_timestamp() at time zone coalesce(v_timezone,'Europe/Stockholm'))::date;
+  v_today := (
+    statement_timestamp() at time zone coalesce(v_timezone,'Europe/Stockholm')
+  )::date;
   if p_work_date > v_today + 1 or p_work_date < v_today - 400 then
     raise exception 'Dagboken får avse idag eller de senaste 400 dagarna'
       using errcode = '22023';
@@ -356,36 +361,47 @@ begin
       using errcode = '23514';
   end if;
 
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(
+      p_organization_id::text || ':' || p_project_id::text || ':'
+      || v_worker_id::text || ':' || p_work_date::text,
+      20260807220000
+    )
+  );
+
   select * into v_existing
-  from public.project_daily_logs log
-  where log.organization_id = p_organization_id
-    and log.project_id = p_project_id
-    and log.worker_id = v_worker_id
-    and log.work_date = p_work_date
+  from public.project_daily_log_contributions contribution
+  where contribution.organization_id = p_organization_id
+    and contribution.project_id = p_project_id
+    and contribution.worker_id = v_worker_id
+    and contribution.work_date = p_work_date
   for update;
 
   if v_existing.id is not null
      and v_existing.status = 'reviewed'
      and not v_privileged then
-    raise exception 'En granskad dagbok kan bara ändras av arbetsledningen'
+    raise exception 'Ett granskat dagboksbidrag kan bara ändras av arbetsledningen'
       using errcode = '42501';
   end if;
 
-  insert into public.project_daily_logs (
+  insert into public.project_daily_log_contributions (
     organization_id,project_id,worker_id,time_entry_id,work_date,
     work_performed,blockers,next_steps,weather,crew_count,status,
-    client_request_id,created_by_user_id,updated_by_user_id,submitted_at,
+    created_by_user_id,updated_by_user_id,submitted_at,
     reviewed_by_user_id,reviewed_at,review_note
   ) values (
     p_organization_id,p_project_id,v_worker_id,p_time_entry_id,p_work_date,
     v_work_performed,v_blockers,v_next_steps,v_weather,p_crew_count,
     case when coalesce(p_submit,false) then 'submitted' else 'draft' end,
-    p_client_request_id,v_user_id,v_user_id,
+    v_user_id,v_user_id,
     case when coalesce(p_submit,false) then now() else null end,
     null,null,null
   )
   on conflict (organization_id,project_id,worker_id,work_date) do update
-  set time_entry_id = coalesce(excluded.time_entry_id,project_daily_logs.time_entry_id),
+  set time_entry_id = coalesce(
+        excluded.time_entry_id,
+        project_daily_log_contributions.time_entry_id
+      ),
       work_performed = excluded.work_performed,
       blockers = excluded.blockers,
       next_steps = excluded.next_steps,
@@ -400,20 +416,27 @@ begin
       updated_at = now()
   returning id into v_result_id;
 
+  insert into public.project_daily_log_contribution_requests (
+    organization_id,request_id,contribution_id
+  ) values (
+    p_organization_id,p_client_request_id,v_result_id
+  )
+  on conflict (organization_id,request_id) do nothing;
+
   return v_result_id;
 end;
 $$;
 
-revoke all on function public.upsert_project_daily_log(
+revoke all on function public.upsert_project_daily_log_contribution(
   uuid,uuid,uuid,uuid,date,text,text,text,text,integer,boolean,uuid
 ) from public,anon;
-grant execute on function public.upsert_project_daily_log(
+grant execute on function public.upsert_project_daily_log_contribution(
   uuid,uuid,uuid,uuid,date,text,text,text,text,integer,boolean,uuid
 ) to authenticated;
 
-create or replace function public.review_project_daily_log(
+create or replace function public.review_project_daily_log_contribution(
   p_organization_id uuid,
-  p_log_id uuid,
+  p_contribution_id uuid,
   p_decision text,
   p_review_note text
 )
@@ -440,30 +463,32 @@ begin
     raise exception 'Granskningsbeslutet är ogiltigt' using errcode = '22023';
   end if;
 
-  update public.project_daily_logs
+  update public.project_daily_log_contributions
   set status = v_decision,
-      reviewed_by_user_id = case when v_decision = 'reviewed' then v_user_id else null end,
-      reviewed_at = case when v_decision = 'reviewed' then now() else null end,
+      reviewed_by_user_id = v_user_id,
+      reviewed_at = now(),
       review_note = nullif(left(btrim(coalesce(p_review_note,'')),2000),''),
       updated_by_user_id = v_user_id,
       updated_at = now()
   where organization_id = p_organization_id
-    and id = p_log_id
+    and id = p_contribution_id
     and status in ('submitted','reviewed','rejected')
   returning id into v_result_id;
 
   if v_result_id is null then
-    raise exception 'Dagboken hittades inte eller är inte skickad'
+    raise exception 'Dagboksbidraget hittades inte eller är inte skickat'
       using errcode = 'P0002';
   end if;
   return v_result_id;
 end;
 $$;
 
-revoke all on function public.review_project_daily_log(uuid,uuid,text,text)
-  from public,anon;
-grant execute on function public.review_project_daily_log(uuid,uuid,text,text)
-  to authenticated;
+revoke all on function public.review_project_daily_log_contribution(
+  uuid,uuid,text,text
+) from public,anon;
+grant execute on function public.review_project_daily_log_contribution(
+  uuid,uuid,text,text
+) to authenticated;
 
 -- Enforce the employer's policy without preventing authorised corrections.
 create or replace function private.guard_manual_time_policy()
@@ -508,16 +533,17 @@ before insert or update of entry_mode,organization_id,worker_id
 on public.time_entries
 for each row execute function private.guard_manual_time_policy();
 
--- Keep a visible audit trail for employer policy changes and the project diary.
+-- Keep a visible audit trail for employer policy changes and diary decisions.
 drop trigger if exists write_audit_log
   on public.organization_time_capture_settings;
 create trigger write_audit_log
 after insert or update or delete on public.organization_time_capture_settings
 for each row execute function private.write_audit_log();
 
-drop trigger if exists write_audit_log on public.project_daily_logs;
+drop trigger if exists write_audit_log
+  on public.project_daily_log_contributions;
 create trigger write_audit_log
-after insert or update or delete on public.project_daily_logs
+after insert or update or delete on public.project_daily_log_contributions
 for each row execute function private.write_audit_log();
 
 commit;
