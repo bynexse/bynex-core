@@ -1,3 +1,4 @@
+import { sendBynexCustomerDocumentEmail } from "@/lib/email/customer-document-delivery";
 import { isUuid, readJsonObject } from "@/lib/http/validation";
 import { requireSupabaseUser } from "@/lib/supabase/require-user";
 
@@ -19,6 +20,11 @@ type ChangeOrderLineInsert = {
 
 const roles = new Set(["owner", "admin", "office", "manager"]);
 const priceTypes = new Set<PriceType>(["fixed", "estimated", "running_account"]);
+const priceTypeLabels: Record<PriceType, string> = {
+  fixed: "Fast pris",
+  estimated: "Uppskattat pris",
+  running_account: "Löpande räkning",
+};
 
 function text(value: unknown, maximum: number) {
   if (typeof value !== "string") return null;
@@ -64,6 +70,25 @@ function textList(value: unknown, maximumItems = 30, maximumLength = 500) {
     .filter(Boolean)
     .slice(0, maximumItems)
     .map((item) => item.slice(0, maximumLength));
+}
+
+function money(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed)
+    ? new Intl.NumberFormat("sv-SE", {
+        style: "currency",
+        currency: "SEK",
+        maximumFractionDigits: 2,
+      }).format(parsed)
+    : "Ej angivet";
+}
+
+function displayDate(value: string | null | undefined) {
+  if (!value) return "Inte angivet";
+  const parsed = new Date(`${value.slice(0, 10)}T12:00:00`);
+  return Number.isNaN(parsed.getTime())
+    ? value
+    : new Intl.DateTimeFormat("sv-SE", { dateStyle: "long" }).format(parsed);
 }
 
 async function context() {
@@ -125,7 +150,7 @@ export async function POST(request: Request) {
 
   const { data: changeOrder, error: changeOrderError } = await ctx.supabase
     .from("change_orders")
-    .select("id,title,description,status")
+    .select("id,project_id,change_order_number,title,description,status,customer_name,customer_email,location_detail")
     .eq("organization_id", ctx.organizationId)
     .eq("id", changeOrderId)
     .maybeSingle();
@@ -349,11 +374,94 @@ export async function POST(request: Request) {
     );
   }
 
+  let delivery = null;
+  const shouldSendEmail = body?.sendEmail !== false && body?.sendEmail !== "false";
+  if (shouldSendEmail && changeOrder.customer_email) {
+    const [organizationResult, issuerResult, projectResult] = await Promise.all([
+      ctx.supabase
+        .from("organizations")
+        .select("name")
+        .eq("id", ctx.organizationId)
+        .maybeSingle(),
+      ctx.supabase
+        .from("invoice_issuer_profiles")
+        .select("legal_name,email")
+        .eq("organization_id", ctx.organizationId)
+        .maybeSingle(),
+      changeOrder.project_id
+        ? ctx.supabase
+            .from("projects")
+            .select("project_number,name")
+            .eq("organization_id", ctx.organizationId)
+            .eq("id", changeOrder.project_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+    ]);
+
+    const companyName = issuerResult.data?.legal_name
+      || organizationResult.data?.name
+      || "Företaget";
+    const vatAmount = Math.round((total * Number(vatPercent) / 100) * 100) / 100;
+    const validUntil = new Date(Date.now() + validDays * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+
+    delivery = await sendBynexCustomerDocumentEmail({
+      client: ctx.supabase,
+      organizationId: ctx.organizationId,
+      requestedByUserId: ctx.userId,
+      messageType: "change_order",
+      sourceId: changeOrderId,
+      sourceVersionId: version.id,
+      companyName,
+      recipientEmail: changeOrder.customer_email,
+      recipientName: changeOrder.customer_name,
+      replyTo: issuerResult.data?.email,
+      documentLabel: "ÄTA",
+      reference: changeOrder.change_order_number,
+      heading: changeOrder.title,
+      message: `${companyName} har skickat ett ÄTA-underlag för din granskning och ditt beslut.`,
+      details: [
+        { label: "ÄTA-nummer", value: changeOrder.change_order_number },
+        ...(projectResult.data
+          ? [{
+              label: "Projekt",
+              value: `${projectResult.data.project_number} · ${projectResult.data.name}`,
+            }]
+          : []),
+        { label: "Prisform", value: priceTypeLabels[priceType] },
+        { label: "Pris exkl. moms", value: money(total) },
+        { label: "Moms", value: money(vatAmount) },
+        { label: "Pris inkl. moms", value: money(total + vatAmount) },
+        ...(estimatedWorkingDays !== null
+          ? [{ label: "Uppskattad tid", value: `${estimatedWorkingDays} arbetsdagar` }]
+          : []),
+        ...(proposedStartDate
+          ? [{ label: "Föreslagen start", value: displayDate(proposedStartDate) }]
+          : []),
+        ...(proposedEndDate
+          ? [{ label: "Föreslaget slut", value: displayDate(proposedEndDate) }]
+          : []),
+        { label: "Säker länk gäller till", value: displayDate(validUntil) },
+      ],
+      actionLabel: "Granska och besluta om ÄTA",
+      actionUrl: row.approval_url,
+      documentHash: row.content_hash,
+      attachmentText:
+        "Kundlänken visar exakt den låsta ÄTA-version som företaget har granskat.",
+    });
+  }
+
   return Response.json(
     {
       approvalUrl: row.approval_url,
       contentHash: row.content_hash,
       versionId: version.id,
+      delivery,
+      deliverySkippedReason:
+        shouldSendEmail && !changeOrder.customer_email
+          ? "Kundens e-postadress saknas. Kundlänken kan kopieras och skickas manuellt."
+          : null,
     },
     { status: 201 },
   );
