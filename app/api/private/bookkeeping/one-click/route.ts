@@ -25,6 +25,24 @@ function numberValue(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function duplicateSignature(invoice: {
+  supplier_id: string | null;
+  invoice_number: string | null;
+  currency: string;
+  total_amount: number | string | null;
+}) {
+  const total = numberValue(invoice.total_amount);
+  if (!invoice.supplier_id || !invoice.invoice_number?.trim() || total === null) {
+    return null;
+  }
+  return [
+    invoice.supplier_id,
+    invoice.invoice_number.trim().toLocaleLowerCase("sv-SE"),
+    invoice.currency,
+    total.toFixed(2),
+  ].join("|");
+}
+
 async function context(auth: Authenticated) {
   const { data: profile, error: profileError } = await auth.supabase
     .from("profiles")
@@ -77,7 +95,7 @@ export async function GET() {
       ctx.supabase
         .from("supplier_invoices")
         .select(
-          "id,supplier_id,project_id,invoice_number,invoice_date,due_date,currency,net_amount,vat_amount,total_amount,duplicate_of_invoice_id,status,raw_metadata,received_at,updated_at",
+          "id,supplier_id,project_id,invoice_kind,invoice_number,invoice_date,due_date,currency,net_amount,vat_amount,total_amount,duplicate_of_invoice_id,status,raw_metadata,received_at,updated_at",
         )
         .eq("organization_id", ctx.organizationId)
         .in("status", ["review", "matched", "approved"])
@@ -120,7 +138,7 @@ export async function GET() {
 
   const invoices = invoicesResult.data ?? [];
   const invoiceIds = invoices.map((invoice) => invoice.id);
-  const [filesResult, vouchersResult] = await Promise.all([
+  const [filesResult, vouchersResult, documentsResult] = await Promise.all([
     invoiceIds.length
       ? ctx.supabase
           .from("supplier_invoice_files")
@@ -138,12 +156,26 @@ export async function GET() {
           .eq("source_type", "supplier_invoice")
           .in("source_id", invoiceIds)
       : Promise.resolve({ data: [], error: null }),
+    invoiceIds.length
+      ? ctx.supabase
+          .from("bookkeeping_documents")
+          .select("supplier_invoice_id,duplicate_of_document_id")
+          .eq("organization_id", ctx.organizationId)
+          .in("supplier_invoice_id", invoiceIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
-  if (filesResult.error || vouchersResult.error) {
+  if (filesResult.error || vouchersResult.error || documentsResult.error) {
     return Response.json(
       { error: "Enklicksköns underlag kunde inte kontrolleras." },
-      { status: filesResult.error?.code === "42501" || vouchersResult.error?.code === "42501" ? 403 : 500 },
+      {
+        status:
+          filesResult.error?.code === "42501" ||
+          vouchersResult.error?.code === "42501" ||
+          documentsResult.error?.code === "42501"
+            ? 403
+            : 500,
+      },
     );
   }
 
@@ -159,9 +191,20 @@ export async function GET() {
   const fileInvoiceIds = new Set(
     (filesResult.data ?? []).map((file) => file.supplier_invoice_id),
   );
+  const duplicateDocumentInvoiceIds = new Set(
+    (documentsResult.data ?? [])
+      .filter((document) => document.duplicate_of_document_id)
+      .map((document) => document.supplier_invoice_id),
+  );
   const voucherByInvoiceId = new Map(
     (vouchersResult.data ?? []).map((voucher) => [voucher.source_id, voucher]),
   );
+  const duplicateCounts = new Map<string, number>();
+  for (const invoice of invoices) {
+    const signature = duplicateSignature(invoice);
+    if (signature) duplicateCounts.set(signature, (duplicateCounts.get(signature) ?? 0) + 1);
+  }
+
   const openPeriods = periodsResult.data ?? [];
   const bookkeepingEnabled = settingsResult.data?.enabled === true;
 
@@ -172,8 +215,15 @@ export async function GET() {
     const totalAmount = numberValue(invoice.total_amount);
     const voucher = voucherByInvoiceId.get(invoice.id) ?? null;
     const blockers: string[] = [];
+    const signature = duplicateSignature(invoice);
 
     if (!bookkeepingEnabled) blockers.push("Bynex Bokföring är inte aktiverat");
+    if (invoice.invoice_kind !== "invoice") {
+      blockers.push("Kreditnotan kräver korrigeringsflödet");
+    }
+    if (invoice.currency !== "SEK") {
+      blockers.push("Valutakurs och separat kontroll krävs");
+    }
     if (!invoice.supplier_id) blockers.push("Leverantör saknas");
     if (!invoice.invoice_number?.trim()) blockers.push("Fakturanummer saknas");
     if (!invoice.invoice_date) blockers.push("Fakturadatum saknas");
@@ -182,13 +232,21 @@ export async function GET() {
       blockers.push("Kompletta belopp saknas");
     } else if (
       totalAmount <= 0 ||
-      netAmount < 0 ||
+      netAmount <= 0 ||
       vatAmount < 0 ||
       Math.abs(totalAmount - netAmount - vatAmount) > 0.02
     ) {
       blockers.push("Netto, moms och totalbelopp stämmer inte");
     }
-    if (invoice.duplicate_of_invoice_id) blockers.push("Underlaget är markerat som dubblett");
+    if (invoice.duplicate_of_invoice_id) {
+      blockers.push("Underlaget är markerat som dubblett");
+    }
+    if (signature && (duplicateCounts.get(signature) ?? 0) > 1) {
+      blockers.push("Möjlig dubblett med samma nummer och belopp");
+    }
+    if (duplicateDocumentInvoiceIds.has(invoice.id)) {
+      blockers.push("Originaldokumentet är markerat som dubblett");
+    }
     if (!fileInvoiceIds.has(invoice.id)) blockers.push("Originalfil saknas");
     if (
       invoice.invoice_date &&
@@ -212,6 +270,7 @@ export async function GET() {
       projectName: invoice.project_id
         ? projectById.get(invoice.project_id) ?? "Projektet är inte längre aktivt"
         : null,
+      invoiceKind: invoice.invoice_kind,
       invoiceNumber: invoice.invoice_number,
       invoiceDate: invoice.invoice_date,
       dueDate: invoice.due_date,
@@ -292,7 +351,7 @@ export async function POST(request: Request) {
   }
 
   const { data, error } = await ctx.supabase.rpc(
-    "book_supplier_invoice_one_click",
+    "book_supplier_invoice_one_click_safe",
     {
       p_organization_id: ctx.organizationId,
       p_supplier_invoice_id: supplierInvoiceId,
