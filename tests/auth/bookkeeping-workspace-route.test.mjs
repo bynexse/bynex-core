@@ -24,3 +24,14 @@ test("bokförda KPI:er beräknas i databasen utan listgräns", () => {
   assert.match(migration, /posted_count/);
   assert.doesNotMatch(migration, /limit\s+\d+/i);
 });
+
+test("bankhändelser använder produktionsschemats kolumner men behåller stabilt API-format", () => {
+  assert.match(route, /booking_date:booked_on/);
+  assert.match(route, /value_date:value_on/);
+  assert.match(route, /status:reconciliation_status/);
+  assert.match(route, /order\("booked_on"/);
+  assert.doesNotMatch(
+    route,
+    /select\("id,booking_date,value_date,amount,currency,counterparty_name,reference,status,created_at"\)/,
+  );
+});

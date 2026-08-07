@@ -89,7 +89,7 @@ export async function GET(request: Request) {
     vouchersQuery,
     context.supabase.from("bookkeeping_documents").select("id,document_type,capture_source,original_filename,status,document_date,counterparty_name,currency,net_amount,vat_amount,total_amount,voucher_id,created_at").eq("organization_id", context.organizationId).order("created_at", { ascending: false }).limit(50),
     context.supabase.from("bynex_smart_bookkeeping_suggestions").select("id,document_id,suggested_voucher_date,suggested_description,confidence,status,explanation,missing_information,reviewed_at,created_at").eq("organization_id", context.organizationId).order("created_at", { ascending: false }).limit(50),
-    context.supabase.from("bank_statement_transactions").select("id,booking_date,value_date,amount,currency,counterparty_name,reference,status,created_at").eq("organization_id", context.organizationId).order("booking_date", { ascending: false }).limit(50),
+    context.supabase.from("bank_statement_transactions").select("id,booking_date:booked_on,value_date:value_on,amount,currency,counterparty_name,reference,status:reconciliation_status,created_at").eq("organization_id", context.organizationId).order("booked_on", { ascending: false }).limit(50),
     context.supabase.rpc("get_bookkeeping_workspace_metrics", { p_organization_id: context.organizationId, p_fiscal_year_id: selectedYearId }),
   ]);
   const detailFailure = [periodsResult, vouchersResult, documentsResult, suggestionsResult, bankResult, metricsResult].find((result) => result.error);
