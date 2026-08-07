@@ -48,7 +48,9 @@ function safeClientContext(value: unknown) {
 
 async function diagnosticContext() {
   const auth = await requireSupabaseUser();
-  if ("response" in auth) return auth;
+  if ("response" in auth) {
+    return { ok: false as const, response: auth.response };
+  }
 
   const { data: profile, error: profileError } = await auth.supabase
     .from("profiles")
@@ -57,16 +59,18 @@ async function diagnosticContext() {
     .maybeSingle();
   if (profileError) {
     return {
+      ok: false as const,
       response: Response.json(
         { error: "Pilotdiagnostiken kunde inte förberedas." },
         { status: 500 },
       ),
-    } as const;
+    };
   }
   if (!profile?.current_organization_id) {
     return {
+      ok: false as const,
       response: Response.json({ error: "Aktivt företag saknas." }, { status: 409 }),
-    } as const;
+    };
   }
 
   const { data: membership, error: membershipError } = await auth.supabase
@@ -78,20 +82,23 @@ async function diagnosticContext() {
     .maybeSingle();
   if (membershipError || !membership) {
     return {
+      ok: false as const,
       response: Response.json({ error: "Aktivt medlemskap saknas." }, { status: 403 }),
-    } as const;
+    };
   }
 
   return {
-    ...auth,
+    ok: true as const,
+    supabase: auth.supabase,
+    userId: auth.userId,
     organizationId: profile.current_organization_id as string,
     role: membership.role as string,
-  } as const;
+  };
 }
 
 export async function GET() {
   const context = await diagnosticContext();
-  if ("response" in context) return context.response;
+  if (!context.ok) return context.response;
 
   let query = context.supabase
     .from("pilot_diagnostics")
@@ -129,7 +136,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const context = await diagnosticContext();
-  if ("response" in context) return context.response;
+  if (!context.ok) return context.response;
 
   const body = await readJsonObject(request);
   if (!body) {
