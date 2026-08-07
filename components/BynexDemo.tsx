@@ -8,6 +8,7 @@ import {
   CircleDollarSign,
   Clock3,
   FileSignature,
+  Files,
   FolderKanban,
   BookOpenCheck,
   HardHat,
@@ -40,6 +41,7 @@ import LiveBookkeepingWorkspace from "@/components/modules/bookkeeping/LiveBookk
 import LiveAccountingIntegrationsModule from "@/components/modules/accounting/LiveAccountingIntegrationsModule";
 import LiveYearEndModule from "@/components/modules/bookkeeping/LiveYearEndModule";
 import LivePropertyPortalModule from "@/components/modules/property/LivePropertyPortalModule";
+import LiveFilesModule from "@/components/modules/files/LiveFilesModule";
 import CompanySettings from "@/components/modules/settings/CompanySettings";
 import SupportPanel from "@/components/modules/support/SupportPanel";
 import LiveWorkspaceHome from "@/components/modules/core/LiveWorkspaceHome";
@@ -74,6 +76,7 @@ const modules: NavigationModule[] = [
   { id: "accounting-integrations", label: "Bynex Ekonomikopplingar", section: "Ekonomi", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"] },
   { id: "year-end", label: "Bynex Bokslut", section: "Ekonomi", icon: BookOpenCheck, productModule: "bookkeeping", roles: ["owner", "admin", "office"], businessForms: ["sole_trader", "limited_company"] },
   { id: "property-portal", label: "Bynex Pärmen", section: "Kund & system", icon: Building2, productModule: "customer_portal", roles: ["owner", "admin", "office", "manager", "supervisor"] },
+  { id: "files", label: "Bynex Filer", section: "Kund & system", icon: Files, roles: ["owner", "admin", "office", "manager", "supervisor"] },
   { id: "settings", label: "Bynex Inställningar", section: "Kund & system", icon: Settings },
 ];
 
@@ -330,6 +333,7 @@ export default function BynexDemo({
           {active === "accounting-integrations" && <LiveAccountingIntegrationsModule notify={notify} />}
           {active === "year-end" && <LiveYearEndModule />}
           {active === "property-portal" && <LivePropertyPortalModule notify={notify} />}
+          {active === "files" && <LiveFilesModule notify={notify} />}
           {active === "settings" && (
             <CompanySettings
               company={company}
