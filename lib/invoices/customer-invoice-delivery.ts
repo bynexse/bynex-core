@@ -140,9 +140,6 @@ async function ensurePdf(client: SupabaseClient, job: ClaimedJob) {
 }
 
 async function sendEmail(job: ClaimedJob, bytes: Uint8Array) {
-  if (process.env.BYNEX_EMAIL_DOMAIN_VERIFIED !== "true") {
-    throw new Error("Bynex e-postdomän är inte verifierad för fakturautskick");
-  }
   const apiKey = required("RESEND_API_KEY");
   const fromEmail = requireVerifiedBynexEmail("BYNEX_INVOICE_FROM_EMAIL");
   const invoice = job.payload.invoice;
