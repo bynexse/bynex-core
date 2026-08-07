@@ -185,9 +185,10 @@ begin
      or p_decided_at is null
      or p_decided_at > statement_timestamp() + interval '5 minutes'
      or p_decided_at < statement_timestamp() - interval '10 years'
-     or (v_signer_email <> '' and v_signer_email !~* '^[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}$')
-     or (v_evidence_reference is not null and char_length(v_evidence_reference) > 500) then
-    raise exception 'Kontrollera uppgifterna för det skriftliga godkännandet'
+     or (v_signer_email <> '' and v_signer_email !~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$')
+     or (v_evidence_reference is not null and char_length(v_evidence_reference) > 500)
+     or (v_evidence_reference is null and p_evidence_file_id is null) then
+    raise exception 'Kontrollera uppgifterna och ange en bevisreferens eller bevisfil'
       using errcode = '22023';
   end if;
 
@@ -219,6 +220,10 @@ begin
      or v_version.frozen_at is null
      or v_version.content_hash is null then
     raise exception 'Den låsta kundversionen kunde inte verifieras'
+      using errcode = '22023';
+  end if;
+  if p_decided_at < v_version.frozen_at then
+    raise exception 'Godkännandet kan inte vara äldre än den låsta ÄTA-versionen'
       using errcode = '22023';
   end if;
 
@@ -255,6 +260,7 @@ begin
     'note', v_evidence_note,
     'reference', v_evidence_reference,
     'file_id', p_evidence_file_id,
+    'version_frozen_at', v_version.frozen_at,
     'recorded_by_user_id', v_actor_user_id,
     'recorded_at', statement_timestamp()
   );
@@ -306,7 +312,7 @@ begin
     nullif(left(v_signer_email, 320), ''),
     v_signature_method,
     'signed',
-    coalesce(v_change_order.signature_requested_at, p_decided_at),
+    least(coalesce(v_change_order.signature_requested_at, p_decided_at), p_decided_at),
     p_decided_at,
     v_evidence || jsonb_build_object('approval_id', v_approval_id)
   );
