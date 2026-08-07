@@ -5,14 +5,14 @@ import test from "node:test";
 const root = new URL("../../", import.meta.url);
 const captureMigration = readFileSync(
   new URL(
-    "supabase/migrations/20260807190000_manual_time_delivery_note_capture.sql",
+    "supabase/migrations/20260807214500_manual_time_delivery_note_capture.sql",
     root,
   ),
   "utf8",
 );
 const policyMigration = readFileSync(
   new URL(
-    "supabase/migrations/20260807220000_time_policy_and_project_daily_log.sql",
+    "supabase/migrations/20260807215000_time_policy_and_project_daily_log.sql",
     root,
   ),
   "utf8",
