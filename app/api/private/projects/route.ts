@@ -11,6 +11,10 @@ function databaseStatus(code?: string) {
   return 409;
 }
 
+function optionalCostFeature(code?: string) {
+  return ["42501", "42P01", "PGRST204", "PGRST205"].includes(code ?? "");
+}
+
 async function projectContext() {
   const auth = await requireSupabaseUser("projects");
   if ("response" in auth) return { ok: false as const, response: auth.response };
@@ -36,21 +40,54 @@ export async function GET() {
   const context = await projectContext();
   if (!context.ok) return context.response;
 
-  const { data, error } = await context.supabase
-    .from("projects")
-    .select("id,project_number,name,customer_name,customer_email,customer_phone,address,postal_code,city,country_code,status,pricing_type,budget,progress,start_date,end_date,responsible_worker_id,active,source_quote_id,created_at,updated_at")
-    .eq("organization_id", context.organizationId)
-    .order("active", { ascending: false })
-    .order("updated_at", { ascending: false })
-    .limit(250);
+  const [projectsResult, documentCostsResult] = await Promise.all([
+    context.supabase
+      .from("projects")
+      .select("id,project_number,name,customer_name,customer_email,customer_phone,address,postal_code,city,country_code,status,pricing_type,budget,progress,start_date,end_date,responsible_worker_id,active,source_quote_id,created_at,updated_at")
+      .eq("organization_id", context.organizationId)
+      .order("active", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .limit(250),
+    context.supabase
+      .from("project_document_cost_summary")
+      .select("project_id,document_cost_count,document_cost_ex_vat,document_vat_amount,document_cost_inc_vat")
+      .eq("organization_id", context.organizationId),
+  ]);
 
-  if (error) {
+  if (projectsResult.error) {
     return Response.json(
       { error: "Projekten kunde inte hämtas." },
-      { status: error.code === "42501" ? 403 : 500 },
+      { status: projectsResult.error.code === "42501" ? 403 : 500 },
     );
   }
-  return Response.json({ projects: data ?? [] });
+  if (documentCostsResult.error && !optionalCostFeature(documentCostsResult.error.code)) {
+    return Response.json(
+      { error: "Projektkostnaderna kunde inte hämtas." },
+      { status: 500 },
+    );
+  }
+
+  const costsByProject = new Map(
+    (documentCostsResult.data ?? []).map((item) => [item.project_id, item]),
+  );
+  const projects = (projectsResult.data ?? []).map((project) => {
+    const costs = costsByProject.get(project.id);
+    const costExVat = Number(costs?.document_cost_ex_vat ?? 0);
+    const budget = Number(project.budget ?? 0);
+    return {
+      ...project,
+      document_cost_count: Number(costs?.document_cost_count ?? 0),
+      document_cost_ex_vat: costExVat,
+      document_vat_amount: Number(costs?.document_vat_amount ?? 0),
+      document_cost_inc_vat: Number(costs?.document_cost_inc_vat ?? 0),
+      budget_remaining_after_documents: budget - costExVat,
+    };
+  });
+
+  return Response.json({
+    projects,
+    projectDocumentCostsAvailable: !documentCostsResult.error,
+  });
 }
 
 export async function POST(request: Request) {
