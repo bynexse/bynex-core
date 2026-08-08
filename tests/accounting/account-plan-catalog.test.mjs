@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
+// The licensed catalog is installed only through the reviewed, versioned import path.
 const root = new URL("../../", import.meta.url);
 const migration = readFileSync(
   new URL(
