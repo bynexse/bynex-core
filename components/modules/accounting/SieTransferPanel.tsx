@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -123,13 +123,16 @@ async function stableBrowserFile(source: File) {
 
 export default function SieTransferPanel({
   notify,
+  onImportCompleted,
 }: {
   notify: (message: string) => void;
+  onImportCompleted?: (result: ImportResult) => void | Promise<void>;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<BusyState>(null);
+  const reviewDecisionRef = useRef<HTMLDivElement | null>(null);
 
   async function selectFile(source: File | null) {
     setResult(null);
@@ -172,10 +175,19 @@ export default function SieTransferPanel({
       body.set("expectedChecksum", result.review.checksumSha256);
     }
 
-    const response = await fetch("/api/private/accounting/sie", {
-      method: "POST",
-      body,
-    });
+    let response: Response;
+    try {
+      response = await fetch("/api/private/accounting/sie", {
+        method: "POST",
+        body,
+      });
+    } catch {
+      setBusy(null);
+      setError(
+        "SIE-importen kunde inte nå servern. Försök igen – ingen verifikation har bokförts.",
+      );
+      return;
+    }
     const payload = (await response.json().catch(() => null)) as
       | (Result & { error?: string })
       | { error?: string; review?: Review }
@@ -192,18 +204,25 @@ export default function SieTransferPanel({
 
     const next = payload as Result;
     setResult(next);
-    if (intent === "approve") {
+    if (intent === "approve" && next.import) {
       notify(
-        next.import?.alreadyImported
+        next.import.alreadyImported
           ? "SIE-filen var redan importerad – ingen dubbelbokföring gjordes"
-          : `${integer.format(next.import?.importedVouchers ?? 0)} SIE-verifikationer är bokförda`,
+          : `${integer.format(next.import.importedVouchers)} SIE-verifikationer är bokförda`,
       );
+      await onImportCompleted?.(next.import);
     } else {
       notify(
         next.review.canApprove
           ? "SIE-filen är kontrollerad och klar för godkännande"
           : "SIE-filen är kontrollerad och visar vad som måste lösas",
       );
+      window.requestAnimationFrame(() => {
+        reviewDecisionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      });
     }
   }
 
@@ -343,6 +362,47 @@ export default function SieTransferPanel({
             <Summary label="Nya konton" value={result.review.accounts.willBeCreated.length} />
             <Summary label="Verifikationer" value={result.preview.voucherCount} />
           </div>
+
+          {!result.import && result.review.canApprove && (
+            <div
+              ref={reviewDecisionRef}
+              aria-live="polite"
+              className="m-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-6"
+            >
+              <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+                <div className="flex items-start gap-3">
+                  <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 text-emerald-800" />
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">
+                      Steg 2 av 2
+                    </p>
+                    <h4 className="mt-1 text-lg font-semibold text-emerald-950">
+                      Filen är klar – godkänn för att föra in den i bokföringen
+                    </h4>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-emerald-900">
+                      Ett klick sparar originalet privat, matchar eller skapar konton och
+                      bokför samtliga balanserade verifikationer i en odelbar transaktion.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void sendFile("approve")}
+                  disabled={Boolean(busy)}
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#202522] px-6 py-4 text-sm font-semibold text-white shadow-md disabled:opacity-50"
+                >
+                  {busy === "approve" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LockKeyhole className="h-4 w-4 text-emerald-300" />
+                  )}
+                  {busy === "approve"
+                    ? "Importerar säkert…"
+                    : `Godkänn och importera ${integer.format(result.preview.voucherCount)}`}
+                </button>
+              </div>
+            </div>
+          )}
 
           {result.import && (
             <div className="m-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">

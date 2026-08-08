@@ -18,6 +18,10 @@ const panel = readFileSync(
   new URL("components/modules/accounting/SieTransferPanel.tsx", root),
   "utf8",
 );
+const liveBookkeeping = readFileSync(
+  new URL("components/modules/bookkeeping/LiveBookkeepingModule.tsx", root),
+  "utf8",
+);
 const migration = readFileSync(
   new URL(
     "supabase/migrations/20260807212000_sie_approval_import.sql",
@@ -182,6 +186,20 @@ test("användaren får en riktig godkännandeknapp efter förhandsgranskningen",
   );
 });
 
+test("SIE-godkännandet visas direkt och bokföringsvyn uppdateras efter import", () => {
+  assert.match(panel, /Steg 2 av 2/);
+  assert.match(panel, /reviewDecisionRef/);
+  assert.match(panel, /scrollIntoView/);
+  assert.match(panel, /onImportCompleted/);
+  assert.match(panel, /ingen verifikation har bokförts/);
+  assert.ok(
+    panel.indexOf("Steg 2 av 2") < panel.indexOf("Första verifikationerna"),
+    "godkännandeknappen ska visas före den långa verifikationslistan",
+  );
+  assert.match(liveBookkeeping, /onImportCompleted/);
+  assert.match(liveBookkeeping, /await load\(imported\.fiscalYearId\)/);
+  assert.match(liveBookkeeping, /setTab\("vouchers"\)/);
+});
 test("databasmotorn är atomisk, idempotent och återanvänder bokföringsmotorn", () => {
   assert.match(migration, /create table if not exists public\.sie_import_batches/);
   assert.match(migration, /create table if not exists public\.sie_import_vouchers/);

@@ -138,7 +138,15 @@ export default function LiveBookkeepingModule({ notify }: { notify: (message: st
     </div>}
 
     {tab === "accounts" && <Accounts data={data} busy={busy} onCreate={async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); const result = await send({ action: "create_account", accountNumber: form.get("accountNumber"), name: form.get("name"), accountType: form.get("accountType"), normalBalance: form.get("normalBalance"), vatCode: form.get("vatCode") }, "Kontot är skapat"); if (result) event.currentTarget.reset(); }} />}
-    {tab === "sie" && <SieTransferPanel notify={notify} />}
+    {tab === "sie" && (
+      <SieTransferPanel
+        notify={notify}
+        onImportCompleted={async (imported) => {
+          await load(imported.fiscalYearId);
+          setTab("vouchers");
+        }}
+      />
+    )}
     {tab === "settings" && <BookkeepingSettings data={data} busy={busy} onSave={async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); await send({ action: "update_settings", accountingMethod: form.get("accountingMethod"), reportingFramework: form.get("reportingFramework"), vatReportingFrequency: form.get("vatReportingFrequency"), autoCreateInvoiceVouchers: form.get("autoCreateInvoiceVouchers") === "on", autoCreateSupplierInvoiceVouchers: form.get("autoCreateSupplierInvoiceVouchers") === "on", autoReadReceipts: form.get("autoReadReceipts") === "on" }, "Bokföringsinställningarna är sparade"); }} />}
   </div>;
 }
