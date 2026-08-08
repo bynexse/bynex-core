@@ -1,8 +1,9 @@
 name: Fix account plan index
 
 on:
-  push:
-    branches: [agent/versioned-searchable-chart-of-accounts]
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize]
 
 permissions:
   contents: write
@@ -10,6 +11,7 @@ permissions:
 # One-shot workflow. It patches the immutable search indexes and removes itself.
 jobs:
   fix:
+    if: github.event.pull_request.head.ref == 'agent/versioned-searchable-chart-of-accounts'
     runs-on: ubuntu-latest
     steps:
       - name: Check out feature branch
