@@ -32,6 +32,8 @@ jobs:
         run: npm run test:supplier-inbox
       - name: Verify SIE review and approval
         run: npm run test:sie
+      - name: Verify versioned account plan
+        run: npm run test:account-plan
       - name: Verify time, diary and delivery notes
         run: npm run test:time-capture
       - name: Type-check
