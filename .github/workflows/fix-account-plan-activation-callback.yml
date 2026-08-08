@@ -3,6 +3,7 @@ name: Fix account plan activation callback
 on:
   pull_request:
     branches: [main]
+    types: [ready_for_review]
 
 permissions:
   contents: write
