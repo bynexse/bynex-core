@@ -1107,7 +1107,7 @@ function AccountResultCard({
   result: SearchResult;
   canManage: boolean;
   busy: string;
-  onActivate: () => void | undefined;
+  onActivate: () => void | Promise<void> | undefined;
 }) {
   return (
     <article className="flex flex-col justify-between gap-4 rounded-2xl border border-zinc-200 p-4 sm:flex-row sm:items-center">
