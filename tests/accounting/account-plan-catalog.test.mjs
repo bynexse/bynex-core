@@ -11,6 +11,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const smartTermsMigration = readFileSync(
+  new URL(
+    "supabase/migrations/20260807215600_smart_account_natural_language_terms.sql",
+    root,
+  ),
+  "utf8",
+);
 const api = readFileSync(
   new URL("app/api/private/bookkeeping/account-plan/route.ts", root),
   "utf8",
@@ -101,18 +108,37 @@ test("the full selected catalog is searchable without activating every account",
 });
 
 test("Smart account suggestions learn but never post or activate silently", () => {
-  assert.match(migration, /suggest_account_plan_accounts/);
-  assert.match(migration, /bynex_document_analyses/);
-  assert.match(migration, /bookkeeping_voucher_lines/);
-  assert.match(migration, /prior_analysis_hits/);
-  assert.match(migration, /prior_voucher_hits/);
-  assert.match(migration, /måste aktiveras före bokföring/);
-  assert.doesNotMatch(migration, /post_bookkeeping_voucher/);
-  assert.doesNotMatch(migration, /perform public\.activate_account_plan_account/);
+  const smartSql = `${migration}\n${smartTermsMigration}`;
+  assert.match(smartSql, /suggest_account_plan_accounts/);
+  assert.match(smartSql, /bynex_document_analyses/);
+  assert.match(smartSql, /bookkeeping_voucher_lines/);
+  assert.match(smartSql, /prior_analysis_hits/);
+  assert.match(smartSql, /prior_voucher_hits/);
+  assert.match(smartSql, /måste aktiveras före bokföring/);
+  assert.doesNotMatch(smartTermsMigration, /post_bookkeeping_voucher/);
+  assert.doesNotMatch(
+    smartTermsMigration,
+    /perform public\.activate_account_plan_account/,
+  );
   assert.match(panel, /Du väljer alltid själv innan något används/);
   assert.match(
     panel,
     /Smart föreslår men bokför aldrig eller aktiverar konto utan ditt beslut/,
+  );
+});
+
+test("ordinary Swedish descriptions are split into independent Smart evidence terms", () => {
+  assert.match(smartTermsMigration, /regexp_split_to_table/);
+  assert.match(
+    smartTermsMigration,
+    /cross join lateral public\.search_account_plan/,
+  );
+  assert.match(smartTermsMigration, /count\(distinct candidate_hits\.term\)/);
+  assert.match(smartTermsMigration, /matching_terms/);
+  assert.match(smartTermsMigration, /borrmaskin/);
+  assert.doesNotMatch(
+    smartTermsMigration,
+    /concat_ws\([\s\S]{0,300}search_account_plan\([\s\S]{0,200}concat_ws/,
   );
 });
 
