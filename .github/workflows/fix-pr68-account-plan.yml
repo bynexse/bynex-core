@@ -3,7 +3,7 @@ name: Fix PR68 account plan callback
 on:
   pull_request_target:
     branches: [main]
-    types: [ready_for_review]
+    types: [ready_for_review, reopened]
 
 permissions:
   contents: write
