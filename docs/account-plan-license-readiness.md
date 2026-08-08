@@ -21,3 +21,7 @@ Bynex använder en begränsad intern startkontoplan tills en kommersiellt licens
 - Samma katalogversion med ett annat innehåll stoppas.
 - Källhash, licensreferens, aktör, tidpunkt och antal konton sparas som installationsbevis.
 - Själva licensierade källdatan ska inte läggas i Git-repot.
+
+## Frisläppningsgrind
+
+En ny licensierad katalogversion får inte göras till standard förrän källhash, licensreferens, kontovalidering, sökning, Smart-förslag, rollspärrar och ett fullständigt rollback-test är godkända. Produktens aktiva konton och historiska verifikationer ska vara oförändrade efter provet.
