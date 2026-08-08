@@ -1,4 +1,5 @@
 name: One-shot SIE review fix
+# One-shot trigger; remove after the branch patch is verified.
 
 on:
   push:
