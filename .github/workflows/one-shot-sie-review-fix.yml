@@ -1,5 +1,5 @@
 name: One-shot SIE review fix
-# One-shot trigger; remove after the branch patch is verified.
+# Remove after the branch patch is verified.
 
 on:
   push:
@@ -21,204 +21,202 @@ jobs:
           ref: fix/sie-import-review-flow
           fetch-depth: 0
 
-      - name: Patch SIE review and bookkeeping refresh flow
+      - name: Apply deterministic SIE review-flow patch
         shell: bash
         run: |
-          python <<'PY'
-          from pathlib import Path
-          import re
+          cat > /tmp/sie-review-flow.patch <<'PATCH'
+          diff --git a/components/modules/accounting/SieTransferPanel.tsx b/components/modules/accounting/SieTransferPanel.tsx
+          index 1e8c4bf..0000000 100644
+          --- a/components/modules/accounting/SieTransferPanel.tsx
+          +++ b/components/modules/accounting/SieTransferPanel.tsx
+          @@ -1,6 +1,6 @@
+           "use client";
+           
+          -import { type FormEvent, useState } from "react";
+          +import { type FormEvent, useRef, useState } from "react";
+           import {
+             AlertTriangle,
+             CheckCircle2,
+          @@ -112,13 +112,16 @@ async function stableBrowserFile(source: File) {
+           
+           export default function SieTransferPanel({
+             notify,
+          +  onImportCompleted,
+           }: {
+             notify: (message: string) => void;
+          +  onImportCompleted?: (result: ImportResult) => void | Promise<void>;
+           }) {
+             const [file, setFile] = useState<File | null>(null);
+             const [result, setResult] = useState<Result | null>(null);
+             const [error, setError] = useState<string | null>(null);
+             const [busy, setBusy] = useState<BusyState>(null);
+          +  const reviewDecisionRef = useRef<HTMLDivElement | null>(null);
+           
+             async function selectFile(source: File | null) {
+               setResult(null);
+          @@ -169,10 +172,18 @@ export default function SieTransferPanel({
+               body.set("expectedChecksum", result.review.checksumSha256);
+             }
+           
+          -  const response = await fetch("/api/private/accounting/sie", {
+          -    method: "POST",
+          -    body,
+          -  });
+          +  let response: Response;
+          +  try {
+          +    response = await fetch("/api/private/accounting/sie", {
+          +      method: "POST",
+          +      body,
+          +    });
+          +  } catch {
+          +    setBusy(null);
+          +    setError(
+          +      "SIE-importen kunde inte nå servern. Försök igen – ingen verifikation har bokförts.",
+          +    );
+          +    return;
+          +  }
+             const payload = (await response.json().catch(() => null)) as
+               | (Result & { error?: string })
+               | { error?: string; review?: Review }
+          @@ -194,12 +205,13 @@ export default function SieTransferPanel({
+           
+             const next = payload as Result;
+             setResult(next);
+          -  if (intent === "approve") {
+          +  if (intent === "approve" && next.import) {
+               notify(
+          -      next.import?.alreadyImported
+          +      next.import.alreadyImported
+                   ? "SIE-filen var redan importerad – ingen dubbelbokföring gjordes"
+          -        : `${integer.format(next.import?.importedVouchers ?? 0)} SIE-verifikationer är bokförda`,
+          +        : `${integer.format(next.import.importedVouchers)} SIE-verifikationer är bokförda`,
+               );
+          +    await onImportCompleted?.(next.import);
+             } else {
+               notify(
+                 next.review.canApprove
+          @@ -207,6 +219,12 @@ export default function SieTransferPanel({
+                   : "SIE-filen är kontrollerad och visar vad som måste lösas",
+               );
+          +    window.requestAnimationFrame(() => {
+          +      reviewDecisionRef.current?.scrollIntoView({
+          +        behavior: "smooth",
+          +        block: "center",
+          +      });
+          +    });
+             }
+           }
+           
+          @@ -347,6 +365,48 @@ export default function SieTransferPanel({
+               <Summary label="Verifikationer" value={result.preview.voucherCount} />
+             </div>
+           
+          +{!result.import && result.review.canApprove && (
+          +  <div
+          +    ref={reviewDecisionRef}
+          +    aria-live="polite"
+          +    className="m-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-6"
+          +  >
+          +    <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+          +      <div className="flex items-start gap-3">
+          +        <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 text-emerald-800" />
+          +        <div>
+          +          <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">
+          +            Steg 2 av 2
+          +          </p>
+          +          <h4 className="mt-1 text-lg font-semibold text-emerald-950">
+          +            Filen är klar – godkänn för att föra in den i bokföringen
+          +          </h4>
+          +          <p className="mt-2 max-w-3xl text-sm leading-6 text-emerald-900">
+          +            Ett klick sparar originalet privat, matchar eller skapar konton och
+          +            bokför samtliga balanserade verifikationer i en odelbar transaktion.
+          +          </p>
+          +        </div>
+          +      </div>
+          +      <button
+          +        type="button"
+          +        onClick={() => void sendFile("approve")}
+          +        disabled={Boolean(busy)}
+          +        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#202522] px-6 py-4 text-sm font-semibold text-white shadow-md disabled:opacity-50"
+          +      >
+          +        {busy === "approve" ? (
+          +          <Loader2 className="h-4 w-4 animate-spin" />
+          +        ) : (
+          +          <LockKeyhole className="h-4 w-4 text-emerald-300" />
+          +        )}
+          +        {busy === "approve"
+          +          ? "Importerar säkert…"
+          +          : `Godkänn och importera ${integer.format(result.preview.voucherCount)}`}
+          +      </button>
+          +    </div>
+          +  </div>
+          +)}
+          +
+             {result.import && (
+               <div className="m-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                 <div className="flex items-start gap-3">
+          diff --git a/components/modules/bookkeeping/LiveBookkeepingModule.tsx b/components/modules/bookkeeping/LiveBookkeepingModule.tsx
+          index 87c701e..0000000 100644
+          --- a/components/modules/bookkeeping/LiveBookkeepingModule.tsx
+          +++ b/components/modules/bookkeeping/LiveBookkeepingModule.tsx
+          @@ -132,7 +132,17 @@ export default function LiveBookkeepingModule({ notify }: { notify: (message: str
+           
+               {tab === "accounts" && <Accounts data={data} busy={busy} onCreate={async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); const result = await send({ action: "create_account", accountNumber: form.get("accountNumber"), name: form.get("name"), accountType: form.get("accountType"), normalBalance: form.get("normalBalance"), vatCode: form.get("vatCode") }, "Kontot är skapat"); if (result) event.currentTarget.reset(); }} />}
+          -    {tab === "sie" && <SieTransferPanel notify={notify} />}
+          +    {tab === "sie" && (
+          +      <SieTransferPanel
+          +        notify={notify}
+          +        onImportCompleted={async (imported) => {
+          +          await load(imported.fiscalYearId);
+          +          setTab("vouchers");
+          +        }}
+          +      />
+          +    )}
+               {tab === "settings" && <BookkeepingSettings data={data} busy={busy} onSave={async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); await send({ action: "update_settings", accountingMethod: form.get("accountingMethod"), reportingFramework: form.get("reportingFramework"), vatReportingFrequency: form.get("vatReportingFrequency"), autoCreateInvoiceVouchers: form.get("autoCreateInvoiceVouchers") === "on", autoCreateSupplierInvoiceVouchers: form.get("autoCreateSupplierInvoiceVouchers") === "on", autoReadReceipts: form.get("autoReadReceipts") === "on" }, "Bokföringsinställningarna är sparade"); }} />}
+             </div>;
+           }
+          diff --git a/tests/accounting/sie-import-approval.test.mjs b/tests/accounting/sie-import-approval.test.mjs
+          index 677c75f..0000000 100644
+          --- a/tests/accounting/sie-import-approval.test.mjs
+          +++ b/tests/accounting/sie-import-approval.test.mjs
+          @@ -16,6 +16,10 @@ const panel = readFileSync(
+             "utf8",
+           );
+          +const liveBookkeeping = readFileSync(
+          +  new URL("components/modules/bookkeeping/LiveBookkeepingModule.tsx", root),
+          +  "utf8",
+          +);
+           const migration = readFileSync(
+             new URL(
+               "supabase/migrations/20260807212000_sie_approval_import.sql",
+          @@ -135,6 +139,22 @@ test("användaren får en riktig godkännandeknapp efter förhandsgranskningen", (
+             );
+           });
+           
+          +test("SIE-godkännandet visas direkt och bokföringsvyn uppdateras efter import", () => {
+          +  assert.match(panel, /Steg 2 av 2/);
+          +  assert.match(panel, /reviewDecisionRef/);
+          +  assert.match(panel, /scrollIntoView/);
+          +  assert.match(panel, /onImportCompleted/);
+          +  assert.match(panel, /ingen verifikation har bokförts/);
+          +  assert.ok(
+          +    panel.indexOf("Steg 2 av 2") < panel.indexOf("Första verifikationerna"),
+          +    "godkännandeknappen ska visas före den långa verifikationslistan",
+          +  );
+          +  assert.match(liveBookkeeping, /onImportCompleted/);
+          +  assert.match(liveBookkeeping, /await load\(imported\.fiscalYearId\)/);
+          +  assert.match(liveBookkeeping, /setTab\("vouchers"\)/);
+          +});
+          +
+           test("databasmotorn är atomisk, idempotent och återanvänder bokföringsmotorn", () => {
+             assert.match(migration, /create table if not exists public\.sie_import_batches/);
+             assert.match(migration, /create table if not exists public\.sie_import_vouchers/);
+          PATCH
 
-          panel_path = Path('components/modules/accounting/SieTransferPanel.tsx')
-          panel = panel_path.read_text()
+          git apply --check /tmp/sie-review-flow.patch
+          git apply --whitespace=fix /tmp/sie-review-flow.patch
 
-          panel = panel.replace(
-              'import { type FormEvent, useState } from "react";',
-              'import { type FormEvent, useRef, useState } from "react";',
-              1,
-          )
-
-          old_props = '''export default function SieTransferPanel({
-            notify,
-          }: {
-            notify: (message: string) => void;
-          }) {'''
-          new_props = '''export default function SieTransferPanel({
-            notify,
-            onImportCompleted,
-          }: {
-            notify: (message: string) => void;
-            onImportCompleted?: (result: ImportResult) => void | Promise<void>;
-          }) {'''
-          if old_props in panel:
-              panel = panel.replace(old_props, new_props, 1)
-
-          busy_marker = '  const [busy, setBusy] = useState<BusyState>(null);\n'
-          if 'reviewDecisionRef' not in panel:
-              if busy_marker not in panel:
-                  raise SystemExit('busy state marker not found')
-              panel = panel.replace(
-                  busy_marker,
-                  busy_marker + '  const reviewDecisionRef = useRef<HTMLDivElement | null>(null);\n',
-                  1,
-              )
-
-          fetch_old = '''    const response = await fetch("/api/private/accounting/sie", {
-              method: "POST",
-              body,
-            });
-            const payload = (await response.json().catch(() => null)) as'''
-          fetch_new = '''    let response: Response;
-            try {
-              response = await fetch("/api/private/accounting/sie", {
-                method: "POST",
-                body,
-              });
-            } catch {
-              setBusy(null);
-              setError("SIE-importen kunde inte nå servern. Försök igen – ingen verifikation har bokförts.");
-              return;
-            }
-            const payload = (await response.json().catch(() => null)) as'''
-          if fetch_old in panel:
-              panel = panel.replace(fetch_old, fetch_new, 1)
-
-          decision_old = '''    const next = payload as Result;
-            setResult(next);
-            if (intent === "approve") {
-              notify(
-                next.import?.alreadyImported
-                  ? "SIE-filen var redan importerad – ingen dubbelbokföring gjordes"
-                  : `${integer.format(next.import?.importedVouchers ?? 0)} SIE-verifikationer är bokförda`,
-              );
-            } else {
-              notify(
-                next.review.canApprove
-                  ? "SIE-filen är kontrollerad och klar för godkännande"
-                  : "SIE-filen är kontrollerad och visar vad som måste lösas",
-              );
-            }'''
-          decision_new = '''    const next = payload as Result;
-            setResult(next);
-            if (intent === "approve" && next.import) {
-              notify(
-                next.import.alreadyImported
-                  ? "SIE-filen var redan importerad – ingen dubbelbokföring gjordes"
-                  : `${integer.format(next.import.importedVouchers)} SIE-verifikationer är bokförda`,
-              );
-              await onImportCompleted?.(next.import);
-            } else {
-              notify(
-                next.review.canApprove
-                  ? "SIE-filen är kontrollerad och klar för godkännande"
-                  : "SIE-filen är kontrollerad och visar vad som måste lösas",
-              );
-              window.requestAnimationFrame(() => {
-                reviewDecisionRef.current?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "center",
-                });
-              });
-            }'''
-          if decision_old in panel:
-              panel = panel.replace(decision_old, decision_new, 1)
-
-          if 'Steg 2 av 2' not in panel:
-              approval_pattern = re.compile(
-                  r'\n          \{!result\.import && result\.review\.canApprove && \(\n'
-                  r'            <div className="border-t border-zinc-100 bg-emerald-50 p-6">'
-                  r'.*?\n          \)\}\n',
-                  re.S,
-              )
-              approval_match = approval_pattern.search(panel)
-              if not approval_match:
-                  raise SystemExit('approval block not found')
-              approval = approval_match.group(0)
-              approval = approval.replace(
-                  '<div className="border-t border-zinc-100 bg-emerald-50 p-6">',
-                  '<div ref={reviewDecisionRef} className="m-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-6">',
-                  1,
-              )
-              approval = approval.replace(
-                  'Ett uttryckligt beslut – hela importen i en transaktion',
-                  'Steg 2 av 2 · Godkänn importen till bokföringen',
-                  1,
-              )
-              panel = panel[:approval_match.start()] + panel[approval_match.end():]
-
-              summary_pattern = re.compile(
-                  r'(\n          <div className="grid gap-px bg-zinc-100 sm:grid-cols-4">'
-                  r'.*?<Summary label="Verifikationer" value=\{result\.preview\.voucherCount\} />'
-                  r'\n          </div>\n)',
-                  re.S,
-              )
-              summary_match = summary_pattern.search(panel)
-              if not summary_match:
-                  raise SystemExit('summary block not found')
-              panel = panel[:summary_match.end()] + approval + panel[summary_match.end():]
-
-          panel_path.write_text(panel)
-
-          live_path = Path('components/modules/bookkeeping/LiveBookkeepingModule.tsx')
-          live = live_path.read_text()
-          old_live = '{tab === "sie" && <SieTransferPanel notify={notify} />}'
-          new_live = '''{tab === "sie" && (
-      <SieTransferPanel
-        notify={notify}
-        onImportCompleted={async (imported) => {
-          await load(imported.fiscalYearId);
-          setTab("vouchers");
-        }}
-      />
-    )}'''
-          if old_live in live:
-              live = live.replace(old_live, new_live, 1)
-          live_path.write_text(live)
-
-          test_path = Path('tests/accounting/sie-import-approval.test.mjs')
-          tests = test_path.read_text()
-          live_read = '''const liveBookkeeping = readFileSync(
-            new URL("components/modules/bookkeeping/LiveBookkeepingModule.tsx", root),
-            "utf8",
-          );
-'''
-          panel_read_marker = '''const panel = readFileSync(
-            new URL("components/modules/accounting/SieTransferPanel.tsx", root),
-            "utf8",
-          );
-'''
-          if 'const liveBookkeeping =' not in tests:
-              if panel_read_marker not in tests:
-                  raise SystemExit('test panel marker not found')
-              tests = tests.replace(panel_read_marker, panel_read_marker + live_read, 1)
-
-          if 'SIE-godkännandet visas direkt efter sammanfattningen' not in tests:
-              tests += '''
-
-test("SIE-godkännandet visas direkt efter sammanfattningen och bokföringsvyn uppdateras", () => {
-  assert.match(panel, /Steg 2 av 2/);
-  assert.match(panel, /reviewDecisionRef/);
-  assert.match(panel, /scrollIntoView/);
-  assert.match(panel, /onImportCompleted/);
-  assert.match(panel, /ingen verifikation har bokförts/);
-  assert.ok(
-    panel.indexOf("Steg 2 av 2") < panel.indexOf("Första verifikationerna"),
-    "godkännandeknappen ska visas före den långa verifikationslistan",
-  );
-  assert.match(liveBookkeeping, /onImportCompleted/);
-  assert.match(liveBookkeeping, /await load\(imported\.fiscalYearId\)/);
-  assert.match(liveBookkeeping, /setTab\("vouchers"\)/);
-});
-'''
-          test_path.write_text(tests)
-          PY
-
-      - name: Run focused checks
-        run: |
-          npm ci
-          npm run test:sie
-          npm run typecheck
-
-      - name: Commit patch
+      - name: Commit branch patch
         shell: bash
         run: |
           git config user.name "Bynex Automation"
