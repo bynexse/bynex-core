@@ -1,5 +1,1 @@
-patch=failed
-run=31259996078
-
-error: patch failed: components/modules/accounting/SieTransferPanel.tsx:169
-error: components/modules/accounting/SieTransferPanel.tsx: patch does not apply
+patch=applied
