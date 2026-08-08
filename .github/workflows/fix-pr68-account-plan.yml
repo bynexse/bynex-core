@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   fix:
+    # One-shot maintenance job; removed immediately after the source patch is confirmed.
     if: github.repository == 'bynexse/bynex-core'
     runs-on: ubuntu-latest
     steps:
