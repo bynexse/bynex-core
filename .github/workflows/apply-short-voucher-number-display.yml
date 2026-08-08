@@ -1,0 +1,170 @@
+name: Apply short voucher-number display
+
+on:
+  push:
+    branches:
+      - agent/short-voucher-number-display
+    paths:
+      - .github/workflows/apply-short-voucher-number-display.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/short-voucher-number-display
+          fetch-depth: 0
+
+      - name: Apply presentation-only voucher numbering
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          def replace_once(source: str, old: str, new: str, label: str) -> str:
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly one match, found {count}")
+              return source.replace(old, new, 1)
+
+          helper = Path("lib/accounting/voucher-number.ts")
+          helper.parent.mkdir(parents=True, exist_ok=True)
+          helper.write_text('''const PADDED_VOUCHER_NUMBER = /^([A-Za-z]+)0*([0-9]+)$/;
+
+/**
+ * Keeps the immutable stored voucher number untouched while presenting it in a
+ * human form. A00000001 is shown as A1; non-standard identifiers are returned
+ * verbatim so imported or future series are never guessed.
+ */
+export function displayVoucherNumber(value: string | null | undefined) {
+  if (value === null || value === undefined) return null;
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  const match = normalized.match(PADDED_VOUCHER_NUMBER);
+  if (!match) return normalized;
+
+  const sequence = Number.parseInt(match[2], 10);
+  if (!Number.isSafeInteger(sequence) || sequence < 0) return normalized;
+  return `${match[1].toUpperCase()}${sequence}`;
+}
+''')
+
+          live_path = Path("components/modules/bookkeeping/LiveBookkeepingModule.tsx")
+          live = live_path.read_text()
+          live = replace_once(
+              live,
+              'import SieTransferPanel from "@/components/modules/accounting/SieTransferPanel";\nimport { Badge, Card, Stat } from "@/components/ui/core";',
+              'import SieTransferPanel from "@/components/modules/accounting/SieTransferPanel";\nimport { Badge, Card, Stat } from "@/components/ui/core";\nimport { displayVoucherNumber } from "@/lib/accounting/voucher-number";',
+              "live import",
+          )
+          live = replace_once(
+              live,
+              '{item.voucher_number ?? "Utkast"} · {item.description}',
+              '{displayVoucherNumber(item.voucher_number) ?? "Utkast"} · {item.description}',
+              "voucher list display",
+          )
+          live = replace_once(
+              live,
+              '{voucher.voucher_number ?? "Ej bokförd"}',
+              '{displayVoucherNumber(voucher.voucher_number) ?? "Ej bokförd"}',
+              "voucher detail display",
+          )
+          live_path.write_text(live)
+
+          one_click_path = Path("components/modules/bookkeeping/OneClickBookkeepingPanel.tsx")
+          one_click = one_click_path.read_text()
+          one_click = replace_once(
+              one_click,
+              'import { Badge, Card } from "@/components/ui/core";',
+              'import { Badge, Card } from "@/components/ui/core";\nimport { displayVoucherNumber } from "@/lib/accounting/voucher-number";',
+              "one-click import",
+          )
+          one_click = replace_once(
+              one_click,
+              'notify(`Verifikation ${payload.result.voucher_number} är bokförd`);',
+              'notify(`Verifikation ${displayVoucherNumber(payload.result.voucher_number) ?? payload.result.voucher_number} är bokförd`);',
+              "one-click notification",
+          )
+          one_click = replace_once(
+              one_click,
+              '<p className="font-semibold">{lastBooked.voucher_number} är bokförd och låst</p>',
+              '<p className="font-semibold">\n                {displayVoucherNumber(lastBooked.voucher_number) ?? lastBooked.voucher_number} är bokförd och låst\n              </p>',
+              "one-click success card",
+          )
+          one_click = replace_once(
+              one_click,
+              '{item.invoiceNumber} · {item.voucher?.voucherNumber}',
+              '{item.invoiceNumber} · {displayVoucherNumber(item.voucher?.voucherNumber) ?? item.voucher?.voucherNumber}',
+              "one-click history display",
+          )
+          one_click_path.write_text(one_click)
+
+          exception_path = Path("components/modules/bookkeeping/OneClickExceptionResolver.tsx")
+          exception = exception_path.read_text()
+          exception = replace_once(
+              exception,
+              'import { Badge, Card } from "@/components/ui/core";',
+              'import { Badge, Card } from "@/components/ui/core";\nimport { displayVoucherNumber } from "@/lib/accounting/voucher-number";',
+              "exception import",
+          )
+          exception = replace_once(
+              exception,
+              'notify(`Verifikation ${payload.result.voucher_number} är bokförd`);',
+              'notify(`Verifikation ${displayVoucherNumber(payload.result.voucher_number) ?? payload.result.voucher_number} är bokförd`);',
+              "exception notification",
+          )
+          exception_path.write_text(exception)
+
+          sie_path = Path("components/modules/accounting/SieTransferPanel.tsx")
+          sie = sie_path.read_text()
+          sie = replace_once(
+              sie,
+              'import { Badge, Card } from "@/components/ui/core";',
+              'import { Badge, Card } from "@/components/ui/core";\nimport { displayVoucherNumber } from "@/lib/accounting/voucher-number";',
+              "SIE import",
+          )
+          sie = replace_once(
+              sie,
+              '{result.import.firstVoucherNumber ?? "–"}–\n                    {result.import.lastVoucherNumber ?? "–"}.',
+              '{displayVoucherNumber(result.import.firstVoucherNumber) ?? "–"}–\n                    {displayVoucherNumber(result.import.lastVoucherNumber) ?? "–"}.',
+              "SIE result range",
+          )
+          sie_path.write_text(sie)
+
+          test_path = Path("tests/accounting/one-click-bookkeeping.test.mjs")
+          test_source = test_path.read_text()
+          test_source = replace_once(
+              test_source,
+              'const workspace = readFileSync(\n  new URL(\n    "components/modules/bookkeeping/BynexBookkeepingWorkspace.tsx",\n    root,\n  ),\n  "utf8",\n);',
+              'const workspace = readFileSync(\n  new URL(\n    "components/modules/bookkeeping/BynexBookkeepingWorkspace.tsx",\n    root,\n  ),\n  "utf8",\n);\nconst liveBookkeeping = readFileSync(\n  new URL("components/modules/bookkeeping/LiveBookkeepingModule.tsx", root),\n  "utf8",\n);\nconst siePanel = readFileSync(\n  new URL("components/modules/accounting/SieTransferPanel.tsx", root),\n  "utf8",\n);\nconst voucherNumberHelper = readFileSync(\n  new URL("lib/accounting/voucher-number.ts", root),\n  "utf8",\n);',
+              "test fixtures",
+          )
+          test_source += '''\n\ntest("voucher numbers stay immutable but are presented without leading zeroes", () => {\n  assert.match(voucherNumberHelper, /PADDED_VOUCHER_NUMBER/);\n  assert.match(voucherNumberHelper, /Number\\.parseInt/);\n  assert.match(voucherNumberHelper, /return `\\$\\{match\\[1\\]\\.toUpperCase\\(\\)\\}\\$\\{sequence\\}`/);\n  assert.match(panel, /displayVoucherNumber\\(payload\\.result\\.voucher_number\\)/);\n  assert.match(exceptionPanel, /displayVoucherNumber\\(payload\\.result\\.voucher_number\\)/);\n  assert.match(liveBookkeeping, /displayVoucherNumber\\(item\\.voucher_number\\)/);\n  assert.match(liveBookkeeping, /displayVoucherNumber\\(voucher\\.voucher_number\\)/);\n  assert.match(siePanel, /displayVoucherNumber\\(result\\.import\\.firstVoucherNumber\\)/);\n  assert.doesNotMatch(voucherNumberHelper, /update|insert|voucher_number\\s*=/i);\n});\n'''
+          test_path.write_text(test_source)
+
+          Path(".github/workflows/apply-short-voucher-number-display.yml").unlink()
+          PY
+
+      - name: Verify focused bookkeeping flows
+        run: |
+          npm ci
+          npm run test:supplier-inbox
+          npm run test:sie
+          npm run typecheck
+          npm run build
+
+      - name: Commit verified change
+        shell: bash
+        run: |
+          git config user.name "Bynex Automation"
+          git config user.email "automation@bynex.se"
+          git add -A
+          git commit -m "feat: present voucher numbers as A1 without rewriting history [short-voucher-display-applied]"
+          git push origin HEAD:agent/short-voucher-number-display
+
+# retriggered after initial workflow registration
