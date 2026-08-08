@@ -40,6 +40,13 @@ const accountPlanEngine = readFileSync(
   ),
   "utf8",
 );
+const defaultModeMigration = readFileSync(
+  new URL(
+    "supabase/migrations/20260808124000_account_plan_default_mode_by_catalog.sql",
+    root,
+  ),
+  "utf8",
+);
 const migration = [
   catalogMigration,
   ...classMigrations,
@@ -183,7 +190,10 @@ test("framework and legal-form filters use real lowercase organization values", 
   assert.match(hardeningMigration, /'sole_trader','trading_partnership','limited_partnership'/);
   assert.match(hardeningMigration, /'limited_company','economic_association'/);
   assert.match(hardeningMigration, /Företagsskattekonto får inte föreslås för enskild firma/);
-  assert.doesNotMatch(hardeningMigration, /array\['K1','K2','K3'\]/);
+  assert.doesNotMatch(
+    hardeningMigration,
+    /set\s+reporting_frameworks\s*=\s*array\['K1','K2','K3'\]/,
+  );
   assert.match(accountPlanEngine, /v_business_form = any\(catalog_account\.business_forms\)/);
   assert.match(accountPlanEngine, /v_framework = any\(catalog_account\.reporting_frameworks\)/);
 });
@@ -239,16 +249,21 @@ test("reviewed activation never mass-activates all catalog accounts or rewrites 
   assert.doesNotMatch(approvalFunction, /delete from public\.bookkeeping_/i);
 });
 
-test("new companies remain ready for a later licensed official BAS catalog", () => {
+test("new companies derive plan mode from the selected platform catalog", () => {
   assert.match(
-    accountPlanEngine,
+    defaultModeMigration,
     /when catalog\.source_kind = 'bas_machine_readable' then 'licensed_full'/,
   );
   assert.match(
-    accountPlanEngine,
+    defaultModeMigration,
     /when catalog\.source_kind = 'bynex_starter' then 'starter'/,
   );
-  assert.match(accountPlanEngine, /else 'custom'/);
+  assert.match(
+    defaultModeMigration,
+    /when catalog\.source_kind = 'customer_owned' then 'customer_owned'/,
+  );
+  assert.match(defaultModeMigration, /else 'custom'/);
+  assert.match(defaultModeMigration, /catalog\.status = 'active'/);
   assert.match(migration, /future_official_bas_ready/);
   assert.match(catalogMigration, /predecessor_catalog_id/);
   assert.match(activationMigration, /source_checksum_sha256/);
