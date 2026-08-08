@@ -120,7 +120,7 @@ test("Smart account suggestions learn but never post or activate silently", () =
     smartTermsMigration,
     /perform public\.activate_account_plan_account/,
   );
-  assert.match(panel, /Du väljer alltid själv innan något används/);
+  assert.match(panel, /Du väljer alltid\s+själv innan något används/);
   assert.match(
     panel,
     /Smart föreslår men bokför aldrig eller aktiverar konto utan ditt beslut/,
