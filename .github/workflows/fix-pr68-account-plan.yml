@@ -1,17 +1,15 @@
 name: Fix PR68 account plan callback
 
 on:
-  pull_request_target:
+  push:
     branches: [main]
-    types: [ready_for_review, reopened]
 
 permissions:
   contents: write
 
 jobs:
   fix:
-    # Strictly limited to Bynex's own PR 68 and its exact internal branch.
-    if: github.event.pull_request.number == 68 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'agent/versioned-searchable-chart-of-accounts'
+    if: github.repository == 'bynexse/bynex-core'
     runs-on: ubuntu-latest
     steps:
       - name: Check out the exact internal feature branch
