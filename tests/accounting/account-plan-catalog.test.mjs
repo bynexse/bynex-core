@@ -169,3 +169,12 @@ test("account activation callbacks support the async server decision", () => {
     /onActivate: \(\) => void \| Promise<void> \| undefined/,
   );
 });
+
+test("search indexes use only immutable index expressions", () => {
+  assert.match(migration, /to_tsvector\('simple'::regconfig,search_text\)/);
+  assert.match(migration, /ledger_accounts_search_aliases_idx/);
+  assert.doesNotMatch(
+    migration,
+    /ledger_accounts_search_idx[\s\S]{0,500}array_to_string\(search_aliases/,
+  );
+});
