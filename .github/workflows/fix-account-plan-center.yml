@@ -1,0 +1,172 @@
+name: Fix account plan center
+
+on:
+  push:
+    branches: [agent/versioned-searchable-chart-of-accounts]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/versioned-searchable-chart-of-accounts
+      - name: Patch typed activation and successful form reset
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("components/modules/bookkeeping/AccountPlanCenter.tsx")
+          text = path.read_text(encoding="utf-8")
+
+          old_function = '''  async function postAction(
+            body: Record<string, unknown>,
+            busyKey: string,
+            successMessage: string,
+          ) {
+            setBusy(busyKey);
+            setError(null);
+            try {
+              const response = await fetch("/api/private/bookkeeping/account-plan", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify(body),
+              });
+              const payload = (await response.json().catch(() => null)) as
+                | { error?: string }
+                | null;
+              if (!response.ok) {
+                throw new Error(payload?.error ?? "Åtgärden kunde inte slutföras.");
+              }
+              notify(successMessage);
+              await load(query, true);
+              if (section === "smart" && smartText.trim()) {
+                const url = new URL("/api/private/bookkeeping/account-plan", window.location.origin);
+                url.searchParams.set("mode", "suggest");
+                url.searchParams.set("q", smartText.trim());
+                if (supplier.trim()) url.searchParams.set("supplier", supplier.trim());
+                if (costType) url.searchParams.set("costType", costType);
+                const suggestionResponse = await fetch(url, { cache: "no-store" });
+                const suggestionPayload = (await suggestionResponse.json().catch(() => null)) as
+                  | Payload
+                  | null;
+                if (suggestionResponse.ok && suggestionPayload) {
+                  setSuggestions(suggestionPayload.results as SuggestionResult[]);
+                }
+              }
+            } catch (caught) {
+              setError(
+                caught instanceof Error ? caught.message : "Åtgärden kunde inte slutföras.",
+              );
+            } finally {
+              setBusy("");
+            }
+          }
+          '''
+          new_function = '''  async function postAction(
+            body: Record<string, unknown>,
+            busyKey: string,
+            successMessage: string,
+          ) {
+            setBusy(busyKey);
+            setError(null);
+            try {
+              const response = await fetch("/api/private/bookkeeping/account-plan", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify(body),
+              });
+              const payload = (await response.json().catch(() => null)) as
+                | { error?: string }
+                | null;
+              if (!response.ok) {
+                throw new Error(payload?.error ?? "Åtgärden kunde inte slutföras.");
+              }
+              notify(successMessage);
+              await load(query, true);
+              if (section === "smart" && smartText.trim()) {
+                const url = new URL("/api/private/bookkeeping/account-plan", window.location.origin);
+                url.searchParams.set("mode", "suggest");
+                url.searchParams.set("q", smartText.trim());
+                if (supplier.trim()) url.searchParams.set("supplier", supplier.trim());
+                if (costType) url.searchParams.set("costType", costType);
+                const suggestionResponse = await fetch(url, { cache: "no-store" });
+                const suggestionPayload = (await suggestionResponse.json().catch(() => null)) as
+                  | Payload
+                  | null;
+                if (suggestionResponse.ok && suggestionPayload) {
+                  setSuggestions(suggestionPayload.results as SuggestionResult[]);
+                }
+              }
+              return true;
+            } catch (caught) {
+              setError(
+                caught instanceof Error ? caught.message : "Åtgärden kunde inte slutföras.",
+              );
+              return false;
+            } finally {
+              setBusy("");
+            }
+          }
+          '''
+          if old_function not in text:
+            raise SystemExit("postAction block did not match")
+          text = text.replace(old_function, new_function, 1)
+
+          if text.count("    await postAction(\n") < 2:
+            raise SystemExit("form postAction calls did not match")
+          text = text.replace(
+            "    await postAction(\n",
+            "    const succeeded = await postAction(\n",
+            2,
+          )
+          if text.count("    if (!error) {\n") < 2:
+            raise SystemExit("form reset guards did not match")
+          text = text.replace("    if (!error) {\n", "    if (succeeded) {\n", 2)
+
+          old_activation = '''                  onActivate={() =>
+                    result.catalog_account_id
+                      ? postAction(
+                          {
+                            action: "activate_account",
+                            catalogAccountId: result.catalog_account_id,
+                          },
+                          `activate:${result.catalog_account_id}`,
+                          `Konto ${result.account_number} är aktiverat`,
+                        )
+                      : undefined
+                  }
+          '''
+          new_activation = '''                  onActivate={() => {
+                    if (!result.catalog_account_id) return;
+                    void postAction(
+                      {
+                        action: "activate_account",
+                        catalogAccountId: result.catalog_account_id,
+                      },
+                      `activate:${result.catalog_account_id}`,
+                      `Konto ${result.account_number} är aktiverat`,
+                    );
+                  }}
+          '''
+          if old_activation not in text:
+            raise SystemExit("activation callback did not match")
+          text = text.replace(old_activation, new_activation, 1)
+
+          path.write_text(text, encoding="utf-8")
+          PY
+      - name: Commit patch
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add components/modules/bookkeeping/AccountPlanCenter.tsx
+          git commit -m "fix: harden account plan actions"
+          git push origin HEAD:agent/versioned-searchable-chart-of-accounts
