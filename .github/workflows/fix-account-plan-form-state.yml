@@ -1,0 +1,104 @@
+name: Fix account plan form state
+
+on:
+  push:
+    branches: [agent/versioned-searchable-chart-of-accounts]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/versioned-searchable-chart-of-accounts
+      - name: Patch explicit success handling
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("components/modules/bookkeeping/AccountPlanCenter.tsx")
+          text = path.read_text(encoding="utf-8")
+
+          old = '''      if (section === "smart" && smartText.trim()) {
+        const url = new URL("/api/private/bookkeeping/account-plan", window.location.origin);
+        url.searchParams.set("mode", "suggest");
+        url.searchParams.set("q", smartText.trim());
+        if (supplier.trim()) url.searchParams.set("supplier", supplier.trim());
+        if (costType) url.searchParams.set("costType", costType);
+        const suggestionResponse = await fetch(url, { cache: "no-store" });
+        const suggestionPayload = (await suggestionResponse.json().catch(() => null)) as
+          | Payload
+          | null;
+        if (suggestionResponse.ok && suggestionPayload) {
+          setSuggestions(suggestionPayload.results as SuggestionResult[]);
+        }
+      }
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Åtgärden kunde inte slutföras.",
+      );
+    } finally {
+'''
+          new = '''      if (section === "smart" && smartText.trim()) {
+        const url = new URL("/api/private/bookkeeping/account-plan", window.location.origin);
+        url.searchParams.set("mode", "suggest");
+        url.searchParams.set("q", smartText.trim());
+        if (supplier.trim()) url.searchParams.set("supplier", supplier.trim());
+        if (costType) url.searchParams.set("costType", costType);
+        const suggestionResponse = await fetch(url, { cache: "no-store" });
+        const suggestionPayload = (await suggestionResponse.json().catch(() => null)) as
+          | Payload
+          | null;
+        if (suggestionResponse.ok && suggestionPayload) {
+          setSuggestions(suggestionPayload.results as SuggestionResult[]);
+        }
+      }
+      return true;
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Åtgärden kunde inte slutföras.",
+      );
+      return false;
+    } finally {
+'''
+          if old not in text:
+            raise SystemExit("postAction success block did not match")
+          text = text.replace(old, new, 1)
+
+          text = text.replace(
+            '''    await postAction(
+      {
+        action: "create_custom_account",''',
+            '''    const succeeded = await postAction(
+      {
+        action: "create_custom_account",''',
+            1,
+          )
+          text = text.replace(
+            '''    await postAction(
+      {
+        action: "install_catalog",''',
+            '''    const succeeded = await postAction(
+      {
+        action: "install_catalog",''',
+            1,
+          )
+          if text.count("    if (!error) {") < 2:
+            raise SystemExit("form reset guards did not match")
+          text = text.replace("    if (!error) {", "    if (succeeded) {", 2)
+
+          path.write_text(text, encoding="utf-8")
+          PY
+          rm .github/workflows/fix-account-plan-form-state.yml
+      - name: Commit patch and remove one-shot workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add components/modules/bookkeeping/AccountPlanCenter.tsx .github/workflows/fix-account-plan-form-state.yml
+          git commit -m "fix: reset account plan forms only after success"
+          git push origin HEAD:agent/versioned-searchable-chart-of-accounts
