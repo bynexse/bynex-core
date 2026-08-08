@@ -1,4 +1,5 @@
 patch=failed
-run=31259949309
+run=31259996078
 
-error: corrupt patch at /tmp/sie-review-flow.patch:53
+error: patch failed: components/modules/accounting/SieTransferPanel.tsx:169
+error: components/modules/accounting/SieTransferPanel.tsx: patch does not apply
