@@ -25,6 +25,11 @@ const workspace = readFileSync(
   ),
   "utf8",
 );
+const packageJson = readFileSync(new URL("package.json", root), "utf8");
+const qualityWorkflow = readFileSync(
+  new URL(".github/workflows/bynex-quality.yml", root),
+  "utf8",
+);
 
 test("the complete catalog remains separate from company ledger accounts", () => {
   assert.match(migration, /create table if not exists public\.account_plan_catalogs/);
@@ -49,7 +54,18 @@ test("the internal starter set is honest and never claims to be full BAS", () =>
   assert.match(migration, /'complete_bas_plan',false/);
   assert.match(migration, /Safe minimum accounts before a licensed full plan is installed/);
   assert.doesNotMatch(migration, /'complete_bas_plan',true[\s\S]{0,300}BYNEX-STARTER/);
-  for (const account of ["1510", "1513", "1930", "2013", "2018", "2440", "2611", "2641", "3041", "4010"]) {
+  for (const account of [
+    "1510",
+    "1513",
+    "1930",
+    "2013",
+    "2018",
+    "2440",
+    "2611",
+    "2641",
+    "3041",
+    "4010",
+  ]) {
     assert.match(migration, new RegExp(`'${account}'`));
   }
 });
@@ -76,7 +92,10 @@ test("the full selected catalog is searchable without activating every account",
   assert.match(migration, /Sökbart i vald kontoplanskatalog – aktiveras först efter ditt val/);
   assert.match(migration, /activate_account_plan_account/);
   assert.match(migration, /on conflict \(organization_id,account_number\) do update/);
-  assert.doesNotMatch(migration, /insert into public\.ledger_accounts[\s\S]{0,500}select[\s\S]{0,500}account_plan_catalog_accounts/);
+  assert.doesNotMatch(
+    migration,
+    /insert into public\.ledger_accounts[\s\S]{0,500}select[\s\S]{0,500}account_plan_catalog_accounts/,
+  );
   assert.doesNotMatch(api, /activateAll|bulkActivate|Promise\.all\([^)]*activate_account/i);
 });
 
@@ -90,14 +109,14 @@ test("Smart account suggestions learn but never post or activate silently", () =
   assert.doesNotMatch(migration, /post_bookkeeping_voucher/);
   assert.doesNotMatch(migration, /perform public\.activate_account_plan_account/);
   assert.match(panel, /Du väljer alltid själv innan något används/);
-  assert.match(panel, /Smart föreslår men bokför aldrig eller aktiverar konto utan ditt beslut/);
+  assert.match(
+    panel,
+    /Smart föreslår men bokför aldrig eller aktiverar konto utan ditt beslut/,
+  );
 });
 
 test("account plan writes are role controlled and catalog tables are read only to customers", () => {
-  assert.match(
-    migration,
-    /array\['owner','admin'\]::text\[\]/,
-  );
+  assert.match(migration, /array\['owner','admin'\]::text\[\]/);
   assert.match(migration, /private\.is_platform_staff\(null\)/);
   assert.match(migration, /revoke all on public\.account_plan_catalogs/);
   assert.match(migration, /grant select on public\.account_plan_catalogs to authenticated/);
@@ -135,5 +154,11 @@ test("Bynex Bookkeeping exposes a dedicated account plan workspace", () => {
   assert.match(workspace, /\| "account-plan"/);
   assert.match(workspace, /label: "Kontoplan"/);
   assert.match(workspace, /AccountPlanCenter/);
-  assert.match(workspace, /tab === "account-plan"/);
+  assert.match(workspace, /active === "account-plan"/);
+});
+
+test("the account plan regression suite is a required quality gate", () => {
+  assert.match(packageJson, /"test:account-plan"/);
+  assert.match(qualityWorkflow, /Verify versioned account plan/);
+  assert.match(qualityWorkflow, /npm run test:account-plan/);
 });
