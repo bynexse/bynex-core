@@ -269,7 +269,9 @@ export default function AccountPlanCenter({
         throw new Error(payload?.error ?? "Smart kunde inte föreslå konto.");
       }
       setSuggestions(payload.results as SuggestionResult[]);
-      setData((current) => (current ? { ...current, ...payload, results: current.results } : payload));
+      setData((current) =>
+        current ? { ...current, ...payload, results: current.results } : payload,
+      );
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Smart kunde inte föreslå konto.",
@@ -314,10 +316,12 @@ export default function AccountPlanCenter({
           setSuggestions(suggestionPayload.results as SuggestionResult[]);
         }
       }
+      return true;
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Åtgärden kunde inte slutföras.",
       );
+      return false;
     } finally {
       setBusy("");
     }
@@ -327,7 +331,7 @@ export default function AccountPlanCenter({
     event.preventDefault();
     const form = event.currentTarget;
     const values = new FormData(form);
-    await postAction(
+    const succeeded = await postAction(
       {
         action: "create_custom_account",
         accountNumber: values.get("accountNumber"),
@@ -343,7 +347,7 @@ export default function AccountPlanCenter({
       "custom",
       "Det egna kontot är skapat",
     );
-    if (!error) {
+    if (succeeded) {
       form.reset();
       setCustomOpen(false);
     }
@@ -360,7 +364,7 @@ export default function AccountPlanCenter({
       setError("Kontoraderna måste vara giltig JSON.");
       return;
     }
-    await postAction(
+    const succeeded = await postAction(
       {
         action: "install_catalog",
         catalogCode: values.get("catalogCode"),
@@ -383,7 +387,7 @@ export default function AccountPlanCenter({
       "install-catalog",
       "Kontoplanskatalogen är installerad och hash-skyddad",
     );
-    if (!error) {
+    if (succeeded) {
       form.reset();
       setCatalogJson("");
       setInstallOpen(false);
@@ -614,7 +618,12 @@ export default function AccountPlanCenter({
                   <option value="debit">Debet</option>
                   <option value="credit">Kredit</option>
                 </select>
-                <input name="vatCode" maxLength={80} placeholder="Momskod, valfri" className="input" />
+                <input
+                  name="vatCode"
+                  maxLength={80}
+                  placeholder="Momskod, valfri"
+                  className="input"
+                />
                 <input
                   name="searchAliases"
                   maxLength={1000}
@@ -656,7 +665,8 @@ export default function AccountPlanCenter({
                   <BookOpenCheck className="mx-auto h-9 w-9 text-zinc-400" />
                   <p className="mt-3 font-semibold">Inget konto matchar sökningen</p>
                   <p className="mt-1 text-sm text-zinc-500">
-                    Prova ett kontonummer eller ett vardagligt ord. Ägare kan även skapa ett eget konto.
+                    Prova ett kontonummer eller ett vardagligt ord. Ägare kan även skapa ett
+                    eget konto.
                   </p>
                 </div>
               )}
@@ -677,8 +687,9 @@ export default function AccountPlanCenter({
                     Beskriv vad som hände – inte bokföringskontot
                   </h3>
                   <p className="mt-3 max-w-3xl text-sm leading-6 text-[#426b55]">
-                    Smart väger samman ord i beskrivningen, vald katalog, tidigare dokumentanalyser
-                    och liknande bokförda verifikationer. Du väljer alltid själv innan något används.
+                    Smart väger samman ord i beskrivningen, vald katalog, tidigare
+                    dokumentanalyser och liknande bokförda verifikationer. Du väljer alltid
+                    själv innan något används.
                   </p>
                 </div>
               </div>
@@ -842,7 +853,9 @@ export default function AccountPlanCenter({
                   </div>
                   <p className="mt-2 text-xs text-zinc-500">
                     {accountTypeLabels[account.account_type] ?? account.account_type} · {balanceLabels[account.normal_balance] ?? account.normal_balance}
-                    {account.catalog_version_label ? ` · katalog ${account.catalog_version_label}` : ""}
+                    {account.catalog_version_label
+                      ? ` · katalog ${account.catalog_version_label}`
+                      : ""}
                     {account.vat_code ? ` · moms ${account.vat_code}` : ""}
                   </p>
                 </div>
@@ -941,7 +954,9 @@ export default function AccountPlanCenter({
                   <article
                     key={catalog.id}
                     className={`rounded-2xl border p-5 ${
-                      selected ? "border-emerald-400 bg-emerald-50" : "border-zinc-200 bg-white"
+                      selected
+                        ? "border-emerald-400 bg-emerald-50"
+                        : "border-zinc-200 bg-white"
                     }`}
                   >
                     <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
@@ -949,7 +964,9 @@ export default function AccountPlanCenter({
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-semibold">{catalog.display_name}</p>
                           {selected && <Badge tone="success">Vald</Badge>}
-                          {platformDefault && <Badge tone="neutral">Standard för nya företag</Badge>}
+                          {platformDefault && (
+                            <Badge tone="neutral">Standard för nya företag</Badge>
+                          )}
                           {complete ? (
                             <Badge tone="success">Full katalog</Badge>
                           ) : (
@@ -968,40 +985,44 @@ export default function AccountPlanCenter({
                       </div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {!selected && data.permissions.canManage && catalog.status === "active" && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void postAction(
-                              {
-                                action: "select_catalog",
-                                catalogId: catalog.id,
-                                planMode: catalogMode(catalog),
-                              },
-                              `select:${catalog.id}`,
-                              `${catalog.display_name} är vald för företaget`,
-                            )
-                          }
-                          className="rounded-xl bg-zinc-950 px-4 py-2.5 text-xs font-semibold text-white"
-                        >
-                          Välj katalog
-                        </button>
-                      )}
-                      {!platformDefault && data.permissions.canInstallCatalog && catalog.status === "active" && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void postAction(
-                              { action: "set_platform_default", catalogId: catalog.id },
-                              `default:${catalog.id}`,
-                              `${catalog.display_name} är standard för nya företag`,
-                            )
-                          }
-                          className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-xs font-semibold"
-                        >
-                          Gör till plattformsstandard
-                        </button>
-                      )}
+                      {!selected &&
+                        data.permissions.canManage &&
+                        catalog.status === "active" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void postAction(
+                                {
+                                  action: "select_catalog",
+                                  catalogId: catalog.id,
+                                  planMode: catalogMode(catalog),
+                                },
+                                `select:${catalog.id}`,
+                                `${catalog.display_name} är vald för företaget`,
+                              )
+                            }
+                            className="rounded-xl bg-zinc-950 px-4 py-2.5 text-xs font-semibold text-white"
+                          >
+                            Välj katalog
+                          </button>
+                        )}
+                      {!platformDefault &&
+                        data.permissions.canInstallCatalog &&
+                        catalog.status === "active" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void postAction(
+                                { action: "set_platform_default", catalogId: catalog.id },
+                                `default:${catalog.id}`,
+                                `${catalog.display_name} är standard för nya företag`,
+                              )
+                            }
+                            className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-xs font-semibold"
+                          >
+                            Gör till plattformsstandard
+                          </button>
+                        )}
                     </div>
                   </article>
                 );
@@ -1022,12 +1043,15 @@ export default function AccountPlanCenter({
                     <p className="text-sm text-zinc-500">Bynex HQ</p>
                     <h3 className="text-2xl font-semibold">Installera licensierad katalog</h3>
                     <p className="mt-2 text-sm leading-6 text-zinc-600">
-                      Endast normaliserade, licensierade källdata accepteras. Importen valideras,
-                      innehållshashas, versionssätts och kan inte tyst skriva över en befintlig version.
+                      Endast normaliserade, licensierade källdata accepteras. Importen
+                      valideras, innehållshashas, versionssätts och kan inte tyst skriva
+                      över en befintlig version.
                     </p>
                   </div>
                 </div>
-                <ChevronDown className={`h-5 w-5 transition ${installOpen ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`h-5 w-5 transition ${installOpen ? "rotate-180" : ""}`}
+                />
               </button>
 
               {installOpen && (
@@ -1035,10 +1059,33 @@ export default function AccountPlanCenter({
                   onSubmit={installCatalog}
                   className="mt-6 grid gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 md:grid-cols-2"
                 >
-                  <input name="catalogCode" required placeholder="Katalogkod, t.ex. BAS" className="input" />
-                  <input name="versionLabel" required placeholder="Version, t.ex. 2026" className="input" />
-                  <input name="versionYear" required type="number" min="1990" max="2200" placeholder="År" className="input" />
-                  <input name="displayName" required placeholder="Visningsnamn" className="input" />
+                  <input
+                    name="catalogCode"
+                    required
+                    placeholder="Katalogkod, t.ex. BAS"
+                    className="input"
+                  />
+                  <input
+                    name="versionLabel"
+                    required
+                    placeholder="Version, t.ex. 2026"
+                    className="input"
+                  />
+                  <input
+                    name="versionYear"
+                    required
+                    type="number"
+                    min="1990"
+                    max="2200"
+                    placeholder="År"
+                    className="input"
+                  />
+                  <input
+                    name="displayName"
+                    required
+                    placeholder="Visningsnamn"
+                    className="input"
+                  />
                   <select name="sourceKind" required className="input">
                     <option value="bas_machine_readable">Maskinläsbar BAS</option>
                     <option value="customer_owned">Kundägd katalog</option>
@@ -1051,7 +1098,12 @@ export default function AccountPlanCenter({
                     <option value="internal">Intern</option>
                   </select>
                   <input name="sourceUrl" placeholder="Källadress" className="input" />
-                  <input name="licenseReference" required placeholder="Avtal / order / licensreferens" className="input" />
+                  <input
+                    name="licenseReference"
+                    required
+                    placeholder="Avtal / order / licensreferens"
+                    className="input"
+                  />
                   <label className="text-xs font-semibold text-zinc-500">
                     Publicerad
                     <input name="publishedOn" type="date" className="input mt-1" />
@@ -1118,7 +1170,9 @@ function AccountResultCard({
           </span>
           <p className="font-semibold">{result.account_name}</p>
           <Badge tone={result.already_active ? "success" : "neutral"}>
-            {result.already_active ? "Aktivt" : sourceLabels[result.source_kind] ?? result.source_kind}
+            {result.already_active
+              ? "Aktivt"
+              : sourceLabels[result.source_kind] ?? result.source_kind}
           </Badge>
         </div>
         <p className="mt-2 text-xs text-zinc-500">
