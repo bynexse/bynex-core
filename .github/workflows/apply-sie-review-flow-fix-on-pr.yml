@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   apply:
-    if: ${{ !contains(github.event.pull_request.head.sha, '[sie-review-fix-applied]') }}
+    if: ${{ github.event.pull_request.head.ref == 'fix/sie-import-review-flow' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,15 +24,17 @@ jobs:
         run: |
           python <<'PY'
           from pathlib import Path
-          from textwrap import dedent
 
           workflow = Path('.github/workflows/apply-sie-review-flow-fix.yml').read_text()
           marker = "          python <<'PY'\n"
           end_marker = "\n          PY\n\n      - name: Run focused checks"
           if marker not in workflow or end_marker not in workflow:
               raise SystemExit('embedded patch script markers not found')
-          script = workflow.split(marker, 1)[1].split(end_marker, 1)[0]
-          script = dedent(script)
+          raw = workflow.split(marker, 1)[1].split(end_marker, 1)[0]
+          script = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in raw.splitlines()
+          ).lstrip()
           exec(compile(script, 'apply-sie-review-flow-fix.py', 'exec'))
           PY
 
