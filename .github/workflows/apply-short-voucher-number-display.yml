@@ -166,3 +166,5 @@ export function displayVoucherNumber(value: string | null | undefined) {
           git add -A
           git commit -m "feat: present voucher numbers as A1 without rewriting history [short-voucher-display-applied]"
           git push origin HEAD:agent/short-voucher-number-display
+
+# retriggered after initial workflow registration
