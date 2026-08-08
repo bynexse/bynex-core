@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   fix:
+    # Strictly limited to Bynex's own PR 68 and its exact internal branch.
     if: github.event.pull_request.number == 68 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'agent/versioned-searchable-chart-of-accounts'
     runs-on: ubuntu-latest
     steps:
