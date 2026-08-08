@@ -162,3 +162,10 @@ test("the account plan regression suite is a required quality gate", () => {
   assert.match(qualityWorkflow, /Verify versioned account plan/);
   assert.match(qualityWorkflow, /npm run test:account-plan/);
 });
+
+test("account activation callbacks support the async server decision", () => {
+  assert.match(
+    panel,
+    /onActivate: \(\) => void \| Promise<void> \| undefined/,
+  );
+});
