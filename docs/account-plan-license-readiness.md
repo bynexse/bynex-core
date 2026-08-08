@@ -20,7 +20,7 @@ Bynex använder en begränsad intern startkontoplan tills en kommersiellt licens
 - Bynex Smart får föreslå men aldrig aktivera eller bokföra utan ett mänskligt beslut.
 - Samma katalogversion med ett annat innehåll stoppas.
 - Källhash, licensreferens, aktör, tidpunkt och antal konton sparas som installationsbevis.
-- Själva licensierade källdatan ska inte läggas i Git-repot.
+- Själva licensierade källdatan ska inte läggas i Git-repot, chatten eller en publik filyta.
 
 ## Frisläppningsgrind
 
