@@ -1,6 +1,6 @@
 # Licensberedskap för kontoplanskatalog
 
-Bynex använder en begränsad intern startkontoplan tills en kommersiellt licensierad maskinläsbar katalog har köpts och accepterats.
+Bynex använder en begränsad intern startkontoplan tills en kommersiellt licensierad maskinläsbar katalog har köpts och accepterats. Kontoplansmotorn, sökningen, versionshanteringen och behörighetsgränserna kan därför färdigställas utan att den licensierade källdatan finns i utvecklingsmiljön.
 
 ## När licensen är köpt
 
