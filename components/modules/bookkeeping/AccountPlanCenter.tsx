@@ -646,18 +646,17 @@ export default function AccountPlanCenter({
                   result={result}
                   canManage={data.permissions.canManage}
                   busy={busy}
-                  onActivate={() =>
-                    result.catalog_account_id
-                      ? postAction(
-                          {
-                            action: "activate_account",
-                            catalogAccountId: result.catalog_account_id,
-                          },
-                          `activate:${result.catalog_account_id}`,
-                          `Konto ${result.account_number} är aktiverat`,
-                        )
-                      : undefined
-                  }
+                  onActivate={() => {
+                    if (!result.catalog_account_id) return;
+                    void postAction(
+                      {
+                        action: "activate_account",
+                        catalogAccountId: result.catalog_account_id,
+                      },
+                      `activate:${result.catalog_account_id}`,
+                      `Konto ${result.account_number} är aktiverat`,
+                    );
+                  }}
                 />
               ))}
               {!searchResults.length && (
