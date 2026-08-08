@@ -97,7 +97,7 @@ create index if not exists account_plan_catalog_accounts_type_idx
   on public.account_plan_catalog_accounts(catalog_id,account_type,active);
 create index if not exists account_plan_catalog_accounts_search_idx
   on public.account_plan_catalog_accounts
-  using gin (to_tsvector('simple',search_text));
+  using gin (to_tsvector('simple'::regconfig,search_text));
 
 create table if not exists public.account_plan_platform_settings (
   singleton boolean primary key default true check (singleton),
@@ -182,11 +182,12 @@ create index if not exists ledger_accounts_search_idx
   on public.ledger_accounts
   using gin (
     to_tsvector(
-      'simple',
-      account_number || ' ' || name || ' '
-      || array_to_string(search_aliases,' ')
+      'simple'::regconfig,
+      account_number || ' ' || name
     )
   );
+create index if not exists ledger_accounts_search_aliases_idx
+  on public.ledger_accounts using gin (search_aliases);
 
 alter table public.account_plan_catalogs enable row level security;
 alter table public.account_plan_catalogs force row level security;
