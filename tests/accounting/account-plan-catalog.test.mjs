@@ -88,7 +88,7 @@ test("licensed machine-readable BAS installation is versioned, hashed and fail c
 
 test("the full selected catalog is searchable without activating every account", () => {
   assert.match(migration, /search_account_plan/);
-  assert.match(migration, /to_tsvector\('simple',search_text\)/);
+  assert.match(migration, /to_tsvector\('simple'::regconfig,search_text\)/);
   assert.match(migration, /plainto_tsquery\('simple',v_query\)/);
   assert.match(migration, /Sökbart i vald kontoplanskatalog – aktiveras först efter ditt val/);
   assert.match(migration, /activate_account_plan_account/);
