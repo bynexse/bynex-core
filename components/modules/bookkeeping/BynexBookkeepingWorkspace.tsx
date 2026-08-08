@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import LiveAccountingIntegrationsModule from "@/components/modules/accounting/LiveAccountingIntegrationsModule";
+import AccountPlanCenter from "@/components/modules/bookkeeping/AccountPlanCenter";
 import BookkeepingControlCenter from "@/components/modules/bookkeeping/BookkeepingControlCenter";
 import LiveBookkeepingModule from "@/components/modules/bookkeeping/LiveBookkeepingModule";
 import OneClickBookkeepingPanel from "@/components/modules/bookkeeping/OneClickBookkeepingPanel";
@@ -25,6 +26,7 @@ type BookkeepingTab =
   | "one-click"
   | "control"
   | "supplier-inbox"
+  | "account-plan"
   | "bookkeeping"
   | "integrations"
   | "year-end"
@@ -55,9 +57,15 @@ const baseTabs: Array<{
     icon: Inbox,
   },
   {
+    id: "account-plan",
+    label: "Kontoplan",
+    description: "Sök, aktivera och få Smart-hjälp",
+    icon: BookOpenCheck,
+  },
+  {
     id: "bookkeeping",
     label: "Löpande bokföring",
-    description: "Verifikat, konton, underlag och SIE",
+    description: "Verifikat, underlag och SIE",
     icon: BookOpenCheck,
   },
   {
@@ -128,7 +136,7 @@ export default function BynexBookkeepingWorkspace({
           </div>
         </div>
 
-        <div className="grid gap-2 p-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-7">
+        <div className="grid gap-2 p-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const selected = active === tab.id;
@@ -182,6 +190,7 @@ export default function BynexBookkeepingWorkspace({
           {fullInboxOpen && <SupplierInvoiceInboxPanel notify={notify} />}
         </>
       )}
+      {active === "account-plan" && <AccountPlanCenter notify={notify} />}
       {active === "bookkeeping" && <LiveBookkeepingModule notify={notify} />}
       {active === "integrations" && (
         <LiveAccountingIntegrationsModule notify={notify} />
